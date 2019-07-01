@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.0)
 
 project(vgprob)
 
+find_package(Protobuf REQUIRED)
+
 set(CXXOPTS_INCLUDE ${PROJECT_SOURCE_DIR}/deps/cxxopts/include)
 set(GBWT_INCLUDE ${PROJECT_SOURCE_DIR}/deps/gbwt/include)
 set(GSSW_INCLUDE ${PROJECT_SOURCE_DIR}/deps/gssw/src)
