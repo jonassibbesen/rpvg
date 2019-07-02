@@ -28,8 +28,10 @@ ExternalProject_Add(sdsl-lite-proj
   GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
   GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/sdsl-lite"
-  CMAKE_ARGS -Wno-dev
-  INSTALL_COMMAND ""
+  BUILD_IN_SOURCE TRUE
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ./install.sh ${PROJECT_SOURCE_DIR}/external/sdsl-lite
 )
 
 ExternalProject_Add(gbwt-proj
