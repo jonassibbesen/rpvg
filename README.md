@@ -2,7 +2,7 @@
 Method for calculating variation graph read mapping probabilities given a set of paths in a GBWT index.
 
 ### Compilation
-*vgprob* requires that [protobuf](https://github.com/protocolbuffers/protobuf) and OpenMP is installed before compilation. 
+*vgprob* requires that [protobuf](https://github.com/protocolbuffers/protobuf), [htslib](https://github.com/samtools/htslib) and OpenMP is installed before compilation. 
 
 1. `git clone https://github.com/jonassibbesen/vgprob.git`
 2. `cd vgprob`
