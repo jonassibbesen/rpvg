@@ -29,6 +29,7 @@ ExternalProject_Add(sdsl-lite-proj
   GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/sdsl-lite"
   BUILD_IN_SOURCE TRUE
+  UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ./install.sh ${PROJECT_SOURCE_DIR}/external/sdsl-lite
@@ -80,16 +81,6 @@ link_directories(
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-
-  set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3")
-
-elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-  set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3")
-
-endif()
-
 add_executable(${PROJECT_NAME} src/main.cpp src/alignment_path.cpp src/io/register_libvg_io.cpp src/io/register_loader_saver_gbwt.cpp)
 
 add_dependencies(${PROJECT_NAME} catch2-proj)
@@ -99,4 +90,16 @@ add_dependencies(${PROJECT_NAME} gbwt-proj)
 add_dependencies(${PROJECT_NAME} gssw-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
 
-target_link_libraries(${PROJECT_NAME} gbwt gssw vgio sdsl omp protobuf)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+  set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3")
+  target_link_libraries(${PROJECT_NAME} gbwt gssw vgio sdsl omp protobuf)
+
+elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+  set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3")
+  target_link_libraries(${PROJECT_NAME} gbwt gssw vgio sdsl protobuf)
+
+endif()
+
+
