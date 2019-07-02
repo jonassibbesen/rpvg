@@ -10,6 +10,7 @@ ExternalProject_Add(catch2-proj
   GIT_REPOSITORY "https://github.com/catchorg/Catch2.git"
   GIT_TAG "c0d3a2e08f187a5a59ab097cb158487d2590796c"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/catch2"
+  UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -19,6 +20,7 @@ ExternalProject_Add(cxxopts-proj
   GIT_REPOSITORY "https://github.com/jarro2783/cxxopts.git"
   GIT_TAG "3c73d91c0b04e2b59462f0a741be8c07024c1bc0"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/cxxopts"
+  UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
@@ -40,6 +42,7 @@ ExternalProject_Add(gbwt-proj
   GIT_TAG "fefa626dec310edef0c7269d65c59bb95e22f6dd"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
   BUILD_IN_SOURCE TRUE
+  UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
   INSTALL_COMMAND ""
@@ -51,6 +54,7 @@ ExternalProject_Add(gssw-proj
   GIT_TAG "79e0599d46133dc1c1c7dce451f29808c2f7e3a9"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gssw"
   BUILD_IN_SOURCE TRUE
+  UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
   INSTALL_COMMAND ""
@@ -61,6 +65,7 @@ ExternalProject_Add(libvgio-proj
   GIT_TAG "f6f93ddeeb97a3977ad8109f16bf031da718e40a"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
+  UPDATE_COMMAND ""
   INSTALL_COMMAND ""
 )
 
