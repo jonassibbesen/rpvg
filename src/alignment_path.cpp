@@ -1,14 +1,18 @@
 
 #include "alignment_path.hpp"
+#include "utils.hpp"
 
 
-AlignmentPath::AlignmentPath() : node_length(0), seq_length(0) {
+AlignmentPath::AlignmentPath() {
+    
+    node_length = 0;
+    seq_length = 0;
 
     scores = make_pair(0,0);
     mapqs = make_pair(0,0);
 }
 
-void AlignmentPath::extent_align_path(const vg::Path & extend_path, const uint32_t & node_offset, const gbwt::GBWT & paths_index) {
+void AlignmentPath::extentAlignPath(const vg::Path & extend_path, const uint32_t & node_offset, const gbwt::GBWT & paths_index) {
     
     assert(node_offset < extend_path.mapping().size());
     auto mapping_it = extend_path.mapping().cbegin() + node_offset;
@@ -78,6 +82,22 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
     }
 
     return false;
+}
+
+ostream& operator<<(ostream& os, const AlignmentPath & align_path) {
+
+    for (auto & id: align_path.path_ids) {
+
+        os << id << " ";
+    }
+
+    os << "| " << align_path.node_length;
+    os << " | " << align_path.seq_length;
+    os << " | (" << align_path.scores.first << ", " << align_path.scores.second << ")";
+    os << " | (" << align_path.mapqs.first << ", " << align_path.mapqs.second << ")";
+    os << endl;
+
+    return os;
 }
 
 ostream& operator<<(ostream& os, const vector<AlignmentPath> & align_paths) {

@@ -86,7 +86,13 @@ link_directories(
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
-add_executable(${PROJECT_NAME} src/main.cpp src/alignment_path.cpp src/io/register_libvg_io.cpp src/io/register_loader_saver_gbwt.cpp)
+add_executable(
+  ${PROJECT_NAME} 
+  src/main.cpp 
+  src/alignment_path.cpp 
+  src/read_path_probs.cpp 
+  src/io/register_libvg_io.cpp 
+  src/io/register_loader_saver_gbwt.cpp)
 
 add_dependencies(${PROJECT_NAME} catch2-proj)
 add_dependencies(${PROJECT_NAME} cxxopts-proj)
@@ -95,15 +101,22 @@ add_dependencies(${PROJECT_NAME} gbwt-proj)
 add_dependencies(${PROJECT_NAME} gssw-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
 
+target_link_libraries(
+  ${PROJECT_NAME} 
+  protobuf 
+  sdsl 
+  gbwt 
+  gssw 
+  vgio)
+
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
   set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3")
-  target_link_libraries(${PROJECT_NAME} gbwt gssw vgio sdsl omp protobuf)
+  target_link_libraries(${PROJECT_NAME} omp)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
   set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3")
-  target_link_libraries(${PROJECT_NAME} gbwt gssw vgio sdsl protobuf)
 
 endif()
 
