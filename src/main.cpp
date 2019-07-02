@@ -14,10 +14,12 @@
 #include <vg/io/stream.hpp>
 #include <vg/io/basic_stream.hpp>
 
+#include "io/register_libvg_io.hpp"
+
 #include "utils.hpp"
 #include "alignment_path.hpp"
+#include "path_clusters.hpp"
 #include "read_path_probs.hpp"
-#include "io/register_libvg_io.hpp"
 
 using namespace std;
 
@@ -27,69 +29,13 @@ const double frag_length_sd = 43;
 // #define debug
 
 
-struct PathClusters {
-
-    vector<uint32_t> path_to_cluster_index;
-    vector<vector<uint32_t> > cluster_to_path_index;
-};
-
-PathClusters find_path_clusters(const unordered_map<int32_t, unordered_set<int32_t> > & connected_paths, const int32_t num_paths) {
-
-    PathClusters path_clusters;
-    path_clusters.path_to_cluster_index = vector<uint32_t>(num_paths, -1);
-
-    for (size_t i = 0; i < num_paths; ++i) {
-
-        if (path_clusters.path_to_cluster_index.at(i) == -1) {
-
-            std::queue<int32_t> search_queue;
-            search_queue.push(i);
-
-            path_clusters.cluster_to_path_index.emplace_back(vector<uint32_t>());
-
-            while (!search_queue.empty()) {
-
-                auto cur_path = search_queue.front();
-
-                bool is_first_visit = (path_clusters.path_to_cluster_index.at(cur_path) == -1);
-                assert(is_first_visit || path_clusters.path_to_cluster_index.at(cur_path) == path_clusters.cluster_to_path_index.size() - 1);
-
-                path_clusters.path_to_cluster_index.at(cur_path) = path_clusters.cluster_to_path_index.size() - 1;
-                
-                if (is_first_visit) {
-
-                    path_clusters.cluster_to_path_index.back().emplace_back(cur_path);
-                    auto connected_paths_it = connected_paths.find(cur_path);
-
-                    if (connected_paths_it != connected_paths.end()) {
-
-                        for (auto & path: connected_paths_it->second) {
-
-                            if (path_clusters.path_to_cluster_index.at(path) == -1) {
-
-                                search_queue.push(path);
-                            }
-                        }
-                    }
-                }
-
-                search_queue.pop();
-            }
-
-            sort(path_clusters.cluster_to_path_index.back().begin(), path_clusters.cluster_to_path_index.back().end());
-        }
-    }
-
-    return path_clusters;
-}
-
 vector<AlignmentPath> get_align_paths(const vg::Alignment & alignment, const gbwt::GBWT & paths_index) {
             
     AlignmentPath align_path;
     align_path.scores.first = alignment.score();
     align_path.mapqs.first = alignment.mapping_quality();
 
-    align_path.extentAlignPath(alignment.path(), 0, paths_index);
+    align_path.extendPath(alignment.path(), 0, paths_index);
 
     return vector<AlignmentPath>(1, align_path);
 }
@@ -114,7 +60,7 @@ vector<AlignmentPath> get_align_paths(const vg::MultipathAlignment & mp_alignmen
         const vg::Subpath & subpath = mp_alignment.subpath(cur_mp_align_path.second);
 
         cur_mp_align_path.first.scores.first += subpath.score();
-        cur_mp_align_path.first.extentAlignPath(subpath.path(), 0, paths_index);
+        cur_mp_align_path.first.extendPath(subpath.path(), 0, paths_index);
 
         if (subpath.next_size() > 0) {
 
@@ -389,7 +335,6 @@ int main(int argc, char* argv[]) {
                 cout << get_align_paths_with_ids<vg::MultipathAlignment>(mp_alignment_1_rc, *paths_index) << endl;
                 cout << get_align_paths_with_ids<vg::MultipathAlignment>(mp_alignment_2, *paths_index) << endl;
                 cout << get_align_paths_with_ids<vg::MultipathAlignment>(mp_alignment_2_rc, *paths_index) << endl;       
-
     #endif 
 
             }
@@ -442,11 +387,6 @@ int main(int argc, char* argv[]) {
                     }
 
                     paired_align_paths_threads.at(omp_get_thread_num()).emplace_back(paired_align_paths);
-
-                    if (paired_align_paths_threads.at(omp_get_thread_num()).size() % 1000000 == 0) {
-
-                        cout << omp_get_thread_num() << ": " << paired_align_paths_threads.at(omp_get_thread_num()).size() << endl;        
-                    }
                 }
             }
         });
@@ -470,7 +410,7 @@ int main(int argc, char* argv[]) {
     double time6 = gbwt::readTimer();
     cout << "Merged connected path threads " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    auto path_clusters = find_path_clusters(connected_paths_threads.front(), num_paths);
+    auto path_clusters = PathClusters(connected_paths_threads.front(), num_paths);
 
     double time62 = gbwt::readTimer();
     cout << "Found path clusters " << time62 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;

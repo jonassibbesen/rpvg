@@ -90,6 +90,7 @@ add_executable(
   ${PROJECT_NAME} 
   src/main.cpp 
   src/alignment_path.cpp 
+  src/path_clusters.cpp 
   src/read_path_probs.cpp 
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp)

@@ -12,7 +12,7 @@ AlignmentPath::AlignmentPath() {
     mapqs = make_pair(0,0);
 }
 
-void AlignmentPath::extentAlignPath(const vg::Path & extend_path, const uint32_t & node_offset, const gbwt::GBWT & paths_index) {
+void AlignmentPath::extendPath(const vg::Path & extend_path, const uint32_t & node_offset, const gbwt::GBWT & paths_index) {
     
     assert(node_offset < extend_path.mapping().size());
     auto mapping_it = extend_path.mapping().cbegin() + node_offset;
