@@ -2,13 +2,10 @@
 Method for calculating variation graph read mapping probabilities given a set of paths in a GBWT index.
 
 ### Compilation
-vgprob depends on the following repositories:
+*vgprob* requires that [protobuf](https://github.com/protocolbuffers/protobuf), [htslib](https://github.com/samtools/htslib) and OpenMP are installed before compilation. 
 
-* [cxxxopts](https://github.com/jarro2783/cxxopts)
-* [sdsl-lite](https://github.com/simongog/sdsl-lite)
-* [gbwt](https://github.com/jltsiren/gbwt)
-* [protobuf](https://github.com/protocolbuffers/protobuf)
-* [libvgio](https://github.com/vgteam/libvgio)
-* [gssw](https://github.com/vgteam/gssw)
-
-Remember to update the include and link directories in `CMakeLists.txt` so that they correspond to the location of depedencies on your machine. 
+1. `git clone https://github.com/jonassibbesen/vgprob.git`
+2. `cd vgprob`
+3. `mkdir build && cd build`
+4. `cmake ..`
+5. `make -j <threads>`
