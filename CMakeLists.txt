@@ -1,34 +1,99 @@
-cmake_minimum_required(VERSION 2.8.0)
+cmake_minimum_required(VERSION 3.1)
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 project(vgprob)
 
 find_package(Protobuf REQUIRED)
+find_package(OpenMP REQUIRED)
 
-set(CXXOPTS_INCLUDE ${PROJECT_SOURCE_DIR}/deps/cxxopts/include)
-set(GBWT_INCLUDE ${PROJECT_SOURCE_DIR}/deps/gbwt/include)
-set(GSSW_INCLUDE ${PROJECT_SOURCE_DIR}/deps/gssw/src)
-set(LIBVGIO_INCLUDE ${PROJECT_SOURCE_DIR}/deps/libvgio/include)
-set(SDSL_INCLUDE ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/include)
+ExternalProject_Add(catch2-proj
+  GIT_REPOSITORY "https://github.com/catchorg/Catch2.git"
+  GIT_TAG "c0d3a2e08f187a5a59ab097cb158487d2590796c"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/catch2"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+)
 
-set(GBWT_LIB ${PROJECT_SOURCE_DIR}/deps/gbwt)
-set(GSSW_LIB ${PROJECT_SOURCE_DIR}/deps/gssw/lib)
-set(LIBVGIO_LIB ${PROJECT_SOURCE_DIR}/deps/libvgio/build)
-set(SDSL_LIB ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib)
+ExternalProject_Add(cxxopts-proj
+  GIT_REPOSITORY "https://github.com/jarro2783/cxxopts.git"
+  GIT_TAG "3c73d91c0b04e2b59462f0a741be8c07024c1bc0"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/cxxopts"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+)
 
-include_directories(${CXXOPTS_INCLUDE} ${GBWT_INCLUDE} ${GSSW_INCLUDE} ${LIBVGIO_INCLUDE} ${SDSL_INCLUDE})
-link_directories(${GBWT_LIB} ${GSSW_LIB} ${LIBVGIO_LIB} ${SDSL_LIB})
+ExternalProject_Add(sdsl-lite-proj
+  GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
+  GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/sdsl-lite"
+  INSTALL_COMMAND ""
+)
 
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+ExternalProject_Add(gbwt-proj
+  GIT_REPOSITORY "https://github.com/jltsiren/gbwt.git"
+  GIT_TAG "fefa626dec310edef0c7269d65c59bb95e22f6dd"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
+  BINARY_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND make
+  INSTALL_COMMAND ""
+  DEPENDS sdsl-lite-proj
+)
+
+ExternalProject_Add(gssw-proj
+  GIT_REPOSITORY "https://github.com/vgteam/gssw.git"
+  GIT_TAG "79e0599d46133dc1c1c7dce451f29808c2f7e3a9"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gssw"
+  BINARY_DIR "${PROJECT_SOURCE_DIR}/external/gssw"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND make
+  INSTALL_COMMAND ""
+)
+
+ExternalProject_Add(libvgio-proj
+  GIT_REPOSITORY "https://github.com/vgteam/libvgio.git"
+  GIT_TAG "f6f93ddeeb97a3977ad8109f16bf031da718e40a"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
+  BUILD_IN_SOURCE TRUE
+  INSTALL_COMMAND ""
+)
+
+include_directories(
+  ${PROJECT_SOURCE_DIR}/external/catch2/include 
+  ${PROJECT_SOURCE_DIR}/external/cxxopts/include 
+  ${PROJECT_SOURCE_DIR}/external/sdsl-lite/include
+  ${PROJECT_SOURCE_DIR}/external/gbwt/include 
+  ${PROJECT_SOURCE_DIR}/external/gssw/src 
+  ${PROJECT_SOURCE_DIR}/external/libvgio 
+  ${PROJECT_SOURCE_DIR}/external/libvgio/include)
+
+link_directories(
+  ${PROJECT_SOURCE_DIR}/external/gbwt 
+  ${PROJECT_SOURCE_DIR}/external/gssw/lib 
+  ${PROJECT_SOURCE_DIR}/external/libvgio 
+  ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib)
+
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-	SET(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3")
+  set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3")
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-	SET(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3")
+  set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3")
 
 endif()
 
 add_executable(${PROJECT_NAME} src/main.cpp src/alignment_path.cpp src/io/register_libvg_io.cpp src/io/register_loader_saver_gbwt.cpp)
+
+add_dependencies(${PROJECT_NAME} catch2-proj)
+add_dependencies(${PROJECT_NAME} cxxopts-proj)
+add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
+add_dependencies(${PROJECT_NAME} gbwt-proj)
+add_dependencies(${PROJECT_NAME} gssw-proj)
+add_dependencies(${PROJECT_NAME} libvgio-proj)
+
 target_link_libraries(${PROJECT_NAME} gbwt gssw vgio sdsl omp protobuf)
