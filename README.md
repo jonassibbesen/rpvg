@@ -1,5 +1,5 @@
 # vgprob
-Method for calculating variation graph read probabilities given a set of paths in a GBWT index.
+Method for calculating variation graph mapped read probabilities given a set of paths in a GBWT index.
 
 ### Compilation
 *vgprob* requires that [protobuf](https://github.com/protocolbuffers/protobuf), [htslib](https://github.com/samtools/htslib) and OpenMP are installed before compilation. 
