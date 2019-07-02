@@ -1,4 +1,7 @@
 
+#include <algorithm>
+#include <assert.h>
+
 #include "read_path_probs.hpp"
 #include "utils.hpp"
 

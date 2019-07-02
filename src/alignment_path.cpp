@@ -12,30 +12,6 @@ AlignmentPath::AlignmentPath() {
     mapqs = make_pair(0,0);
 }
 
-void AlignmentPath::extendPath(const vg::Path & extend_path, const uint32_t & node_offset, const gbwt::GBWT & paths_index) {
-    
-    assert(node_offset < extend_path.mapping().size());
-    auto mapping_it = extend_path.mapping().cbegin() + node_offset;
-
-    if (node_length == 0) {
-
-        assert(seq_length == 0);
-
-        path = paths_index.find(mapping_to_gbwt(*mapping_it));
-        node_length++;
-        seq_length = mapping_to_length(*mapping_it);
-        ++mapping_it;
-    } 
-
-    while (mapping_it != extend_path.mapping().cend()) {
-
-        path = paths_index.extend(path, mapping_to_gbwt(*mapping_it));
-        node_length++;
-        seq_length += mapping_to_length(*mapping_it);
-        ++mapping_it;
-    }
-}
-
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
     return (lhs.path_ids == rhs.path_ids && lhs.node_length == rhs.node_length && lhs.seq_length == rhs.seq_length && mapqsToProb(lhs.mapqs) == mapqsToProb(rhs.mapqs) && lhs.scores.first + lhs.scores.second == rhs.scores.first + rhs.scores.second);

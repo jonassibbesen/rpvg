@@ -1,5 +1,7 @@
 
 #include <queue>
+#include <algorithm>
+#include <assert.h>
 
 #include "path_clusters.hpp"
 

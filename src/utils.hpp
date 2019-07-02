@@ -7,6 +7,8 @@
 #include <limits>
 #include <math.h>
 #include <sstream>
+#include <algorithm>
+#include <assert.h>
 
 #include <google/protobuf/util/json_util.h>
 #include <vg/io/basic_stream.hpp>

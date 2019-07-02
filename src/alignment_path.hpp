@@ -24,8 +24,6 @@ class AlignmentPath {
 
         pair<int32_t, int32_t> scores;
         pair<int32_t, int32_t> mapqs;
-
-        void extendPath(const vg::Path & path, const uint32_t & node_offset, const gbwt::GBWT & paths_index);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);

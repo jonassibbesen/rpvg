@@ -6,6 +6,7 @@
 #include <vector>
 #include <chrono>
 #include <limits>
+#include <algorithm>
 
 #include <cxxopts.hpp>
 #include <gbwt/gbwt.h>
@@ -18,6 +19,7 @@
 
 #include "utils.hpp"
 #include "alignment_path.hpp"
+#include "alignment_path_finder.hpp"
 #include "path_clusters.hpp"
 #include "read_path_probs.hpp"
 
@@ -26,207 +28,6 @@ using namespace std;
 const double frag_length_mean = 277;
 const double frag_length_sd = 43;
 
-// #define debug
-
-
-vector<AlignmentPath> get_align_paths(const vg::Alignment & alignment, const gbwt::GBWT & paths_index) {
-            
-    AlignmentPath align_path;
-    align_path.scores.first = alignment.score();
-    align_path.mapqs.first = alignment.mapping_quality();
-
-    align_path.extendPath(alignment.path(), 0, paths_index);
-
-    return vector<AlignmentPath>(1, align_path);
-}
-
-vector<AlignmentPath> get_align_paths(const vg::MultipathAlignment & mp_alignment, const gbwt::GBWT & paths_index) {
-
-    vector<AlignmentPath> align_paths;
-
-    std::queue<pair<AlignmentPath, int32_t> > mp_align_path_queue;
-    assert(mp_alignment.start_size() > 0); 
-
-    for (auto & start_subpath_idx: mp_alignment.start()) {
-
-        mp_align_path_queue.push(make_pair(AlignmentPath(), start_subpath_idx));
-    }
-
-    // Perform depth-first alignment path extension.
-    while (!mp_align_path_queue.empty()) {
-
-        auto & cur_mp_align_path = mp_align_path_queue.front();
-
-        const vg::Subpath & subpath = mp_alignment.subpath(cur_mp_align_path.second);
-
-        cur_mp_align_path.first.scores.first += subpath.score();
-        cur_mp_align_path.first.extendPath(subpath.path(), 0, paths_index);
-
-        if (subpath.next_size() > 0) {
-
-            for (auto & next_subpath_idx: subpath.next()) {
-
-                mp_align_path_queue.push(make_pair(cur_mp_align_path.first, next_subpath_idx));
-            }
-
-        } else {
-
-            align_paths.emplace_back(cur_mp_align_path.first);
-        }
-
-        mp_align_path_queue.pop();
-    }
-
-    return align_paths;
-}
-
-template<typename AlignType>
-vector<AlignmentPath> get_align_paths_with_ids(const AlignType & alignment, const gbwt::GBWT & paths_index) {
-
-    auto align_paths = get_align_paths(alignment, paths_index);
-
-    for (auto & align_path: align_paths) {
-
-        align_path.path_ids = paths_index.locate(align_path.path);
-    }
-
-    return align_paths;
-}
-
-multimap<gbwt::node_type, pair<int32_t, int32_t> > get_gbwt_node_index(const vg::Alignment & alignment) {
-
-    multimap<gbwt::node_type, pair<int32_t, int32_t> > gbwt_node_index;
-
-    for (size_t i = 0; i < alignment.path().mapping_size(); ++i) {
-
-        gbwt_node_index.emplace(mapping_to_gbwt(alignment.path().mapping(i)), make_pair(0, i));
-    }
-
-    return gbwt_node_index;
-}
-
-void find_paired_align_paths(vector<AlignmentPath> * paired_align_paths, const AlignmentPath & start_align_path, const vg::Alignment & end_alignment, const gbwt::GBWT & paths_index, const vector<uint32_t> & node_seq_lengths, const int32_t max_pair_distance) {
-
-    assert(!start_align_path.path.empty());
-
-    std::queue<AlignmentPath> paired_align_path_queue;
-    paired_align_path_queue.push(start_align_path);
-
-    assert(end_alignment.path().mapping_size() > 0);
-
-    auto end_alignment_node_index = get_gbwt_node_index(end_alignment);
-
-    // Perform depth-first path extension.
-    while (!paired_align_path_queue.empty()) {
-
-        auto & cur_paired_align_path = paired_align_path_queue.front();
-
-        if (cur_paired_align_path.seq_length > max_pair_distance) {
-
-            paired_align_path_queue.pop();
-            continue;                
-        }
-
-        auto end_alignment_node_index_it = end_alignment_node_index.equal_range(cur_paired_align_path.path.node);
-
-        // Stop current extension if end node is reached.
-        if (end_alignment_node_index_it.first != end_alignment_node_index_it.second) {
-
-            while (end_alignment_node_index_it.first != end_alignment_node_index_it.second) {
-
-                auto start_mapping_idx = end_alignment_node_index_it.first->second.second + 1;
-
-                for (size_t i = start_mapping_idx; i < end_alignment.path().mapping_size(); ++i) {
-
-                    auto gbwt_node_id = mapping_to_gbwt(end_alignment.path().mapping(i));
-
-                    cur_paired_align_path.path = paths_index.extend(cur_paired_align_path.path, gbwt_node_id);
-                    cur_paired_align_path.node_length++;
-                    cur_paired_align_path.seq_length += node_seq_lengths.at(gbwt::Node::id(gbwt_node_id));
-                }
-
-                cur_paired_align_path.seq_length -= (node_seq_lengths.at(end_alignment.path().mapping().rbegin()->position().node_id()) - mapping_to_length(*end_alignment.path().mapping().rbegin()));
-
-                if (!cur_paired_align_path.path.empty() && cur_paired_align_path.seq_length <= max_pair_distance) {
-
-                    paired_align_paths->emplace_back(cur_paired_align_path);
-
-                    paired_align_paths->back().path_ids = paths_index.locate(paired_align_paths->back().path);                                
-                    paired_align_paths->back().scores.second = end_alignment.score();
-                    paired_align_paths->back().mapqs.second = end_alignment.mapping_quality();           
-                }
-
-                end_alignment_node_index_it.first++;
-            }
-
-            paired_align_path_queue.pop();
-            continue;
-        }
-        
-        auto out_edges = paths_index.edges(cur_paired_align_path.path.node);
-
-        // End current extension if no outgoing edges exist.
-        if (out_edges.empty()) {
-
-            paired_align_path_queue.pop();
-            continue;
-        }
-
-        auto out_edges_it = out_edges.begin(); 
-
-        while (out_edges_it != out_edges.end()) {
-
-            if (out_edges_it->first != gbwt::ENDMARKER) {
-
-                auto extended_path = paths_index.extend(cur_paired_align_path.path, out_edges_it->first);
-
-                // Add new extension to queue if not empty (path found).
-                if (!extended_path.empty()) { 
-
-                    AlignmentPath new_paired_align_path = cur_paired_align_path;
-                    new_paired_align_path.path = extended_path;
-                    new_paired_align_path.node_length++;
-                    new_paired_align_path.seq_length += node_seq_lengths.at(gbwt::Node::id(out_edges_it->first));
-
-                    paired_align_path_queue.push(new_paired_align_path);
-                }
-            }
-
-            ++out_edges_it;
-        }
-
-        paired_align_path_queue.pop();
-    }
-}
-
-vector<AlignmentPath> get_paired_align_paths(const vg::Alignment & alignment_1, const vg::Alignment & alignment_2, const gbwt::GBWT & paths_index, const vector<uint32_t> & node_seq_lengths, const int32_t max_pair_distance) {
-
-    vector<AlignmentPath> paired_align_paths;
-
-    function<size_t(const int64_t)> node_seq_length_func = [&node_seq_lengths](const int64_t node_id) { return node_seq_lengths.at(node_id); };
-
-    auto align_path_1 = get_align_paths(alignment_1, paths_index);
-    assert(align_path_1.size() == 1);
-
-    if (!align_path_1.front().path.empty()) {
-
-        vg::Alignment alignment_2_rc = alignment_2; 
-        *alignment_2_rc.mutable_path() = lazy_reverse_complement_path(alignment_2.path(), node_seq_length_func);
-        find_paired_align_paths(&paired_align_paths, align_path_1.front(), alignment_2_rc, paths_index, node_seq_lengths, max_pair_distance);
-    }
-
-    auto align_path_2 = get_align_paths(alignment_2, paths_index);
-    assert(align_path_2.size() == 1);
-
-    if (!align_path_2.front().path.empty()) {
-
-        vg::Alignment alignment_1_rc = alignment_1; 
-        *alignment_1_rc.mutable_path() = lazy_reverse_complement_path(alignment_1.path(), node_seq_length_func);
-        find_paired_align_paths(&paired_align_paths, align_path_2.front(), alignment_1_rc, paths_index, node_seq_lengths, max_pair_distance);
-    }
-
-    return paired_align_paths;
-}
 
 int main(int argc, char* argv[]) {
 
@@ -269,33 +70,18 @@ int main(int argc, char* argv[]) {
 
     double time1 = gbwt::readTimer();
 
-    vector<uint32_t> node_seq_lengths;
-
-    {
-        vg::Graph graph = vg::io::inputStream(option_results["graph"].as<string>());
-        node_seq_lengths = vector<uint32_t>(graph.node_size() + 1, 0);
-
-        for (auto & node: graph.node()) {
-
-            if (node.id() >= node_seq_lengths.size()) {
-
-                node_seq_lengths.resize(node.id() + 1, 0);
-            }
-
-            assert(node_seq_lengths.at(node.id()) == 0);
-            node_seq_lengths.at(node.id()) = node.sequence().size();
-        }
-    }
-
-    double time2 = gbwt::readTimer();
-    cout << "Load graph and find node seq_lengths " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    vg::Graph graph = vg::io::inputStream(option_results["graph"].as<string>());
 
     assert(vg::io::register_libvg_io());
-
     unique_ptr<gbwt::GBWT> paths_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
+    double time2 = gbwt::readTimer();
+    cout << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+
+    AlignmentPathFinder alignment_path_finder(graph, *paths_index);
+
     double time3 = gbwt::readTimer();
-    cout << "Load GBWT " << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cout << "Initialize alignment path finder " << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     ifstream alignment_istream(option_results["alignments"].as<string>());
     assert(alignment_istream.is_open());
@@ -314,29 +100,6 @@ int main(int argc, char* argv[]) {
 
             if (mp_alignment_1.subpath_size() > 0 && mp_alignment_2.subpath_size() > 0) {
 
-    #ifdef debug
-                cout << endl;
-                cout << pb2json(mp_alignment_1) << endl;
-                cout << pb2json(mp_alignment_2) << endl;
-
-
-                vg::MultipathAlignment mp_alignment_1_rc = mp_alignment_1; 
-                mp_alignment_1_rc.clear_start();
-                *mp_alignment_1_rc.mutable_subpath() = lazy_reverse_complement_subpaths(mp_alignment_1_rc.subpath(), mp_alignment_1_rc.mutable_start(), [&node_seq_lengths](const int64_t node_id) { return node_seq_lengths.at(node_id); });
-
-                vg::MultipathAlignment mp_alignment_2_rc = mp_alignment_2; 
-                mp_alignment_2_rc.clear_start();
-                *mp_alignment_2_rc.mutable_subpath() = lazy_reverse_complement_subpaths(mp_alignment_2_rc.subpath(), mp_alignment_2_rc.mutable_start(), [&node_seq_lengths](const int64_t node_id) { return node_seq_lengths.at(node_id); });
-
-                cout << pb2json(mp_alignment_1_rc) << endl;
-                cout << pb2json(mp_alignment_2_rc) << endl;
-
-                cout << get_align_paths_with_ids<vg::MultipathAlignment>(mp_alignment_1, *paths_index) << endl;
-                cout << get_align_paths_with_ids<vg::MultipathAlignment>(mp_alignment_1_rc, *paths_index) << endl;
-                cout << get_align_paths_with_ids<vg::MultipathAlignment>(mp_alignment_2, *paths_index) << endl;
-                cout << get_align_paths_with_ids<vg::MultipathAlignment>(mp_alignment_2_rc, *paths_index) << endl;       
-    #endif 
-
             }
         });
 
@@ -346,29 +109,7 @@ int main(int argc, char* argv[]) {
 
             if (alignment_1.has_path() && alignment_2.has_path()) {
 
-                auto paired_align_paths = get_paired_align_paths(alignment_1, alignment_2, *paths_index, node_seq_lengths, frag_length_mean + 10 * frag_length_sd);
-
-    #ifdef debug
-                cout << endl;
-                cout << pb2json(alignment_1) << endl;
-                cout << pb2json(alignment_2) << endl;
-
-                vg::Alignment alignment_1_rc = alignment_1; 
-                *alignment_1_rc.mutable_path() = lazy_reverse_complement_path(alignment_1.path(), [&node_seq_lengths](const int64_t node_id) { return node_seq_lengths.at(node_id); });
-
-                vg::Alignment alignment_2_rc = alignment_2; 
-                *alignment_2_rc.mutable_path() = lazy_reverse_complement_path(alignment_2.path(), [&node_seq_lengths](const int64_t node_id) { return node_seq_lengths.at(node_id); });
-
-                cout << pb2json(alignment_1_rc) << endl;
-                cout << pb2json(alignment_2_rc) << endl;
-
-                cout << get_align_paths_with_ids<vg::Alignment>(alignment_1, *paths_index) << endl;
-                cout << get_align_paths_with_ids<vg::Alignment>(alignment_1_rc, *paths_index) << endl;
-                cout << get_align_paths_with_ids<vg::Alignment>(alignment_2, *paths_index) << endl;
-                cout << get_align_paths_with_ids<vg::Alignment>(alignment_2_rc, *paths_index) << endl;
-          
-                cout << paired_align_paths << endl;
-    #endif 
+                auto paired_align_paths = alignment_path_finder.findPairedAlignmentPathsIds(alignment_1, alignment_2, frag_length_mean + 10 * frag_length_sd);
 
                 if (!paired_align_paths.empty()) {
 

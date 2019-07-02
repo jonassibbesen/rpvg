@@ -8,7 +8,7 @@ find_package(OpenMP REQUIRED)
 
 ExternalProject_Add(catch2-proj
   GIT_REPOSITORY "https://github.com/catchorg/Catch2.git"
-  GIT_TAG "c0d3a2e08f187a5a59ab097cb158487d2590796c"
+  GIT_TAG "820271bf246afd4a381ff753b0cda14aeb1d0a1c"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/catch2"
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
@@ -90,6 +90,7 @@ add_executable(
   ${PROJECT_NAME} 
   src/main.cpp 
   src/alignment_path.cpp 
+  src/alignment_path_finder.cpp 
   src/path_clusters.cpp 
   src/read_path_probs.cpp 
   src/io/register_libvg_io.cpp 
