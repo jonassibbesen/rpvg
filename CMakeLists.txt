@@ -28,6 +28,7 @@ ExternalProject_Add(sdsl-lite-proj
   GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
   GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/sdsl-lite"
+  CMAKE_ARGS -Wno-dev
   INSTALL_COMMAND ""
 )
 
@@ -35,7 +36,7 @@ ExternalProject_Add(gbwt-proj
   GIT_REPOSITORY "https://github.com/jltsiren/gbwt.git"
   GIT_TAG "fefa626dec310edef0c7269d65c59bb95e22f6dd"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
-  BINARY_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
+  BUILD_IN_SOURCE TRUE
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
   INSTALL_COMMAND ""
@@ -46,7 +47,7 @@ ExternalProject_Add(gssw-proj
   GIT_REPOSITORY "https://github.com/vgteam/gssw.git"
   GIT_TAG "79e0599d46133dc1c1c7dce451f29808c2f7e3a9"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gssw"
-  BINARY_DIR "${PROJECT_SOURCE_DIR}/external/gssw"
+  BUILD_IN_SOURCE TRUE
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
   INSTALL_COMMAND ""
