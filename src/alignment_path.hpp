@@ -16,20 +16,25 @@ class AlignmentPath {
     
         AlignmentPath();
 
-        gbwt::SearchState path; 
+        gbwt::SearchState path;
         vector<gbwt::size_type> path_ids;
-        
+
         int32_t node_length;
         int32_t seq_length;
 
-        pair<int32_t, int32_t> scores;
-        pair<int32_t, int32_t> mapqs;
+        vector<int32_t> mapqs;
+        vector<int32_t> scores;
+
+        int32_t mapqMin() const;
+        double mapqProb() const;
+        int32_t scoreSum() const;
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs);
 bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs);
 
+ostream& operator<<(ostream& os, const vector<int32_t> & values);
 ostream& operator<<(ostream& os, const AlignmentPath & align_path);
 ostream& operator<<(ostream& os, const vector<AlignmentPath> & align_paths);
 

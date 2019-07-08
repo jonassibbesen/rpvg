@@ -27,14 +27,22 @@ inline double phred_to_prob(int phred) {
     return pow(10, -((double)phred) / 10);
 }
 
-// normal pdf, from http://stackoverflow.com/a/10848293/238609
+// log normal pdf, from http://stackoverflow.com/a/10848293/238609
 template <typename T>
-inline T normal_pdf(T x, T m, T s)
+inline T log_normal_pdf(T x, T m, T s)
 {
     static const T inv_sqrt_2pi = 0.3989422804014327;
     T a = (x - m) / s;
 
-    return inv_sqrt_2pi / s * exp(-T(0.5) * a * a);
+    return log(inv_sqrt_2pi) - log(s) - T(0.5) * a * a;
+}
+
+/*
+ * Return the log of the sum of two log-transformed values without taking them
+ * out of log space.
+ */
+inline double add_log(double log_x, double log_y) {
+    return log_x > log_y ? log_x + log1p(exp(log_y - log_x)) : log_y + log1p(exp(log_x - log_y));
 }
 
 /// Convert vg::Mapping to gbwt::node_type.
@@ -99,7 +107,7 @@ inline vg::Mapping lazy_reverse_complement_mapping(const vg::Mapping& mapping,
 }
 
 // Reverse complements path. Note that edit sequences are not reverse complemented. 
-// Original function in vg repo:: reverse_complement_path().
+// Original function in vg repo: reverse_complement_path().
 inline vg::Path lazy_reverse_complement_path(const vg::Path& path,
                              const function<int64_t(id_t)> & node_length) {
 
@@ -117,21 +125,38 @@ inline vg::Path lazy_reverse_complement_path(const vg::Path& path,
     return path_rc;
 }
 
-// Reverse complements subpats. Note that edit sequences are not reverse complemented.
-// Original name in vg repo:: rev_comp_multipath_alignment().
-inline google::protobuf::RepeatedPtrField<vg::Subpath> lazy_reverse_complement_subpaths(const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, google::protobuf::RepeatedField<google::protobuf::uint32> * subpath_starts, const function<int64_t(id_t)> & node_length) {
-
-    google::protobuf::RepeatedPtrField<vg::Subpath> subpaths_rc;
+// Reverse complements alignment. Note that sequences, paths and edit sequences 
+// are not reverse complemented. Original function in vg repo: reverse_complement_alignment().
+inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
+                                       const function<int64_t(id_t)>& node_length) {
+    // We're going to reverse the alignment and all its mappings.
+    // TODO: should we/can we do this in place?
     
-    vector<vector<size_t> > reverse_edge_lists(subpaths.size());
+    vg::Alignment aln_rc = aln;
+    *aln_rc.mutable_path() = lazy_reverse_complement_path(aln.path(), node_length);
+    
+    return aln_rc;
+}
+
+
+// Reverse complements multipath alignment. Note that edit sequences, paths and edit sequences 
+// are not reverse complemented. Original name in vg repo: rev_comp_multipath_alignment().
+inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::MultipathAlignment& multipath_aln, const function<int64_t(int64_t)>& node_length) {
+    
+    vg::MultipathAlignment multipath_aln_rc = multipath_aln;
+
+    vector< vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());
     vector<size_t> reverse_starts;
     
+    // remove subpaths to avoid duplicating
+    multipath_aln_rc.clear_subpath();
+    
     // add subpaths in reverse order to maintain topological ordering
-    for (int64_t i = subpaths.size() - 1; i >= 0; i--) {
-        const vg::Subpath & subpath = subpaths[i];
-        vg::Subpath * rc_subpath = subpaths_rc.Add();
+    for (int64_t i = multipath_aln.subpath_size() - 1; i >= 0; i--) {
+        const vg::Subpath& subpath = multipath_aln.subpath(i);
+        vg::Subpath* rc_subpath = multipath_aln_rc.add_subpath();
         
-        *rc_subpath->mutable_path() = lazy_reverse_complement_path(subpath.path(), node_length);
+        *(rc_subpath->mutable_path()) = lazy_reverse_complement_path(subpath.path(), node_length);
         rc_subpath->set_score(subpath.score());
 
         if (subpath.next_size() > 0) {
@@ -147,26 +172,26 @@ inline google::protobuf::RepeatedPtrField<vg::Subpath> lazy_reverse_complement_s
     }
     
     // add reversed edges
-    for (size_t i = 0; i < subpaths.size(); i++) {
-        vg::Subpath * rc_subpath = &(subpaths_rc[i]);
-        vector<size_t>& reverse_edge_list = reverse_edge_lists[subpaths.size() - i - 1];
+    for (size_t i = 0; i < multipath_aln.subpath_size(); i++) {
+        vg::Subpath* rc_subpath = multipath_aln_rc.mutable_subpath(i);
+        vector<size_t>& reverse_edge_list = reverse_edge_lists[multipath_aln.subpath_size() - i - 1];
         for (size_t j = 0; j < reverse_edge_list.size(); j++) {
-            rc_subpath->add_next(subpaths.size() - reverse_edge_list[j] - 1);
+            rc_subpath->add_next(multipath_aln.subpath_size() - reverse_edge_list[j] - 1);
         }
     }
     
-    assert(subpath_starts->empty());
+    // remove start nodes that are invalid in reverse
+    multipath_aln_rc.clear_start();
     
     // assume that if the original multipath alignment had its starts labeled they want them
     // labeled in the reverse complement too
-    if (subpaths.size() > 0) {
+    if (multipath_aln.start_size() > 0) {
         for (size_t i = 0; i < reverse_starts.size(); i++) {
-            google::protobuf::uint32 * subpath_start = subpath_starts->Add();
-            *subpath_start = subpaths.size() - reverse_starts[i] - 1;
+            multipath_aln_rc.add_start(multipath_aln.subpath_size() - reverse_starts[i] - 1);
         }
     }
 
-    return subpaths_rc;
+    return multipath_aln_rc;
 }
 
 inline string pb2json(const google::protobuf::Message &msg) {
@@ -186,19 +211,6 @@ inline string pb2json(const google::protobuf::Message &msg) {
 
 //------------------------------------------------------------------------------
 
-
-// Convert paired mapping quality to probability.
-inline double mapqsToProb(const pair<int32_t, int32_t> & mapqs) {
-
-    if (mapqs.first > 0 && mapqs.second > 0) {
-
-        return (1 - (1 - phred_to_prob(mapqs.first)) * (1 - phred_to_prob(mapqs.second)));
-    
-    } else {
-
-        return 1;        
-    }
-}
 
 // Precision used when comparing double variables.
 static const double double_precision = numeric_limits<double>::epsilon() * 100;

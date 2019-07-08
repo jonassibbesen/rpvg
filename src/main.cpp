@@ -10,7 +10,6 @@
 
 #include <cxxopts.hpp>
 #include <gbwt/gbwt.h>
-#include <gssw.h>
 #include <vg/io/vpkg.hpp>
 #include <vg/io/stream.hpp>
 #include <vg/io/basic_stream.hpp>
@@ -29,6 +28,29 @@ const double frag_length_mean = 277;
 const double frag_length_sd = 43;
 
 
+void addPairedAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * paired_align_paths_threads, const vector<AlignmentPath> & paired_align_paths, const int32_t thread_num) {
+
+    if (!paired_align_paths.empty()) {
+
+        auto anchor_path_id = paired_align_paths.front().path_ids.front();
+
+        for (auto & align_path: paired_align_paths) {
+
+            for (auto & path_id: align_path.path_ids) {
+
+                if (anchor_path_id != path_id) {
+
+                    connected_paths_threads->at(thread_num)[anchor_path_id].emplace(path_id);
+                    connected_paths_threads->at(thread_num)[path_id].emplace(anchor_path_id);
+                }
+            }
+        }
+
+        paired_align_paths_threads->at(thread_num).emplace_back(paired_align_paths);
+    }    
+}
+
+
 int main(int argc, char* argv[]) {
 
     cxxopts::Options options("vgprob", "calculate read path probabilities");
@@ -38,7 +60,7 @@ int main(int argc, char* argv[]) {
       ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
       ("a,alignments", "gam alignments file name (required)", cxxopts::value<string>())
       ("o,output", "output prefix (required)", cxxopts::value<string>())
-      // ("m,multipath", "alignment input is multipath (gamp)", cxxopts::value<bool>())
+      ("m,multipath", "alignment input is multipath (gamp)", cxxopts::value<bool>())
       ("t,threads", "number of compute threads", cxxopts::value<int32_t>()->default_value("1"))
       ("h,help", "print help", cxxopts::value<bool>())
       ;
@@ -78,11 +100,6 @@ int main(int argc, char* argv[]) {
     double time2 = gbwt::readTimer();
     cout << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    AlignmentPathFinder alignment_path_finder(graph, *paths_index);
-
-    double time3 = gbwt::readTimer();
-    cout << "Initialize alignment path finder " << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
-
     ifstream alignment_istream(option_results["alignments"].as<string>());
     assert(alignment_istream.is_open());
 
@@ -96,45 +113,33 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("multipath")) {
 
-        vg::io::for_each_interleaved_pair_parallel<vg::MultipathAlignment>(alignment_istream, [&](vg::MultipathAlignment & mp_alignment_1, vg::MultipathAlignment & mp_alignment_2) {
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(graph, *paths_index);
 
-            if (mp_alignment_1.subpath_size() > 0 && mp_alignment_2.subpath_size() > 0) {
+        vg::io::for_each_interleaved_pair_parallel<vg::MultipathAlignment>(alignment_istream, [&](vg::MultipathAlignment & alignment_1, vg::MultipathAlignment & alignment_2) {
 
+            if (alignment_1.subpath_size() > 0 && alignment_2.subpath_size() > 0) {
+
+                auto paired_align_paths = alignment_path_finder.findPairedAlignmentPathsIds(alignment_1, alignment_2, frag_length_mean + 10 * frag_length_sd);
+                addPairedAlignmentPathsThreaded(&connected_paths_threads, &paired_align_paths_threads, paired_align_paths, omp_get_thread_num());
             }
         });
 
     } else {
+
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(graph, *paths_index);
 
         vg::io::for_each_interleaved_pair_parallel<vg::Alignment>(alignment_istream, [&](vg::Alignment & alignment_1, vg::Alignment & alignment_2) {
 
             if (alignment_1.has_path() && alignment_2.has_path()) {
 
                 auto paired_align_paths = alignment_path_finder.findPairedAlignmentPathsIds(alignment_1, alignment_2, frag_length_mean + 10 * frag_length_sd);
-
-                if (!paired_align_paths.empty()) {
-
-                    auto anchor_path_id = paired_align_paths.front().path_ids.front();
-
-                    for (auto & align_path: paired_align_paths) {
-
-                        for (auto & path_id: align_path.path_ids) {
-
-                            if (anchor_path_id != path_id) {
-
-                                connected_paths_threads.at(omp_get_thread_num())[anchor_path_id].emplace(path_id);
-                                connected_paths_threads.at(omp_get_thread_num())[path_id].emplace(anchor_path_id);
-                            }
-                        }
-                    }
-
-                    paired_align_paths_threads.at(omp_get_thread_num()).emplace_back(paired_align_paths);
-                }
+                addPairedAlignmentPathsThreaded(&connected_paths_threads, &paired_align_paths_threads, paired_align_paths, omp_get_thread_num());
             }
         });
     }
 
     double time5 = gbwt::readTimer();
-    cout << "Found paired alignment paths " << time5 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cout << "Found paired alignment paths " << time5 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     for (size_t i = 1; i < connected_paths_threads.size(); ++i) {
 
@@ -172,8 +177,7 @@ int main(int argc, char* argv[]) {
     vector<vector<ReadPathProbs> > clustered_paired_align_path_probs(path_clusters.cluster_to_path_index.size());
 
     #pragma omp parallel
-    { 
-    
+    {  
         #pragma omp for
         for (size_t i = 0; i < clustered_paired_align_paths.size(); ++i) {
 
@@ -226,13 +230,13 @@ int main(int argc, char* argv[]) {
             
             } else {
 
-                probs_ostream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx);
+                probs_ostream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
                 num_paired_paths = 1;
                 prev_unique_probs_idx = j;
             }
         }
 
-        probs_ostream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx);
+        probs_ostream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
     }
 
     alignment_istream.close();

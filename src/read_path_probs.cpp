@@ -1,6 +1,9 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <numeric>
+
+#include <gssw.h>
 
 #include "read_path_probs.hpp"
 #include "utils.hpp"
@@ -8,11 +11,13 @@
 
 ReadPathProbs::ReadPathProbs() {
 
+    score_log_base = 1;
     noise_prob = 1;    
 }
 
 ReadPathProbs::ReadPathProbs(const int32_t num_paths) {
 
+    score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
     noise_prob = 1;
     read_path_probs = vector<double>(num_paths, 0); 
 }
@@ -22,47 +27,45 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
     assert(!align_paths.empty());
     assert(clustered_path_index.size() == read_path_probs.size());
 
-    if (align_paths.front().mapqs.first > 0 && align_paths.front().mapqs.second > 0) {
+    if (align_paths.front().mapqMin() > 0) {
 
-        noise_prob = mapqsToProb(align_paths.front().mapqs);
+        assert(align_paths.front().mapqs.size() == 2);
+        assert(align_paths.front().scores.size() == 2);
+
+        noise_prob = align_paths.front().mapqProb();
         assert(noise_prob < 1);
 
-        vector<double> align_paths_probs;
-        align_paths_probs.reserve(align_paths.size());
+        vector<double> align_paths_log_probs;
+        align_paths_log_probs.reserve(align_paths.size());
 
-        if (align_paths.size() == 1) {
+        double score_log_probs_sum = numeric_limits<double>::lowest();
 
-            align_paths_probs.emplace_back(1 - noise_prob);
-        
-        } else {
+        for (auto & align_path: align_paths) {
 
-            double sum_scores = 0;
+            score_log_probs_sum = add_log(score_log_probs_sum, score_log_base * align_path.scoreSum());
+        }
 
-            for (auto & align_path: align_paths) {
+        double align_paths_log_probs_sum = numeric_limits<double>::lowest();
 
-                sum_scores += align_path.scores.first + align_path.scores.second;
-            }
+        for (auto & align_path: align_paths) {
 
-            double sum_probs = 0;
+            assert(align_path.mapqs.size() == 2);
+            assert(align_path.scores.size() == 2);
 
-            for (auto & align_path: align_paths) {
+            align_paths_log_probs.emplace_back(score_log_base * align_path.scoreSum() - score_log_probs_sum + log_normal_pdf<double>(align_path.seq_length, frag_length_mean, frag_length_sd));
+            align_paths_log_probs_sum = add_log(align_paths_log_probs_sum, align_paths_log_probs.back());
+        }
 
-                align_paths_probs.emplace_back((align_path.scores.first + align_path.scores.second) / sum_scores * normal_pdf<double>(align_path.seq_length, frag_length_mean, frag_length_sd));
-                sum_probs += align_paths_probs.back();
-            }
+        for (auto & log_probs: align_paths_log_probs) {
 
-            for (auto & probs: align_paths_probs) {
-
-                probs /= sum_probs;
-                probs *= (1 - noise_prob);
-            }
+            log_probs -= align_paths_log_probs_sum;
         }
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
             for (auto & path: align_paths.at(i).path_ids) {
 
-                read_path_probs.at(clustered_path_index.at(path)) = align_paths_probs.at(i) / align_paths.at(i).path_ids.size();
+                read_path_probs.at(clustered_path_index.at(path)) = exp(align_paths_log_probs.at(i)) / align_paths.at(i).path_ids.size();
             }
         }
     }
@@ -161,8 +164,6 @@ ostream& operator<<(ostream& os, const ReadPathProbs & probs) {
 
         os << " " << prob;
     }
-
-    os << endl;
 
     return os;
 }

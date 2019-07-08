@@ -7,7 +7,8 @@
 // #define debug
 
 
-AlignmentPathFinder::AlignmentPathFinder(const vg::Graph & graph, const gbwt::GBWT & paths_index_in) : paths_index(paths_index_in) {
+template<class AlignmentType>
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const vg::Graph & graph, const gbwt::GBWT & paths_index_in) : paths_index(paths_index_in) {
 
     node_seq_lengths = vector<uint32_t>(graph.node_size() + 1, 0);
 
@@ -23,99 +24,209 @@ AlignmentPathFinder::AlignmentPathFinder(const vg::Graph & graph, const gbwt::GB
     }
 }
 
-AlignmentPath AlignmentPathFinder::findAlignmentPath(const vg::Alignment & alignment) const {
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(const AlignmentType & alignment) const {
             
     AlignmentPath align_path;
-    align_path.scores.first = alignment.score();
-    align_path.mapqs.first = alignment.mapping_quality();
-
-    extendAlignmentPath(&align_path, alignment.path(), 0);
-
-    return align_path;
+    return extendAlignmentPath(align_path, alignment);
 }
 
-AlignmentPath AlignmentPathFinder::findAlignmentPathIds(const vg::Alignment & alignment) const {
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPathsIds(const AlignmentType & alignment) const {
 
-    auto align_path = findAlignmentPath(alignment);
-    align_path.path_ids = paths_index.locate(align_path.path);
+    auto align_paths = findAlignmentPaths(alignment);
 
-    return align_path;
+    for (auto & align_path: align_paths) {
+
+        align_path.path_ids = paths_index.locate(align_path.path);
+    }
+
+    return align_paths;
 }
 
-void AlignmentPathFinder::extendAlignmentPath(AlignmentPath * align_path, const vg::Path & extend_path, const uint32_t & node_offset) const {
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment) const {
+
+    return extendAlignmentPath(align_path, alignment, make_pair(0, 0));
+}
+
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment, const pair<uint32_t, uint32_t> offset) const {
+
+    vector<AlignmentPath> extended_align_path(1, align_path);
+    extended_align_path.front().mapqs.emplace_back(alignment.mapping_quality());
+    extended_align_path.front().scores.emplace_back(alignment.score());
+
+    assert(offset.first == 0);
+    extendAlignmentPath(&extended_align_path.front(), alignment.path(), offset.second);
+
+    if (extended_align_path.front().path.empty()) {
+
+        return vector<AlignmentPath>();
     
-    assert(node_offset < extend_path.mapping().size());
-    auto mapping_it = extend_path.mapping().cbegin() + node_offset;
+    } else {
 
-    if (align_path->node_length == 0) {
-
-        assert(align_path->seq_length == 0);
-
-        align_path->path = paths_index.find(mapping_to_gbwt(*mapping_it));
-        align_path->node_length++;
-        align_path->seq_length = mapping_to_length(*mapping_it);
-        ++mapping_it;
-    } 
-
-    while (mapping_it != extend_path.mapping().cend()) {
-
-        align_path->path = paths_index.extend(align_path->path, mapping_to_gbwt(*mapping_it));
-        align_path->node_length++;
-        align_path->seq_length += mapping_to_length(*mapping_it);
-        ++mapping_it;
+        return extended_align_path;
     }
 }
 
-vector<AlignmentPath> AlignmentPathFinder::findPairedAlignmentPaths(const vg::Alignment & alignment_1, const vg::Alignment & alignment_2, const int32_t max_pair_distance) const {
+template<class AlignmentType>
+void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * align_path, const vg::Path & path, const uint32_t offset) const {
+    
+    if (offset < path.mapping().size()) {
+    
+        auto mapping_it = path.mapping().cbegin() + offset;
+
+        if (align_path->node_length == 0) {
+
+            assert(align_path->seq_length == 0);
+
+            align_path->path = paths_index.find(mapping_to_gbwt(*mapping_it));
+            align_path->node_length++;
+            align_path->seq_length = mapping_to_length(*mapping_it);
+            ++mapping_it;
+        } 
+
+        while (mapping_it != path.mapping().cend()) {
+
+            align_path->path = paths_index.extend(align_path->path, mapping_to_gbwt(*mapping_it));
+            align_path->node_length++;
+            align_path->seq_length += mapping_to_length(*mapping_it);
+            ++mapping_it;
+        }
+    }
+}
+
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment) const {
+
+    vector<AlignmentPath> extended_align_paths;
+
+    for (auto & start_idx: alignment.start()) {
+
+        // TODO: tmp fix
+        if (start_idx >= alignment.subpath_size()) {
+
+            continue;
+        }
+
+        auto cur_extended_align_paths = extendAlignmentPath(align_path, alignment, make_pair(start_idx, 0));
+        extended_align_paths.insert(extended_align_paths.end(), cur_extended_align_paths.begin(), cur_extended_align_paths.end());
+    }
+
+    return extended_align_paths;
+}
+
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment, const pair<uint32_t, uint32_t> offset) const {
+
+    vector<AlignmentPath> extended_align_path(1, align_path);
+    extended_align_path.front().mapqs.emplace_back(alignment.mapping_quality());
+    extended_align_path.front().scores.emplace_back(0);
+
+    // cout << offset.first << endl;
+    // cout << offset.second << endl;
+    // cout << alignment.subpath_size() << endl;
+
+    assert(offset.first < alignment.subpath_size());
+    extendAlignmentPaths(&extended_align_path, alignment.subpath(), offset);
+            
+    return extended_align_path;
+}
+
+template<class AlignmentType>
+void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentPath> * align_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & sub_path, const pair<uint32_t, uint32_t> offset) const {
+
+    std::queue<pair<AlignmentPath, pair<int32_t, int32_t> > > align_paths_queue;
+
+    for (auto & align_path: *align_paths) {
+
+        align_paths_queue.push(make_pair(align_path, offset));
+    }
+
+    align_paths->clear();
+
+    // Perform depth-first alignment path extension.
+    while (!align_paths_queue.empty()) {
+
+        auto & cur_align_path = align_paths_queue.front();
+
+        const vg::Subpath & subpath = sub_path[cur_align_path.second.first];
+
+        cur_align_path.first.scores.back() += subpath.score();
+        extendAlignmentPath(&cur_align_path.first, subpath.path(), cur_align_path.second.second);
+
+        if (subpath.next_size() > 0) {
+
+            for (auto & next_subpath_idx: subpath.next()) {
+
+                align_paths_queue.push(make_pair(cur_align_path.first, make_pair(next_subpath_idx, 0)));
+            }
+
+        } else if (!cur_align_path.first.path.empty()) {
+
+            align_paths->emplace_back(cur_align_path.first);
+        }
+
+        align_paths_queue.pop();
+    }
+}
+
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const {
 
     function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
 
     vector<AlignmentPath> paired_align_paths;
 
-    auto align_path_1 = findAlignmentPath(alignment_1);
+    auto align_paths_1 = findAlignmentPaths(alignment_1);
 
-    if (!align_path_1.path.empty()) {
+    if (!align_paths_1.empty()) {
 
-        vg::Alignment alignment_2_rc = alignment_2; 
-        *alignment_2_rc.mutable_path() = lazy_reverse_complement_path(alignment_2.path(), node_seq_length_func);
-        pairAlignmentPaths(&paired_align_paths, align_path_1, alignment_2_rc, max_pair_distance);
+        AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_seq_length_func);
+        
+        for (auto & align_path: align_paths_1) {
+
+            pairAlignmentPaths(&paired_align_paths, align_path, alignment_2_rc, max_pair_distance);
+        }
     }
 
-    auto align_path_2 = findAlignmentPath(alignment_2);
+    auto align_paths_2 = findAlignmentPaths(alignment_2);
 
-    if (!align_path_2.path.empty()) {
+    if (!align_paths_2.empty()) {
 
-        vg::Alignment alignment_1_rc = alignment_1; 
-        *alignment_1_rc.mutable_path() = lazy_reverse_complement_path(alignment_1.path(), node_seq_length_func);
-        pairAlignmentPaths(&paired_align_paths, align_path_2, alignment_1_rc, max_pair_distance);
+        AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_seq_length_func);
+
+        for (auto & align_path: align_paths_2) {
+
+            pairAlignmentPaths(&paired_align_paths, align_path, alignment_1_rc, max_pair_distance);
+        }
     }
-
-#ifdef debug
-        cout << endl;
-        cout << pb2json(alignment_1) << endl;
-        cout << pb2json(alignment_2) << endl;
-
-        vg::Alignment alignment_1_rc = alignment_1; 
-        *alignment_1_rc.mutable_path() = lazy_reverse_complement_path(alignment_1.path(), node_seq_length_func);
-
-        vg::Alignment alignment_2_rc = alignment_2; 
-        *alignment_2_rc.mutable_path() = lazy_reverse_complement_path(alignment_2.path(), node_seq_length_func);
-
-        cout << pb2json(alignment_1_rc) << endl;
-        cout << pb2json(alignment_2_rc) << endl;
-
-        cout << findAlignmentPathIds(alignment_1) << endl;
-        cout << findAlignmentPathIds(alignment_1_rc) << endl;
-        cout << findAlignmentPathIds(alignment_2) << endl;
-        cout << findAlignmentPathIds(alignment_2_rc) << endl;       
-
-        cout << paired_align_paths << endl;
-#endif 
 
     return paired_align_paths;
 }
 
-vector<AlignmentPath> AlignmentPathFinder::findPairedAlignmentPathsIds(const vg::Alignment & alignment_1, const vg::Alignment & alignment_2, const int32_t max_pair_distance) const {
+template<class AlignmentType>
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPathsIds(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const {
+
+#ifdef debug
+
+        function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+
+        auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_seq_length_func);
+        auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_seq_length_func);
+
+        cout << pb2json(alignment_1) << endl;
+        cout << pb2json(alignment_2_rc) << endl;
+        cout << pb2json(alignment_2) << endl;
+        cout << pb2json(alignment_1_rc) << endl;
+        cout << endl;
+
+        cout << findAlignmentPathsIds(alignment_1) << endl;
+        cout << findAlignmentPathsIds(alignment_2_rc) << endl;
+        cout << findAlignmentPathsIds(alignment_2) << endl;
+        cout << findAlignmentPathsIds(alignment_1_rc) << endl;
+#endif 
 
     auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2, max_pair_distance);
 
@@ -124,17 +235,22 @@ vector<AlignmentPath> AlignmentPathFinder::findPairedAlignmentPathsIds(const vg:
         align_path.path_ids = paths_index.locate(align_path.path);
     }
 
+#ifdef debug
+
+        cout << paired_align_paths << endl;
+        cout << endl;
+#endif 
+
     return paired_align_paths;
 }
 
-void AlignmentPathFinder::pairAlignmentPaths(vector<AlignmentPath> * paired_align_paths, const AlignmentPath & start_align_path, const vg::Alignment & end_alignment, const int32_t max_pair_distance) const {
+template<class AlignmentType>
+void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath> * paired_align_paths, const AlignmentPath & start_align_path, const AlignmentType & end_alignment, const int32_t max_pair_distance) const {
 
     assert(!start_align_path.path.empty());
 
     std::queue<AlignmentPath> paired_align_path_queue;
     paired_align_path_queue.push(start_align_path);
-
-    assert(end_alignment.path().mapping_size() > 0);
 
     auto end_alignment_node_index = getAlignmentNodeIndex(end_alignment);
 
@@ -146,9 +262,10 @@ void AlignmentPathFinder::pairAlignmentPaths(vector<AlignmentPath> * paired_alig
         if (cur_paired_align_path.seq_length > max_pair_distance) {
 
             paired_align_path_queue.pop();
-            continue;                
+            continue;
         }
 
+        assert(cur_paired_align_path.path.node != gbwt::ENDMARKER);
         auto end_alignment_node_index_it = end_alignment_node_index.equal_range(cur_paired_align_path.path.node);
 
         // Stop current extension if end node is reached.
@@ -156,26 +273,28 @@ void AlignmentPathFinder::pairAlignmentPaths(vector<AlignmentPath> * paired_alig
 
             while (end_alignment_node_index_it.first != end_alignment_node_index_it.second) {
 
-                auto start_mapping_idx = end_alignment_node_index_it.first->second.second + 1;
+                auto node_length = cur_paired_align_path.node_length;
 
-                for (size_t i = start_mapping_idx; i < end_alignment.path().mapping_size(); ++i) {
+                auto cur_offset = end_alignment_node_index_it.first->second;
+                cur_offset.second++;
 
-                    auto gbwt_node_id = mapping_to_gbwt(end_alignment.path().mapping(i));
+                auto ended_paired_align_paths = extendAlignmentPath(cur_paired_align_path, end_alignment, cur_offset);
 
-                    cur_paired_align_path.path = paths_index.extend(cur_paired_align_path.path, gbwt_node_id);
-                    cur_paired_align_path.node_length++;
-                    cur_paired_align_path.seq_length += node_seq_lengths.at(gbwt::Node::id(gbwt_node_id));
-                }
+                for (auto & ended_align_path: ended_paired_align_paths) {
 
-                cur_paired_align_path.seq_length -= (node_seq_lengths.at(end_alignment.path().mapping().rbegin()->position().node_id()) - mapping_to_length(*end_alignment.path().mapping().rbegin()));
+                    if (!ended_align_path.path.empty() && ended_align_path.seq_length <= max_pair_distance) {
 
-                if (!cur_paired_align_path.path.empty() && cur_paired_align_path.seq_length <= max_pair_distance) {
+                        // Was not extended;
+                        if (ended_align_path.node_length == node_length) {
 
-                    paired_align_paths->emplace_back(cur_paired_align_path);
-
-                    paired_align_paths->back().path_ids = paths_index.locate(paired_align_paths->back().path);                                
-                    paired_align_paths->back().scores.second = end_alignment.score();
-                    paired_align_paths->back().mapqs.second = end_alignment.mapping_quality();           
+                            auto end_mapping = getMapping(end_alignment, end_alignment_node_index_it.first->second);
+                            assert(mapping_to_gbwt(end_mapping) == ended_align_path.path.node);
+                            
+                            ended_align_path.seq_length -= (node_seq_lengths.at(gbwt::Node::id(ended_align_path.path.node)) - mapping_to_length(end_mapping));
+                        }
+                      
+                        paired_align_paths->emplace_back(ended_align_path);                         
+                    }
                 }
 
                 end_alignment_node_index_it.first++;
@@ -221,7 +340,8 @@ void AlignmentPathFinder::pairAlignmentPaths(vector<AlignmentPath> * paired_alig
     }
 }
 
-multimap<gbwt::node_type, pair<int32_t, int32_t> > AlignmentPathFinder::getAlignmentNodeIndex(const vg::Alignment & alignment) const {
+template<class AlignmentType>
+multimap<gbwt::node_type, pair<int32_t, int32_t> > AlignmentPathFinder<AlignmentType>::getAlignmentNodeIndex(const vg::Alignment & alignment) const {
 
     multimap<gbwt::node_type, pair<int32_t, int32_t> > alignment_node_index;
 
@@ -233,51 +353,40 @@ multimap<gbwt::node_type, pair<int32_t, int32_t> > AlignmentPathFinder::getAlign
     return alignment_node_index;
 }
 
+template<class AlignmentType>
+multimap<gbwt::node_type, pair<int32_t, int32_t> > AlignmentPathFinder<AlignmentType>::getAlignmentNodeIndex(const vg::MultipathAlignment & alignment) const {
 
-// vector<AlignmentPath> find_align_paths(const vg::MultipathAlignment & mp_alignment, const gbwt::GBWT & paths_index) {
+    multimap<gbwt::node_type, pair<int32_t, int32_t> > alignment_node_index;
 
-//     vector<AlignmentPath> align_paths;
+    for (size_t i = 0; i < alignment.subpath_size(); ++i) {
 
-//     std::queue<pair<AlignmentPath, int32_t> > mp_align_path_queue;
-//     assert(mp_alignment.start_size() > 0); 
+        for (size_t j = 0; j < alignment.subpath(i).path().mapping_size(); ++j) {
 
-//     for (auto & start_subpath_idx: mp_alignment.start()) {
+            alignment_node_index.emplace(mapping_to_gbwt(alignment.subpath(i).path().mapping(j)), make_pair(i, j));
+        }
+    }
 
-//         mp_align_path_queue.push(make_pair(AlignmentPath(), start_subpath_idx));
-//     }
+    return alignment_node_index;
+}
 
-//     // Perform depth-first alignment path extension.
-//     while (!mp_align_path_queue.empty()) {
+template<class AlignmentType>
+vg::Mapping AlignmentPathFinder<AlignmentType>::getMapping(const vg::Alignment & alignment, const pair<uint32_t, uint32_t> offset) const {
 
-//         auto & cur_mp_align_path = mp_align_path_queue.front();
+    assert(offset.first == 0);
+    assert(offset.second < alignment.path().mapping_size());
 
-//         const vg::Subpath & subpath = mp_alignment.subpath(cur_mp_align_path.second);
+    return alignment.path().mapping(offset.second);
+}
 
-//         cur_mp_align_path.first.scores.first += subpath.score();
-//         cur_mp_align_path.first.extendPath(subpath.path(), 0, paths_index);
+template<class AlignmentType>
+vg::Mapping AlignmentPathFinder<AlignmentType>::getMapping(const vg::MultipathAlignment & alignment, const pair<uint32_t, uint32_t> offset) const {
 
-//         if (subpath.next_size() > 0) {
+    assert(offset.first < alignment.subpath_size());
+    assert(offset.second < alignment.subpath(offset.first).path().mapping_size());
 
-//             for (auto & next_subpath_idx: subpath.next()) {
+    return alignment.subpath(offset.first).path().mapping(offset.second);
+}
 
-//                 mp_align_path_queue.push(make_pair(cur_mp_align_path.first, next_subpath_idx));
-//             }
-
-//         } else {
-
-//             align_paths.emplace_back(cur_mp_align_path.first);
-//         }
-
-//         mp_align_path_queue.pop();
-//     }
-
-//     return align_paths;
-// }
-
-
-
-
-
-
-
+template class AlignmentPathFinder<vg::Alignment>;
+template class AlignmentPathFinder<vg::MultipathAlignment>;
 

@@ -20,6 +20,7 @@ class ReadPathProbs {
         
         void calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const uint32_t frag_length_mean, const uint32_t frag_length_sd);
 
+        double score_log_base;
         double noise_prob;
         vector<double> read_path_probs;
 
