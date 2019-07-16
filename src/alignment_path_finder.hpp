@@ -46,6 +46,8 @@ class AlignmentPathFinder {
 
 		vg::Mapping getMapping(const vg::Alignment & alignment, const pair<uint32_t, uint32_t> offset) const;
 		vg::Mapping getMapping(const vg::MultipathAlignment & alignment, const pair<uint32_t, uint32_t> offset) const;
+
+		void printDebug(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const;
 };
 
 #endif

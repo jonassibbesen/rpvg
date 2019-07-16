@@ -24,9 +24,6 @@
 
 using namespace std;
 
-const double frag_length_mean = 277;
-const double frag_length_sd = 43;
-
 
 void addPairedAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * paired_align_paths_threads, const vector<AlignmentPath> & paired_align_paths, const int32_t thread_num) {
 
@@ -60,6 +57,8 @@ int main(int argc, char* argv[]) {
       ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
       ("a,alignments", "gam alignments file name (required)", cxxopts::value<string>())
       ("o,output", "output prefix (required)", cxxopts::value<string>())
+      ("i,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
+      ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("m,multipath", "alignment input is multipath (gamp)", cxxopts::value<bool>())
       ("t,threads", "number of compute threads", cxxopts::value<int32_t>()->default_value("1"))
       ("h,help", "print help", cxxopts::value<bool>())
@@ -85,6 +84,86 @@ int main(int argc, char* argv[]) {
     assert(option_results.count("output") == 1);
     assert(option_results.count("threads") <= 1);
 
+    if (option_results.count("frag-mean") != option_results.count("frag-sd")) {
+
+        cerr << "ERROR: Both --frag-mean and --frag-sd needs to be given as input. Alternative, no values can be given and the parameter estimated during mapping will be used instead (contained in the alignment file) ." << endl;
+        return 1;
+    }
+
+    double frag_length_mean = 0;
+    double frag_length_sd = 0;
+
+    ifstream alignment_istream(option_results["alignments"].as<string>());
+    assert(alignment_istream.is_open());
+
+    if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
+
+        cerr << "WARNING: Fragment length distribution parameters will be based on the first alignment that contains such information." << endl;
+
+        if (option_results.count("multipath")) {
+
+            for (vg::io::ProtobufIterator<vg::MultipathAlignment> alignment_it(alignment_istream); alignment_it.has_current(); ++alignment_it) {
+
+                if ((*alignment_it).has_annotation() && (*alignment_it).annotation().fields().count("fragment_length_distribution")) {
+
+                    stringstream frag_length_ss = stringstream((*alignment_it).annotation().fields().at("fragment_length_distribution").string_value());
+                    string element;
+
+                    getline(frag_length_ss, element, ' ');
+                    assert(element == "-I");
+
+                    getline(frag_length_ss, element, ' ');
+                    frag_length_mean = stod(element);
+
+                    getline(frag_length_ss, element, ' ');
+                    assert(element == "-D");
+
+                    getline(frag_length_ss, element);
+                    frag_length_sd = stod(element);
+
+                    break;     
+                }
+            }
+
+        } else {
+
+            for (vg::io::ProtobufIterator<vg::Alignment> alignment_it(alignment_istream); alignment_it.has_current(); ++alignment_it) {
+
+                if ((*alignment_it).fragment_length_distribution().size() > 0 && (*alignment_it).fragment_length_distribution().substr(0,1) != "0") {
+
+                    stringstream frag_length_ss = stringstream((*alignment_it).fragment_length_distribution());
+                    string element;
+
+                    getline(frag_length_ss, element, ':');
+                    assert(stod(element) > 0);
+
+                    getline(frag_length_ss, element, ':');
+                    frag_length_mean = stod(element);
+
+                    getline(frag_length_ss, element, ':');;
+                    frag_length_sd = stod(element);
+
+                    break;
+                }          
+            }
+        }
+
+        if (frag_length_mean == 0) {
+
+            cerr << "ERROR: No fragment length distribution parameters found in alignments. Use --frag-mean and --frag-sd instead." << endl;
+            return 1;
+        
+        } else {
+
+            cout << "Fragment length distribution parameters found in alignment (mean: " << frag_length_mean << ", standard deviation: " << frag_length_sd << ")" << endl;
+        }      
+
+    } else {
+
+        frag_length_mean = option_results["frag-mean"].as<double>();
+        frag_length_sd = option_results["frag-sd"].as<double>();
+    }
+
     const int32_t num_threads = option_results["threads"].as<int32_t>();
 
     assert(num_threads > 0);
@@ -100,8 +179,8 @@ int main(int argc, char* argv[]) {
     double time2 = gbwt::readTimer();
     cout << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    ifstream alignment_istream(option_results["alignments"].as<string>());
-    assert(alignment_istream.is_open());
+    alignment_istream.clear();
+    alignment_istream.seekg(0, ios::beg);
 
     ofstream probs_ostream(option_results["output"].as<string>() + ".txt");
     assert(probs_ostream.is_open());

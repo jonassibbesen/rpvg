@@ -4,7 +4,8 @@
 #include "alignment_path_finder.hpp"
 #include "utils.hpp"
 
-// #define debug
+//#define debug
+#define debug2
 
 
 template<class AlignmentType>
@@ -76,6 +77,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * ali
     if (offset < path.mapping().size()) {
     
         auto mapping_it = path.mapping().cbegin() + offset;
+        assert(mapping_it != path.mapping().cend());
 
         if (align_path->node_length == 0) {
 
@@ -85,6 +87,11 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * ali
             align_path->node_length++;
             align_path->seq_length = mapping_to_length(*mapping_it);
             ++mapping_it;
+        
+        } else if (align_path->path.node == mapping_to_gbwt(*mapping_it) && offset == 0) {
+
+            align_path->seq_length += mapping_to_length(*mapping_it);
+            ++mapping_it;            
         } 
 
         while (mapping_it != path.mapping().cend()) {
@@ -104,12 +111,6 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(co
 
     for (auto & start_idx: alignment.start()) {
 
-        // TODO: tmp fix
-        if (start_idx >= alignment.subpath_size()) {
-
-            continue;
-        }
-
         auto cur_extended_align_paths = extendAlignmentPath(align_path, alignment, make_pair(start_idx, 0));
         extended_align_paths.insert(extended_align_paths.end(), cur_extended_align_paths.begin(), cur_extended_align_paths.end());
     }
@@ -123,10 +124,6 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(co
     vector<AlignmentPath> extended_align_path(1, align_path);
     extended_align_path.front().mapqs.emplace_back(alignment.mapping_quality());
     extended_align_path.front().scores.emplace_back(0);
-
-    // cout << offset.first << endl;
-    // cout << offset.second << endl;
-    // cout << alignment.subpath_size() << endl;
 
     assert(offset.first < alignment.subpath_size());
     extendAlignmentPaths(&extended_align_path, alignment.subpath(), offset);
@@ -210,23 +207,10 @@ template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPathsIds(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const {
 
 #ifdef debug
+        
+    printDebug(alignment_1, alignment_2, max_pair_distance);
 
-        function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
-
-        auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_seq_length_func);
-        auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_seq_length_func);
-
-        cout << pb2json(alignment_1) << endl;
-        cout << pb2json(alignment_2_rc) << endl;
-        cout << pb2json(alignment_2) << endl;
-        cout << pb2json(alignment_1_rc) << endl;
-        cout << endl;
-
-        cout << findAlignmentPathsIds(alignment_1) << endl;
-        cout << findAlignmentPathsIds(alignment_2_rc) << endl;
-        cout << findAlignmentPathsIds(alignment_2) << endl;
-        cout << findAlignmentPathsIds(alignment_1_rc) << endl;
-#endif 
+#endif
 
     auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2, max_pair_distance);
 
@@ -235,10 +219,31 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         align_path.path_ids = paths_index.locate(align_path.path);
     }
 
-#ifdef debug
+#ifdef debug2
 
-        cout << paired_align_paths << endl;
-        cout << endl;
+        // bool has_path_1 = false;
+        // bool has_path_2 = false;
+
+        // for (auto & align_path: paired_align_paths) {
+
+        //     for (auto & id: align_path.path_ids) {
+
+        //         if (getPathName(paths_index, id) == "ENST00000275072.4_1") {
+
+        //             has_path_1 = true;
+        //         }
+
+        //         if (getPathName(paths_index, id) == "ENST00000275072.4_2") {
+
+        //             has_path_2 = true;
+        //         }
+        //     }
+        // }
+
+        if (alignment_1.name() == "6830463_1_72174_1883_305/1") {
+
+            printDebug(alignment_1, alignment_2, max_pair_distance);
+        }
 #endif 
 
     return paired_align_paths;
@@ -385,6 +390,36 @@ vg::Mapping AlignmentPathFinder<AlignmentType>::getMapping(const vg::MultipathAl
     assert(offset.second < alignment.subpath(offset.first).path().mapping_size());
 
     return alignment.subpath(offset.first).path().mapping(offset.second);
+}
+
+template<class AlignmentType>
+void AlignmentPathFinder<AlignmentType>::printDebug(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const {
+
+    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+
+    auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_seq_length_func);
+    auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_seq_length_func);
+
+    cout << pb2json(alignment_1) << endl;
+    cout << pb2json(alignment_2_rc) << endl;
+    cout << pb2json(alignment_2) << endl;
+    cout << pb2json(alignment_1_rc) << endl;
+    cout << endl;
+
+    cout << findAlignmentPathsIds(alignment_1) << endl;
+    cout << findAlignmentPathsIds(alignment_2_rc) << endl;
+    cout << findAlignmentPathsIds(alignment_2) << endl;
+    cout << findAlignmentPathsIds(alignment_1_rc) << endl;
+
+    auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2, max_pair_distance);
+
+    for (auto & align_path: paired_align_paths) {
+
+        align_path.path_ids = paths_index.locate(align_path.path);
+    }
+
+    cout << paired_align_paths << endl;
+    cout << endl;
 }
 
 template class AlignmentPathFinder<vg::Alignment>;
