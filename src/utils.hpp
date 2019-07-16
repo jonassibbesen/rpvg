@@ -12,6 +12,7 @@
 
 #include <google/protobuf/util/json_util.h>
 #include <vg/io/basic_stream.hpp>
+#include <gbwt/gbwt.h>
 
 using namespace std;
 

@@ -1,0 +1,96 @@
+
+#include <sstream>
+#include <string>
+
+#include <vg/io/protobuf_iterator.hpp>
+
+#include "fragment_length_dist.hpp"
+#include "utils.hpp"
+
+static const uint32_t max_length_sd_multiplicity = 10;
+
+
+FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(0) {}
+
+FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in): mean_(mean_in), sd_(sd_in) {}
+
+FragmentLengthDist::FragmentLengthDist(ifstream * alignments_istream, const bool is_multipath) {
+
+    assert(alignments_istream->is_open());
+
+    if (is_multipath) {
+
+        for (vg::io::ProtobufIterator<vg::MultipathAlignment> alignment_it(*alignments_istream); alignment_it.has_current(); ++alignment_it) {
+
+            if ((*alignment_it).has_annotation() && (*alignment_it).annotation().fields().count("fragment_length_distribution")) {
+
+                stringstream frag_length_ss = stringstream((*alignment_it).annotation().fields().at("fragment_length_distribution").string_value());
+                string element;
+
+                getline(frag_length_ss, element, ' ');
+                assert(element == "-I");
+
+                getline(frag_length_ss, element, ' ');
+                mean_ = stod(element);
+
+                getline(frag_length_ss, element, ' ');
+                assert(element == "-D");
+
+                getline(frag_length_ss, element);
+                sd_ = stod(element);
+
+                break;     
+            }
+        }
+
+    } else {
+
+        for (vg::io::ProtobufIterator<vg::Alignment> alignment_it(*alignments_istream); alignment_it.has_current(); ++alignment_it) {
+
+            if ((*alignment_it).fragment_length_distribution().size() > 0 && (*alignment_it).fragment_length_distribution().substr(0,1) != "0") {
+
+                stringstream frag_length_ss = stringstream((*alignment_it).fragment_length_distribution());
+                string element;
+
+                getline(frag_length_ss, element, ':');
+                assert(stod(element) > 0);
+
+                getline(frag_length_ss, element, ':');
+                mean_ = stod(element);
+
+                getline(frag_length_ss, element, ':');;
+                sd_ = stod(element);
+
+                break;
+            }          
+        }
+    }
+}
+
+double FragmentLengthDist::mean() const {
+
+    return mean_;
+}
+
+double FragmentLengthDist::sd() const {
+
+    return sd_;
+}
+
+bool FragmentLengthDist::isValid() const {
+
+    return (mean_ >= 0 && sd_ > 0);
+}
+
+int32_t FragmentLengthDist::maxLength() const {
+
+    assert(isValid());
+    return ceil(mean_ + sd_ * max_length_sd_multiplicity);
+}
+
+double FragmentLengthDist::logProb(const int32_t value) const {
+
+    assert(isValid());
+    return log_normal_pdf<double>(value, mean_, sd_);
+}
+

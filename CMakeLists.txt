@@ -89,6 +89,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 add_executable(
   ${PROJECT_NAME} 
   src/main.cpp 
+  src/fragment_length_dist.cpp 
   src/alignment_path.cpp 
   src/alignment_path_finder.cpp 
   src/path_clusters.cpp 

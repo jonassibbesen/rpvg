@@ -5,11 +5,10 @@
 #include "utils.hpp"
 
 //#define debug
-#define debug2
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const vg::Graph & graph, const gbwt::GBWT & paths_index_in) : paths_index(paths_index_in) {
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const vg::Graph & graph, const gbwt::GBWT & paths_index_in, const uint32_t & max_pair_distance_in) : paths_index(paths_index_in), max_pair_distance(max_pair_distance_in) {
 
     node_seq_lengths = vector<uint32_t>(graph.node_size() + 1, 0);
 
@@ -170,7 +169,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentPa
 }
 
 template<class AlignmentType>
-vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const {
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
     function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
 
@@ -184,7 +183,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         
         for (auto & align_path: align_paths_1) {
 
-            pairAlignmentPaths(&paired_align_paths, align_path, alignment_2_rc, max_pair_distance);
+            pairAlignmentPaths(&paired_align_paths, align_path, alignment_2_rc);
         }
     }
 
@@ -196,7 +195,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
         for (auto & align_path: align_paths_2) {
 
-            pairAlignmentPaths(&paired_align_paths, align_path, alignment_1_rc, max_pair_distance);
+            pairAlignmentPaths(&paired_align_paths, align_path, alignment_1_rc);
         }
     }
 
@@ -204,53 +203,26 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 }
 
 template<class AlignmentType>
-vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPathsIds(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const {
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPathsIds(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
 #ifdef debug
         
-    printDebug(alignment_1, alignment_2, max_pair_distance);
+    printDebug(alignment_1, alignment_2);
 
 #endif
 
-    auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2, max_pair_distance);
+    auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2);
 
     for (auto & align_path: paired_align_paths) {
 
         align_path.path_ids = paths_index.locate(align_path.path);
     }
 
-#ifdef debug2
-
-        // bool has_path_1 = false;
-        // bool has_path_2 = false;
-
-        // for (auto & align_path: paired_align_paths) {
-
-        //     for (auto & id: align_path.path_ids) {
-
-        //         if (getPathName(paths_index, id) == "ENST00000275072.4_1") {
-
-        //             has_path_1 = true;
-        //         }
-
-        //         if (getPathName(paths_index, id) == "ENST00000275072.4_2") {
-
-        //             has_path_2 = true;
-        //         }
-        //     }
-        // }
-
-        if (alignment_1.name() == "6830463_1_72174_1883_305/1") {
-
-            printDebug(alignment_1, alignment_2, max_pair_distance);
-        }
-#endif 
-
     return paired_align_paths;
 }
 
 template<class AlignmentType>
-void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath> * paired_align_paths, const AlignmentPath & start_align_path, const AlignmentType & end_alignment, const int32_t max_pair_distance) const {
+void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath> * paired_align_paths, const AlignmentPath & start_align_path, const AlignmentType & end_alignment) const {
 
     assert(!start_align_path.path.empty());
 
@@ -393,7 +365,7 @@ vg::Mapping AlignmentPathFinder<AlignmentType>::getMapping(const vg::MultipathAl
 }
 
 template<class AlignmentType>
-void AlignmentPathFinder<AlignmentType>::printDebug(const AlignmentType & alignment_1, const AlignmentType & alignment_2, const int32_t max_pair_distance) const {
+void AlignmentPathFinder<AlignmentType>::printDebug(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
     function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
 
@@ -411,7 +383,7 @@ void AlignmentPathFinder<AlignmentType>::printDebug(const AlignmentType & alignm
     cout << findAlignmentPathsIds(alignment_2) << endl;
     cout << findAlignmentPathsIds(alignment_1_rc) << endl;
 
-    auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2, max_pair_distance);
+    auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2);
 
     for (auto & align_path: paired_align_paths) {
 

@@ -22,7 +22,7 @@ ReadPathProbs::ReadPathProbs(const int32_t num_paths) {
     read_path_probs = vector<double>(num_paths, 0); 
 }
 
-void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const uint32_t frag_length_mean, const uint32_t frag_length_sd) {
+void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist) {
 
     assert(!align_paths.empty());
     assert(clustered_path_index.size() == read_path_probs.size());
@@ -52,7 +52,7 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
             assert(align_path.mapqs.size() == 2);
             assert(align_path.scores.size() == 2);
 
-            align_paths_log_probs.emplace_back(score_log_base * align_path.scoreSum() - score_log_probs_sum + log_normal_pdf<double>(align_path.seq_length, frag_length_mean, frag_length_sd));
+            align_paths_log_probs.emplace_back(score_log_base * align_path.scoreSum() - score_log_probs_sum + fragment_length_dist.logProb(align_path.seq_length));
             align_paths_log_probs_sum = add_log(align_paths_log_probs_sum, align_paths_log_probs.back());
         }
 
