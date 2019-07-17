@@ -114,7 +114,7 @@ target_link_libraries(
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-  set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3")
+  set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3 -Wall")
   target_link_libraries(${PROJECT_NAME} omp)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
