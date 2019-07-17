@@ -1,11 +1,11 @@
 
-#ifndef VGPROB_ALIGNMENTPATH_HPP
-#define VGPROB_ALIGNMENTPATH_HPP
+#ifndef VGPROB_SRC_ALIGNMENTPATH_HPP
+#define VGPROB_SRC_ALIGNMENTPATH_HPP
 
 #include <vector>
 
-#include <gbwt/gbwt.h>
-#include <vg/io/basic_stream.hpp>
+#include "gbwt/gbwt.h"
+#include "vg/io/basic_stream.hpp"
 
 using namespace std;
 
@@ -38,5 +38,5 @@ ostream& operator<<(ostream& os, const vector<int32_t> & values);
 ostream& operator<<(ostream& os, const AlignmentPath & align_path);
 ostream& operator<<(ostream& os, const vector<AlignmentPath> & align_paths);
 
-#endif
 
+#endif

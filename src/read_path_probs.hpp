@@ -1,11 +1,10 @@
 
-#ifndef VGPROB_READPATHPROBS_HPP
-#define VGPROB_READPATHPROBS_HPP
+#ifndef VGPROB_SRC_READPATHPROBS_HPP
+#define VGPROB_SRC_READPATHPROBS_HPP
 
 #include <vector>
 
-#include <vg/io/basic_stream.hpp>
-
+#include "vg/io/basic_stream.hpp"
 #include "alignment_path.hpp"
 #include "fragment_length_dist.hpp"
 
@@ -36,5 +35,5 @@ bool operator<(const ReadPathProbs & lhs, const ReadPathProbs & rhs);
 
 ostream& operator<<(ostream& os, const ReadPathProbs & probs);
 
-#endif
 
+#endif

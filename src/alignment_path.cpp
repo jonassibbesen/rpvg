@@ -1,8 +1,9 @@
 
+#include "alignment_path.hpp"
+
 #include <algorithm>
 #include <numeric>
 
-#include "alignment_path.hpp"
 #include "utils.hpp"
 
 

@@ -1,9 +1,9 @@
 
+#include "path_clusters.hpp"
+
+#include <assert.h>
 #include <queue>
 #include <algorithm>
-#include <assert.h>
-
-#include "path_clusters.hpp"
 
 
 PathClusters::PathClusters(const unordered_map<int32_t, unordered_set<int32_t> > & connected_paths, const int32_t num_paths) {
@@ -52,3 +52,4 @@ PathClusters::PathClusters(const unordered_map<int32_t, unordered_set<int32_t> >
         }
     }
 }
+

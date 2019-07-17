@@ -1,14 +1,14 @@
 
+#include "fragment_length_dist.hpp"
+
 #include <sstream>
 #include <string>
 
-#include <vg/io/protobuf_iterator.hpp>
-
-#include "fragment_length_dist.hpp"
+#include "vg/io/protobuf_iterator.hpp"
 #include "utils.hpp"
 
-static const uint32_t max_length_sd_multiplicity = 10;
 
+static const uint32_t max_length_sd_multiplicity = 10;
 
 FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(0) {}
 

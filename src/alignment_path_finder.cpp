@@ -1,7 +1,8 @@
 
+#include "alignment_path_finder.hpp"
+
 #include <assert.h>
 
-#include "alignment_path_finder.hpp"
 #include "utils.hpp"
 
 //#define debug

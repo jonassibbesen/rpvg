@@ -1,6 +1,6 @@
 
-#ifndef VGPROB_FRAGMENTLENGTHDIST_HPP
-#define VGPROB_FRAGMENTLENGTHDIST_HPP
+#ifndef VGPROB_SRC_FRAGMENTLENGTHDIST_HPP
+#define VGPROB_SRC_FRAGMENTLENGTHDIST_HPP
 
 #include <iostream>
 #include <fstream>
@@ -29,5 +29,5 @@ class FragmentLengthDist {
         double sd_;
 };
 
-#endif
 
+#endif

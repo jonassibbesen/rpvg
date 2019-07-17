@@ -1,4 +1,5 @@
 
+#include <assert.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -8,22 +9,18 @@
 #include <limits>
 #include <algorithm>
 
-#include <cxxopts.hpp>
-#include <gbwt/gbwt.h>
-#include <vg/io/vpkg.hpp>
-#include <vg/io/stream.hpp>
-#include <vg/io/basic_stream.hpp>
-
+#include "cxxopts.hpp"
+#include "gbwt/gbwt.h"
+#include "vg/io/vpkg.hpp"
+#include "vg/io/stream.hpp"
+#include "vg/io/basic_stream.hpp"
 #include "io/register_libvg_io.hpp"
-
 #include "utils.hpp"
 #include "fragment_length_dist.hpp"
 #include "alignment_path.hpp"
 #include "alignment_path_finder.hpp"
 #include "path_clusters.hpp"
 #include "read_path_probs.hpp"
-
-using namespace std;
 
 
 void addPairedAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * paired_align_paths_threads, const vector<AlignmentPath> & paired_align_paths, const int32_t thread_num) {
@@ -47,7 +44,6 @@ void addPairedAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set
         paired_align_paths_threads->at(thread_num).emplace_back(paired_align_paths);
     }    
 }
-
 
 int main(int argc, char* argv[]) {
 
@@ -285,3 +281,4 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
+

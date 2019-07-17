@@ -1,6 +1,6 @@
 
-#ifndef VGPROB_PATHCLUSTERS_HPP
-#define VGPROB_PATHCLUSTERS_HPP
+#ifndef VGPROB_SRC_PATHCLUSTERS_HPP
+#define VGPROB_SRC_PATHCLUSTERS_HPP
 
 #include <vector>
 #include <unordered_map>
@@ -21,4 +21,3 @@ class PathClusters {
 
 
 #endif
-

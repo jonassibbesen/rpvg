@@ -1,11 +1,11 @@
 
-#include <algorithm>
+#include "read_path_probs.hpp"
+
 #include <assert.h>
+#include <algorithm>
 #include <numeric>
 
-#include <gssw.h>
-
-#include "read_path_probs.hpp"
+#include "gssw.h"
 #include "utils.hpp"
 
 
@@ -167,5 +167,4 @@ ostream& operator<<(ostream& os, const ReadPathProbs & probs) {
 
     return os;
 }
-
 

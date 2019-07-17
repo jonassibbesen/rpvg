@@ -1,18 +1,18 @@
 
-#ifndef VGPROB_UTILS_HPP
-#define VGPROB_UTILS_HPP
+#ifndef VGPROB_SRC_UTILS_HPP
+#define VGPROB_SRC_UTILS_HPP
 
+#include <assert.h>
+#include <math.h>
 #include <string>
 #include <vector>
 #include <limits>
-#include <math.h>
 #include <sstream>
 #include <algorithm>
-#include <assert.h>
 
-#include <google/protobuf/util/json_util.h>
-#include <vg/io/basic_stream.hpp>
-#include <gbwt/gbwt.h>
+#include "google/protobuf/util/json_util.h"
+#include "vg/io/basic_stream.hpp"
+#include "gbwt/gbwt.h"
 
 using namespace std;
 
@@ -210,6 +210,17 @@ inline string pb2json(const google::protobuf::Message &msg) {
     return buffer;
 }
 
+inline void json2pb(google::protobuf::Message &msg, const string& buf) {
+    auto status = google::protobuf::util::JsonStringToMessage(buf, &msg);
+    
+    if (!status.ok()) {
+        // This generally will happen if someone feeds in the wrong type of JSON.
+        // TODO: It would be nice to be able to find the neme of the offending non-existent field.
+        throw runtime_error("Could not deserialize " + msg.GetTypeName() + ": " + status.ToString());
+    }
+}
+
+
 //------------------------------------------------------------------------------
 
 
@@ -247,10 +258,5 @@ inline string getPathName(const gbwt::GBWT & paths_index, size_t path_id) {
     return sstream.str();
 }
 
+
 #endif
-
-
-
-
-
-

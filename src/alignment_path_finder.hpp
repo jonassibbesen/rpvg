@@ -1,17 +1,16 @@
 
-#ifndef VGPROB_ALIGNMENTPATHFINDER_HPP
-#define VGPROB_ALIGNMENTPATHFINDER_HPP
+#ifndef VGPROB_SRC_ALIGNMENTPATHFINDER_HPP
+#define VGPROB_SRC_ALIGNMENTPATHFINDER_HPP
 
 #include <vector>
 #include <map>
 
-#include <gbwt/gbwt.h>
-#include <vg/io/basic_stream.hpp>
-
+#include "gbwt/gbwt.h"
+#include "vg/io/basic_stream.hpp"
 #include "alignment_path.hpp"
 
-
 using namespace std;
+
 
 template<class AlignmentType> 
 class AlignmentPathFinder {
@@ -52,5 +51,5 @@ class AlignmentPathFinder {
 		void printDebug(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const;
 };
 
-#endif
 
+#endif
