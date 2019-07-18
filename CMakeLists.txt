@@ -83,7 +83,7 @@ add_library(${PROJECT_NAME}
   src/io/register_loader_saver_gbwt.cpp 
 )
 
-include_directories(${PROJECT_NAME}
+include_directories(
   ${PROJECT_SOURCE_DIR}/external/cxxopts/include 
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/external/gbwt/include 
@@ -91,7 +91,7 @@ include_directories(${PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/external/libvgio 
   ${PROJECT_SOURCE_DIR}/external/libvgio/include)
 
-link_directories(${PROJECT_NAME}
+link_directories(
   ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gssw/lib 
@@ -134,8 +134,8 @@ add_executable(${PROJECT_NAME}-tests
   src/tests/alignment_path_test.cpp
 )
 
-include_directories(${PROJECT_NAME}-tests
-  ${PROJECT_SOURCE_DIR}/external/catch2/include
+include_directories(
+  ${PROJECT_SOURCE_DIR}/external/catch2/single_include
 )
  
 target_link_libraries(${PROJECT_NAME}-tests
