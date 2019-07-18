@@ -10,6 +10,7 @@ ExternalProject_Add(catch2-proj
   GIT_REPOSITORY "https://github.com/catchorg/Catch2.git"
   GIT_TAG "820271bf246afd4a381ff753b0cda14aeb1d0a1c"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/catch2"
+  BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
@@ -69,8 +70,20 @@ ExternalProject_Add(libvgio-proj
   INSTALL_COMMAND ""
 )
 
-include_directories(
-  ${PROJECT_SOURCE_DIR}/external/catch2/include 
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+
+add_library(${PROJECT_NAME} 
+  src/fragment_length_dist.cpp 
+  src/alignment_path.cpp 
+  src/alignment_path_finder.cpp 
+  src/path_clusters.cpp 
+  src/read_path_probs.cpp 
+  src/io/register_libvg_io.cpp 
+  src/io/register_loader_saver_gbwt.cpp 
+)
+
+include_directories(${PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/external/cxxopts/include 
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/external/gbwt/include 
@@ -78,24 +91,12 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/external/libvgio 
   ${PROJECT_SOURCE_DIR}/external/libvgio/include)
 
-link_directories(
+link_directories(${PROJECT_NAME}
+  ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gssw/lib 
   ${PROJECT_SOURCE_DIR}/external/libvgio 
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib)
-
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-
-add_executable(
-  ${PROJECT_NAME} 
-  src/main.cpp 
-  src/fragment_length_dist.cpp 
-  src/alignment_path.cpp 
-  src/alignment_path_finder.cpp 
-  src/path_clusters.cpp 
-  src/read_path_probs.cpp 
-  src/io/register_libvg_io.cpp 
-  src/io/register_loader_saver_gbwt.cpp)
 
 add_dependencies(${PROJECT_NAME} catch2-proj)
 add_dependencies(${PROJECT_NAME} cxxopts-proj)
@@ -104,13 +105,13 @@ add_dependencies(${PROJECT_NAME} gbwt-proj)
 add_dependencies(${PROJECT_NAME} gssw-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
 
-target_link_libraries(
-  ${PROJECT_NAME} 
+target_link_libraries(${PROJECT_NAME}
   protobuf 
   gbwt 
   gssw 
   vgio 
-  sdsl)
+  sdsl
+)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
@@ -123,4 +124,28 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 endif()
 
+add_executable(${PROJECT_NAME}-bin src/main.cpp) 
+target_link_libraries(${PROJECT_NAME}-bin ${PROJECT_NAME})
+
+set_target_properties(${PROJECT_NAME}-bin PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+ 
+add_executable(${PROJECT_NAME}-tests
+  src/tests/main_test.cpp 
+  src/tests/alignment_path_test.cpp
+)
+
+include_directories(${PROJECT_NAME}-tests
+  ${PROJECT_SOURCE_DIR}/external/catch2/include
+)
+ 
+target_link_libraries(${PROJECT_NAME}-tests
+  ${PROJECT_NAME}
+)
+
+enable_testing()
+ 
+add_test(
+  NAME ${PROJECT_NAME}-tests
+  COMMAND ${PROJECT_NAME}-tests
+)
 

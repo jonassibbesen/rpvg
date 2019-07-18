@@ -258,5 +258,26 @@ inline string getPathName(const gbwt::GBWT & paths_index, size_t path_id) {
     return sstream.str();
 }
 
+inline ostream & operator<<(ostream & os, const vector<int32_t> & values) {
+
+    auto values_it = values.cbegin();
+
+    if (values_it == values.cend()) {
+
+        return os;
+    }
+
+    os << *values_it;
+    ++values_it;
+
+    while (values_it != values.cend()) {
+
+        os << " " << *values_it;
+        ++values_it;
+    }
+
+    return os;
+}
+
 
 #endif
