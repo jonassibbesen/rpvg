@@ -16,6 +16,8 @@ TEST_CASE("FragmentLengthDist is valid normal distribution") {
     REQUIRE(doubleCompare(fragment_length_dist.logProb(9), -1.737085713764618));
     REQUIRE(doubleCompare(fragment_length_dist.logProb(15), -4.737085713764618));
     REQUIRE(doubleCompare(fragment_length_dist.logProb(9), fragment_length_dist.logProb(11)));
+    REQUIRE(doubleCompare(fragment_length_dist.logProb(10000), -12475014.11208571307361));
+
 }
 
 TEST_CASE("Fragment length distribution parameters can be parsed from vg::Alignment") {

@@ -9,8 +9,8 @@ TEST_CASE("Different AlignmentPaths can be equal") {
     
 	AlignmentPath alignment_path_1;
 
-	alignment_path_1.mapqs.push_back(1);
-	alignment_path_1.mapqs.push_back(2);
+	alignment_path_1.mapqs.push_back(10);
+	alignment_path_1.mapqs.push_back(20);
 
 	alignment_path_1.scores.push_back(1);
 	alignment_path_1.scores.push_back(2);
@@ -33,7 +33,7 @@ TEST_CASE("Different AlignmentPaths can be equal") {
     REQUIRE(alignment_path_1 == alignment_path_2);
 }
 
-TEST_CASE("mapqProb() correctly converts multiple mapping qualities into single probability") {
+TEST_CASE("Multiple mapping qualities can be combined into single probability") {
     
 	AlignmentPath alignment_path;
 
