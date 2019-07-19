@@ -14,32 +14,17 @@ FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(0) {}
 
 FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in): mean_(mean_in), sd_(sd_in) {}
 
-FragmentLengthDist::FragmentLengthDist(ifstream * alignments_istream, const bool is_multipath) {
+FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool is_multipath) {
 
-    assert(alignments_istream->is_open());
+    assert(alignments_istream->good());
 
     if (is_multipath) {
 
         for (vg::io::ProtobufIterator<vg::MultipathAlignment> alignment_it(*alignments_istream); alignment_it.has_current(); ++alignment_it) {
 
-            if ((*alignment_it).has_annotation() && (*alignment_it).annotation().fields().count("fragment_length_distribution")) {
+            if (parseMultipathAlignment(*alignment_it)) {
 
-                stringstream frag_length_ss = stringstream((*alignment_it).annotation().fields().at("fragment_length_distribution").string_value());
-                string element;
-
-                getline(frag_length_ss, element, ' ');
-                assert(element == "-I");
-
-                getline(frag_length_ss, element, ' ');
-                mean_ = stod(element);
-
-                getline(frag_length_ss, element, ' ');
-                assert(element == "-D");
-
-                getline(frag_length_ss, element);
-                sd_ = stod(element);
-
-                break;     
+                break;
             }
         }
 
@@ -47,24 +32,59 @@ FragmentLengthDist::FragmentLengthDist(ifstream * alignments_istream, const bool
 
         for (vg::io::ProtobufIterator<vg::Alignment> alignment_it(*alignments_istream); alignment_it.has_current(); ++alignment_it) {
 
-            if ((*alignment_it).fragment_length_distribution().size() > 0 && (*alignment_it).fragment_length_distribution().substr(0,1) != "0") {
-
-                stringstream frag_length_ss = stringstream((*alignment_it).fragment_length_distribution());
-                string element;
-
-                getline(frag_length_ss, element, ':');
-                assert(stod(element) > 0);
-
-                getline(frag_length_ss, element, ':');
-                mean_ = stod(element);
-
-                getline(frag_length_ss, element, ':');;
-                sd_ = stod(element);
+            if (parseAlignment(*alignment_it)) {
 
                 break;
-            }          
+            }        
         }
     }
+}
+
+bool FragmentLengthDist::parseAlignment(const vg::Alignment & alignment) {
+
+    if (alignment.fragment_length_distribution().size() > 0 && alignment.fragment_length_distribution().substr(0,1) != "0") {
+
+        stringstream frag_length_ss = stringstream(alignment.fragment_length_distribution());
+        string element;
+
+        getline(frag_length_ss, element, ':');
+        assert(stod(element) > 0);
+
+        getline(frag_length_ss, element, ':');
+        mean_ = stod(element);
+
+        getline(frag_length_ss, element, ':');;
+        sd_ = stod(element);
+
+        return true;     
+    }
+
+    return false;
+}
+
+bool FragmentLengthDist::parseMultipathAlignment(const vg::MultipathAlignment & alignment) {
+
+    if (alignment.has_annotation() && alignment.annotation().fields().count("fragment_length_distribution")) {
+
+        stringstream frag_length_ss = stringstream(alignment.annotation().fields().at("fragment_length_distribution").string_value());
+        string element;
+
+        getline(frag_length_ss, element, ' ');
+        assert(element == "-I");
+
+        getline(frag_length_ss, element, ' ');
+        mean_ = stod(element);
+
+        getline(frag_length_ss, element, ' ');
+        assert(element == "-D");
+
+        getline(frag_length_ss, element);
+        sd_ = stod(element);
+
+        return true;     
+    }
+
+    return false;
 }
 
 double FragmentLengthDist::mean() const {

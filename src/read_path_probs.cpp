@@ -34,24 +34,15 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
         noise_prob = align_paths.front().mapqProb();
         assert(noise_prob < 1);
 
-        vector<double> align_paths_log_probs;
-        align_paths_log_probs.reserve(align_paths.size());
-
-        double score_log_probs_sum = numeric_limits<double>::lowest();
-
-        for (auto & align_path: align_paths) {
-
-            score_log_probs_sum = add_log(score_log_probs_sum, score_log_base * align_path.scoreSum());
-        }
-
+        auto align_paths_log_probs = calcRelativeAlignmentScoreLogProbs(align_paths);
         double align_paths_log_probs_sum = numeric_limits<double>::lowest();
 
-        for (auto & align_path: align_paths) {
+        for (size_t i = 0; i < align_paths.size(); ++i) {
 
-            assert(align_path.mapqs.size() == 2);
-            assert(align_path.scores.size() == 2);
+            assert(align_paths.at(i).mapqs.size() == 2);
+            assert(align_paths.at(i).scores.size() == 2);
 
-            align_paths_log_probs.emplace_back(score_log_base * align_path.scoreSum() - score_log_probs_sum + fragment_length_dist.logProb(align_path.seq_length));
+            align_paths_log_probs.at(i) += fragment_length_dist.logProb(align_paths.at(i).seq_length);
             align_paths_log_probs_sum = add_log(align_paths_log_probs_sum, align_paths_log_probs.back());
         }
 
@@ -68,6 +59,27 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
             }
         }
     }
+}
+
+vector<double> ReadPathProbs::calcRelativeAlignmentScoreLogProbs(const vector<AlignmentPath> & align_paths) const {
+
+    vector<double> align_score_log_probs;
+    align_score_log_probs.reserve(align_paths.size());
+
+    double score_log_probs_sum = numeric_limits<double>::lowest();
+
+    for (auto & align_path: align_paths) {
+
+        align_score_log_probs.emplace_back(score_log_base * align_path.scoreSum());
+        score_log_probs_sum = add_log(score_log_probs_sum, align_score_log_probs.back());
+    }
+
+    for (auto & log_probs: align_score_log_probs) {
+
+        log_probs -= score_log_probs_sum;
+    }
+
+    return align_score_log_probs;
 }
 
 double ReadPathProbs::calcReadMappingProbs(const vg::Alignment & alignment, const vector<double> & quality_match_probs, const vector<double> & quality_mismatch_probs, const double indel_prob) const {
@@ -107,5 +119,63 @@ double ReadPathProbs::calcReadMappingProbs(const vg::Alignment & alignment, cons
     } 
 
     return align_path_prob;
+}
+
+bool operator==(const ReadPathProbs & lhs, const ReadPathProbs & rhs) { 
+
+    if (doubleCompare(lhs.noise_prob, rhs.noise_prob)) {
+
+        if (lhs.read_path_probs.size() == rhs.read_path_probs.size()) {
+
+            for (size_t i = 0; i < lhs.read_path_probs.size(); ++i) {
+
+                if (!doubleCompare(lhs.read_path_probs.at(i), rhs.read_path_probs.at(i))) {
+
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    } 
+
+    return false;
+}
+
+bool operator!=(const ReadPathProbs & lhs, const ReadPathProbs & rhs) { 
+
+    return !(lhs == rhs);
+}
+
+bool operator<(const ReadPathProbs & lhs, const ReadPathProbs & rhs) { 
+
+    if (lhs.noise_prob != rhs.noise_prob) {
+
+        return (lhs.noise_prob < rhs.noise_prob);    
+    } 
+
+    assert(lhs.read_path_probs.size() == rhs.read_path_probs.size());
+
+    for (size_t i = 0; i < lhs.read_path_probs.size(); ++i) {
+
+        if (lhs.read_path_probs.at(i) != rhs.read_path_probs.at(i)) {
+
+            return (lhs.read_path_probs.at(i) < rhs.read_path_probs.at(i));    
+        }         
+    }   
+
+    return false;
+}
+
+ostream & operator<<(ostream & os, const ReadPathProbs & probs) {
+
+    os << probs.noise_prob;
+
+    for (auto & prob: probs.read_path_probs) {
+
+        os << " " << prob;
+    }
+
+    return os;
 }
 

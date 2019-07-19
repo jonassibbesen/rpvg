@@ -131,7 +131,9 @@ set_target_properties(${PROJECT_NAME}-bin PROPERTIES OUTPUT_NAME ${PROJECT_NAME}
  
 add_executable(${PROJECT_NAME}-tests
   src/tests/main_test.cpp 
+  src/tests/fragment_length_dist_test.cpp
   src/tests/alignment_path_test.cpp
+  src/tests/read_path_probs_test.cpp
 )
 
 include_directories(

@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "vg/io/basic_stream.hpp"
+
 using namespace std;
 
 
@@ -14,7 +16,7 @@ class FragmentLengthDist {
     	
         FragmentLengthDist();
         FragmentLengthDist(const double mean_in, const double sd_in);
-        FragmentLengthDist(ifstream * alignments_istream, const bool is_multipath);
+        FragmentLengthDist(istream * alignments_istream, const bool is_multipath);
 
         double mean() const;
         double sd() const;
@@ -22,6 +24,9 @@ class FragmentLengthDist {
         bool isValid() const;
         int32_t maxLength() const;
         double logProb(const int32_t value) const;
+
+        bool parseAlignment(const vg::Alignment & alignment);
+        bool parseMultipathAlignment(const vg::MultipathAlignment & alignment);
 
     private:
 
