@@ -8,7 +8,7 @@
 
 PathClusters::PathClusters(const unordered_map<int32_t, unordered_set<int32_t> > & connected_paths, const int32_t num_paths) {
 
-    path_to_cluster_index = vector<uint32_t>(num_paths, -1);
+    path_to_cluster_index = vector<int32_t>(num_paths, -1);
 
     for (size_t i = 0; i < num_paths; ++i) {
 
@@ -17,7 +17,7 @@ PathClusters::PathClusters(const unordered_map<int32_t, unordered_set<int32_t> >
             queue<int32_t> search_queue;
             search_queue.push(i);
 
-            cluster_to_path_index.emplace_back(vector<uint32_t>());
+            cluster_to_path_index.emplace_back(vector<int32_t>());
 
             while (!search_queue.empty()) {
 

@@ -25,10 +25,10 @@ TEST_CASE("Different AlignmentPaths can be equal") {
     REQUIRE(alignment_path_1 == alignment_path_2);
 
 	alignment_path_1.scores.push_back(3);
-	alignment_path_1.scores.push_back(4);	    
+	alignment_path_1.scores.push_back(4);
 
 	alignment_path_2.scores.push_back(4);
-	alignment_path_2.scores.push_back(3);	   
+	alignment_path_2.scores.push_back(3);
 
     REQUIRE(alignment_path_1 == alignment_path_2);
 }
@@ -49,7 +49,7 @@ TEST_CASE("Multiple mapping qualities can be combined into single probability") 
 		REQUIRE(doubleCompare(alignment_path.mapqProb(), 1));
 	}
 
-    SECTION("Mapping quality order does not matter") {
+    SECTION("Mapping quality order not relevant") {
 
 		auto alignment_path_mapq_rev = alignment_path;
 

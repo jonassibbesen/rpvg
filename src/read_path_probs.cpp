@@ -21,7 +21,7 @@ ReadPathProbs::ReadPathProbs(const int32_t num_paths) {
     score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 }
 
-void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist) {
+void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<int32_t, int32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist) {
 
     assert(!align_paths.empty());
     assert(clustered_path_index.size() == read_path_probs.size());
@@ -53,9 +53,9 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
-            for (auto & path: align_paths.at(i).path_ids) {
+            for (auto & path: align_paths.at(i).ids) {
 
-                read_path_probs.at(clustered_path_index.at(path)) = exp(align_paths_log_probs.at(i)) / align_paths.at(i).path_ids.size();
+                read_path_probs.at(clustered_path_index.at(path)) = exp(align_paths_log_probs.at(i)) / align_paths.at(i).ids.size();
             }
         }
     }

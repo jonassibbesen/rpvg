@@ -8,7 +8,7 @@
 #include "utils.hpp"
 
 
-static const uint32_t max_length_sd_multiplicity = 10;
+static const int32_t max_length_sd_multiplicity = 10;
 
 FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(0) {}
 

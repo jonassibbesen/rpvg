@@ -17,7 +17,8 @@ class AlignmentPathFinder {
 
     public: 
     
-       	AlignmentPathFinder(const vg::Graph & graph, const gbwt::GBWT & paths_index_in, const uint32_t & max_pair_distance_in);
+       	AlignmentPathFinder(const vg::Graph & graph, const gbwt::GBWT & paths_index_in, const int32_t max_pair_seq_length_in);
+       	void setMaxPairSeqLength(const int32_t max_pair_seq_length_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
 		vector<AlignmentPath> findAlignmentPathsIds(const AlignmentType & alignment) const;
@@ -27,26 +28,26 @@ class AlignmentPathFinder {
 
 	private:
 
-        vector<uint32_t> node_seq_lengths;
+        vector<int32_t> node_seq_lengths;
        	const gbwt::GBWT & paths_index;
 
-       	uint32_t max_pair_distance;
+       	int32_t max_pair_seq_length;
 
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment) const;
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment, const pair<uint32_t, uint32_t> offset) const;
-		void extendAlignmentPath(AlignmentPath * align_path, const vg::Path & path, const uint32_t offset) const;
+		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment, const vector<gbwt::node_type> & stop_nodes = vector<gbwt::node_type>()) const;
+		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment, const int32_t sub_path_start_idx, const vector<gbwt::node_type> & stop_nodes = vector<gbwt::node_type>()) const;
+		void extendAlignmentPath(AlignmentPath * align_path, const vg::Path & path, const vector<gbwt::node_type> & stop_nodes = vector<gbwt::node_type>()) const;
 
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment) const;
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment, const pair<uint32_t, uint32_t> offset) const;
-		void extendAlignmentPaths(vector<AlignmentPath> * align_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & sub_path, const pair<uint32_t, uint32_t> offset) const;
+		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment, const vector<gbwt::node_type> & stop_nodes = vector<gbwt::node_type>()) const;
+		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment, const int32_t sub_path_start_idx, const vector<gbwt::node_type> & stop_nodes = vector<gbwt::node_type>()) const;
+		void extendAlignmentPaths(vector<AlignmentPath> * align_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const int32_t sub_path_start_idx, const vector<gbwt::node_type> & stop_nodes = vector<gbwt::node_type>()) const;
 
 		void pairAlignmentPaths(vector<AlignmentPath> * paired_align_paths, const AlignmentPath & start_align_path, const AlignmentType & end_alignment) const;
 
-		multimap<gbwt::node_type, pair<int32_t, int32_t> > getAlignmentNodeIndex(const vg::Alignment & alignment) const;
-		multimap<gbwt::node_type, pair<int32_t, int32_t> > getAlignmentNodeIndex(const vg::MultipathAlignment & alignment) const;	
+		vector<gbwt::node_type> getAlignmentStartNodes(const vg::Alignment & alignment) const;
+		vector<gbwt::node_type> getAlignmentStartNodes(const vg::MultipathAlignment & alignment) const;
 
-		vg::Mapping getMapping(const vg::Alignment & alignment, const pair<uint32_t, uint32_t> offset) const;
-		vg::Mapping getMapping(const vg::MultipathAlignment & alignment, const pair<uint32_t, uint32_t> offset) const;
+		map<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::Alignment & alignment) const;
+		map<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::MultipathAlignment & alignment) const;
 
 		void printDebug(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const;
 };

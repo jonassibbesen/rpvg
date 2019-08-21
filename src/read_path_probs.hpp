@@ -23,14 +23,14 @@ class ReadPathProbs {
         double noise_prob;
         vector<double> read_path_probs;
 
-        void calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist);
-        vector<double> calcRelativeAlignmentScoreLogProbs(const vector<AlignmentPath> & align_paths) const;
+        void calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<int32_t, int32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist);
 
     private:
 
         double score_log_base;
 
     	double calcReadMappingProbs(const vg::Alignment & alignment, const vector<double> & quality_match_probs, const vector<double> & quality_mismatch_probs, const double indel_prob) const;
+        vector<double> calcRelativeAlignmentScoreLogProbs(const vector<AlignmentPath> & align_paths) const;
 };
 
 bool operator==(const ReadPathProbs & lhs, const ReadPathProbs & rhs);

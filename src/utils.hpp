@@ -119,9 +119,6 @@ inline vg::Path lazy_reverse_complement_path(const vg::Path& path,
         // measured from the other end of the node.
         *path_rc.add_mapping() = lazy_reverse_complement_mapping(path.mapping(i), node_length);
     }
-    for (size_t i = 0; i < path.mapping_size(); ++i) {
-        path_rc.mutable_mapping(i)->set_rank(i+1);
-    }
 
     return path_rc;
 }
@@ -258,7 +255,8 @@ inline string getPathName(const gbwt::GBWT & paths_index, size_t path_id) {
     return sstream.str();
 }
 
-inline ostream & operator<<(ostream & os, const vector<int32_t> & values) {
+template<class T>
+inline ostream & operator<<(ostream & os, const vector<T> & values) {
 
     auto values_it = values.cbegin();
 

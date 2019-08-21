@@ -6,8 +6,8 @@
 
 
 AlignmentPath::AlignmentPath() {
-    
-    node_length = 0;
+
+    end_offset = 0;
     seq_length = 0;
 }
 
@@ -42,7 +42,7 @@ int32_t AlignmentPath::scoreSum() const {
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    return (lhs.path_ids == rhs.path_ids && lhs.node_length == rhs.node_length && lhs.seq_length == rhs.seq_length && lhs.mapqProb() == rhs.mapqProb() && lhs.scoreSum() == rhs.scoreSum());
+    return (lhs.search.node == rhs.search.node && lhs.search.size() == rhs.search.size() && lhs.end_offset == rhs.end_offset && lhs.ids == rhs.ids && lhs.seq_length == rhs.seq_length && lhs.mapqProb() == rhs.mapqProb() && lhs.scoreSum() == rhs.scoreSum());
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -52,12 +52,10 @@ bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) {
 
 ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
 
-    for (auto & id: align_path.path_ids) {
-
-        os << id << " ";
-    }
-
-    os << "| " << align_path.node_length;
+    os << gbwt::Node::id(align_path.search.node);
+    os << " | " << align_path.search.size();
+    os << " | " << align_path.end_offset;
+    os << " | (" << align_path.ids << ")";
     os << " | " << align_path.seq_length;
     os << " | (" << align_path.scores << ")";
     os << " | (" << align_path.mapqs << ")";

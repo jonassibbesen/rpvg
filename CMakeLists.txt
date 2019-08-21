@@ -93,7 +93,6 @@ include_directories(
 
 link_directories(
   ${PROJECT_SOURCE_DIR}/external/gbwt 
-  ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gssw/lib 
   ${PROJECT_SOURCE_DIR}/external/libvgio 
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib)
@@ -133,7 +132,9 @@ add_executable(${PROJECT_NAME}-tests
   src/tests/main_test.cpp 
   src/tests/fragment_length_dist_test.cpp
   src/tests/alignment_path_test.cpp
+  src/tests/alignment_path_finder_test.cpp
   src/tests/read_path_probs_test.cpp
+  src/tests/path_clusters_test.cpp
 )
 
 include_directories(

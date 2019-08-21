@@ -23,25 +23,25 @@
 #include "read_path_probs.hpp"
 
 
-void addPairedAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * paired_align_paths_threads, const vector<AlignmentPath> & paired_align_paths, const int32_t thread_num) {
+void addPairedAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * paired_align_paths_threads, const vector<AlignmentPath> & paired_align_paths, const int32_t thread_idx) {
 
     if (!paired_align_paths.empty()) {
 
-        auto anchor_path_id = paired_align_paths.front().path_ids.front();
+        auto anchor_path_id = paired_align_paths.front().ids.front();
 
         for (auto & align_path: paired_align_paths) {
 
-            for (auto & path_id: align_path.path_ids) {
+            for (auto & path_id: align_path.ids) {
 
                 if (anchor_path_id != path_id) {
 
-                    connected_paths_threads->at(thread_num)[anchor_path_id].emplace(path_id);
-                    connected_paths_threads->at(thread_num)[path_id].emplace(anchor_path_id);
+                    connected_paths_threads->at(thread_idx)[anchor_path_id].emplace(path_id);
+                    connected_paths_threads->at(thread_idx)[path_id].emplace(anchor_path_id);
                 }
             }
         }
 
-        paired_align_paths_threads->at(thread_num).emplace_back(paired_align_paths);
+        paired_align_paths_threads->at(thread_idx).emplace_back(paired_align_paths);
     }    
 }
 
@@ -198,7 +198,7 @@ int main(int argc, char* argv[]) {
 
         for (auto & align_path: paired_align_paths) {
 
-            clustered_paired_align_paths.at(path_clusters.path_to_cluster_index.at(align_path.front().path_ids.front())).push_back(move(align_path));
+            clustered_paired_align_paths.at(path_clusters.path_to_cluster_index.at(align_path.front().ids.front())).push_back(move(align_path));
         }
     }
 
@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
 
             clustered_paired_align_path_probs.at(i).reserve(clustered_paired_align_paths.at(i).size());
 
-            unordered_map<uint32_t, uint32_t> clustered_path_index;
+            unordered_map<int32_t, int32_t> clustered_path_index;
 
             for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
 

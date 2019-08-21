@@ -24,19 +24,13 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Alignm
     
     FragmentLengthDist fragment_length_dist;
 
-    SECTION("Does not parse missing fragment length distribution") {
+    SECTION("Missing fragment length distribution is not parsed") {
 
-	    string alignment_str = R"({"sequence":"ACGT"})";
-
-	    vg::Alignment alignment;
-	    json2pb(alignment, alignment_str);
-
-	    REQUIRE(!fragment_length_dist.parseAlignment(alignment));	
-	}
-
-    SECTION("Does not parse empty fragment length distribution") {
-
-	    string alignment_str = R"({"fragment_length_distribution":"0:0:0:0:1"})";
+	    const string alignment_str = R"(
+	    	{
+	    		"sequence":"ACGT"
+	    	}
+	    )";
 
 	    vg::Alignment alignment;
 	    json2pb(alignment, alignment_str);
@@ -44,9 +38,27 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Alignm
 	    REQUIRE(!fragment_length_dist.parseAlignment(alignment));	
 	}
 
-    SECTION("Parses fragment length distribution parameters") {
+    SECTION("Empty fragment length distribution is not parsed") {
 
-	    string alignment_str = R"({"fragment_length_distribution":"100:10:2:0:1"})";
+	    const string alignment_str = R"(
+	    	{
+	    		"fragment_length_distribution":"0:0:0:0:1"
+	    	}
+	    )";
+
+	    vg::Alignment alignment;
+	    json2pb(alignment, alignment_str);
+
+	    REQUIRE(!fragment_length_dist.parseAlignment(alignment));	
+	}
+
+    SECTION("Fragment length distribution parameters are parsed") {
+
+	    const string alignment_str = R"(
+	    	{
+	    		"fragment_length_distribution":"100:10:2:0:1"
+	    	}
+	    )";
 
 	    vg::Alignment alignment;
 	    json2pb(alignment, alignment_str);
@@ -61,9 +73,13 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Multip
     
     FragmentLengthDist fragment_length_dist;
 
-    SECTION("Does not parse missing fragment length distribution") {
+    SECTION("Missing fragment length distribution is not parsed") {
 
-	    string alignment_str = R"({"sequence":"ACGT"})";
+	   	const string alignment_str = R"(
+	   		{
+	   			"sequence":"ACGT"
+	   		}
+	    )";
 
 	    vg::MultipathAlignment alignment;
 	    json2pb(alignment, alignment_str);
@@ -71,9 +87,13 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Multip
 	    REQUIRE(!fragment_length_dist.parseMultipathAlignment(alignment));	
 	}
 
-    SECTION("Parses fragment length distribution parameters") {
+    SECTION("Fragment length distribution parameters are parsed") {
 
-	    string alignment_str = R"({"annotation":{"fragment_length_distribution":"-I 10 -D 2"}})";
+	    const string alignment_str = R"(
+	    	{
+	    		"annotation": {"fragment_length_distribution":"-I 10 -D 2"}
+	    	}
+	    )";
 
 	    vg::MultipathAlignment alignment;
 	    json2pb(alignment, alignment_str);

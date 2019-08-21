@@ -15,8 +15,8 @@ class PathClusters {
     	
     	PathClusters(const unordered_map<int32_t, unordered_set<int32_t> > & connected_paths, const int32_t num_paths);
     	
-    	vector<uint32_t> path_to_cluster_index;
-    	vector<vector<uint32_t> > cluster_to_path_index;
+    	vector<int32_t> path_to_cluster_index;
+    	vector<vector<int32_t> > cluster_to_path_index;
 };
 
 
