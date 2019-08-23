@@ -83,8 +83,6 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * ali
     assert(mapping_it != path.mapping().cend());
 
     if (align_path->search.node == mapping_to_gbwt(*mapping_it)) {
-
-        assert(align_path->seq_length > 0);
         
         align_path->end_offset = mapping_it->position().offset() + mapping_from_length(*mapping_it);
         align_path->seq_length += mapping_it->position().offset() + mapping_to_length(*mapping_it);
@@ -103,6 +101,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * ali
 
         if (align_path->seq_length == 0) {
 
+            assert(align_path->search.node == gbwt::ENDMARKER);
             align_path->search = paths_index.find(mapping_to_gbwt(*mapping_it));
         
         } else {
@@ -258,7 +257,6 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
 
         if (end_alignment_start_nodes_index_it != end_alignment_start_nodes_index.end()) {
 
-            assert(cur_paired_align_path->end_offset <= cur_paired_align_path->seq_length);
             cur_paired_align_path->seq_length -= cur_paired_align_path->end_offset;
 
             auto complete_paired_align_paths = extendAlignmentPath(*cur_paired_align_path, end_alignment, end_alignment_start_nodes_index_it->second);
