@@ -53,17 +53,17 @@ int main(int argc, char* argv[]) {
       ("g,graph", "vg graph file name (required)", cxxopts::value<string>())
       ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
       ("a,alignments", "gam alignments file name (required)", cxxopts::value<string>())
-      ("o,output", "output prefix (required)", cxxopts::value<string>())
+      ("o,output", "output file prefix", cxxopts::value<string>()->default_value("stdout"))
       ("i,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("m,multipath", "alignment input is multipath (gamp)", cxxopts::value<bool>())
+      ("m,multipath", "alignment input is multipath gamp format", cxxopts::value<bool>())
       ("t,threads", "number of compute threads", cxxopts::value<int32_t>()->default_value("1"))
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
     if (argc == 1) {
 
-        cout << options.help() << endl;
+        cerr << options.help() << endl;
         return 1;
     }
 
@@ -71,15 +71,13 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("help")) {
 
-        cout << options.help() << endl;
+        cerr << options.help() << endl;
         return 1;
     }
 
     assert(option_results.count("graph") == 1);
     assert(option_results.count("paths") == 1);
     assert(option_results.count("alignments") == 1);
-    assert(option_results.count("output") == 1);
-    assert(option_results.count("threads") <= 1);
 
     if (option_results.count("frag-mean") != option_results.count("frag-sd")) {
 
@@ -91,7 +89,7 @@ int main(int argc, char* argv[]) {
 
     if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
 
-        cerr << "WARNING: Fragment length distribution parameters will be based on the first alignment that contains such information." << endl;
+        cerr << "WARNING: Fragment length distribution parameters not given as input. Parameters will be based on the first alignment that contains such information." << endl;
 
         ifstream frag_alignments_istream(option_results["alignments"].as<string>());
         assert(frag_alignments_istream.is_open());
@@ -107,12 +105,13 @@ int main(int argc, char* argv[]) {
         
         } else {
 
-            cout << "Fragment length distribution parameters found in alignment (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
+            cerr << "Fragment length distribution parameters found in alignment (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
         }      
 
     } else {
 
         fragment_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
+        cerr << "Fragment length distribution parameters given as input (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
     }
 
     assert(fragment_length_dist.isValid());
@@ -130,7 +129,7 @@ int main(int argc, char* argv[]) {
     unique_ptr<gbwt::GBWT> paths_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
     double time2 = gbwt::readTimer();
-    cout << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
@@ -170,7 +169,7 @@ int main(int argc, char* argv[]) {
     alignments_istream.close();
 
     double time5 = gbwt::readTimer();
-    cout << "Found paired alignment paths " << time5 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Found paired alignment paths " << time5 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     for (size_t i = 1; i < connected_paths_threads.size(); ++i) {
 
@@ -185,12 +184,12 @@ int main(int argc, char* argv[]) {
     }
 
     double time6 = gbwt::readTimer();
-    cout << "Merged connected path threads " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Merged connected path threads " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     auto path_clusters = PathClusters(connected_paths_threads.front(), num_paths);
 
     double time62 = gbwt::readTimer();
-    cout << "Found path clusters " << time62 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Found path clusters " << time62 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
  
     vector<vector<vector<AlignmentPath> > > clustered_paired_align_paths(path_clusters.cluster_to_path_index.size());
 
@@ -203,7 +202,7 @@ int main(int argc, char* argv[]) {
     }
 
     double time7 = gbwt::readTimer();
-    cout << "Clustered paired alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Clustered paired alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     vector<vector<ReadPathProbs> > clustered_paired_align_path_probs(path_clusters.cluster_to_path_index.size());
 
@@ -232,11 +231,24 @@ int main(int argc, char* argv[]) {
     }
 
     double time8 = gbwt::readTimer();
-    cout << "Calculated and sorted paired alignment path probabilites " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Calculated and sorted paired alignment path probabilites " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
+    streambuf * output_buffer;
+    ofstream output_file;
 
-    ofstream probs_ostream(option_results["output"].as<string>() + ".txt");
-    assert(probs_ostream.is_open());
+    if (option_results["output"].as<string>() == "stdout") {
+
+        output_buffer = cout.rdbuf();
+    
+    } else {
+
+        output_file.open(option_results["output"].as<string>() + ".txt");
+        assert(output_file.is_open());
+
+        output_buffer = output_file.rdbuf();
+    }
+
+   ostream output_stream(output_buffer);
 
     for (size_t i = 0; i < clustered_paired_align_path_probs.size(); ++i) {
 
@@ -247,12 +259,12 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        probs_ostream << "#\nx Noise";
+        output_stream << "#\nx Noise";
         for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
 
-            probs_ostream << " " << getPathName(*paths_index, path_id);
+            output_stream << " " << getPathName(*paths_index, path_id);
         }
-        probs_ostream << endl;
+        output_stream << endl;
 
         int32_t num_paired_paths = 1;
         int32_t prev_unique_probs_idx = 0;
@@ -265,19 +277,22 @@ int main(int argc, char* argv[]) {
             
             } else {
 
-                probs_ostream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
+                output_stream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
                 num_paired_paths = 1;
                 prev_unique_probs_idx = j;
             }
         }
 
-        probs_ostream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
+        output_stream << num_paired_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
     }
 
-    probs_ostream.close();
- 
+    if (option_results["output"].as<string>() != "stdout") {
+
+        output_file.close();
+    }
+
     double time9 = gbwt::readTimer();
-    cout << "Collapsed and wrote probabilites " << time9 - time8 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Collapsed and wrote probabilites " << time9 - time8 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
 	return 0;
 }

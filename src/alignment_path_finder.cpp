@@ -372,16 +372,16 @@ void AlignmentPathFinder<AlignmentType>::printDebug(const AlignmentType & alignm
     auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_seq_length_func);
     auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_seq_length_func);
 
-    cout << pb2json(alignment_1) << endl;
-    cout << pb2json(alignment_2_rc) << endl;
-    cout << pb2json(alignment_2) << endl;
-    cout << pb2json(alignment_1_rc) << endl;
-    cout << endl;
+    cerr << pb2json(alignment_1) << endl;
+    cerr << pb2json(alignment_2_rc) << endl;
+    cerr << pb2json(alignment_2) << endl;
+    cerr << pb2json(alignment_1_rc) << endl;
+    cerr << endl;
 
-    cout << findAlignmentPathsIds(alignment_1) << endl;
-    cout << findAlignmentPathsIds(alignment_2_rc) << endl;
-    cout << findAlignmentPathsIds(alignment_2) << endl;
-    cout << findAlignmentPathsIds(alignment_1_rc) << endl;
+    cerr << findAlignmentPathsIds(alignment_1) << endl;
+    cerr << findAlignmentPathsIds(alignment_2_rc) << endl;
+    cerr << findAlignmentPathsIds(alignment_2) << endl;
+    cerr << findAlignmentPathsIds(alignment_1_rc) << endl;
 
     auto paired_align_paths = findPairedAlignmentPaths(alignment_1, alignment_2);
 
@@ -390,8 +390,8 @@ void AlignmentPathFinder<AlignmentType>::printDebug(const AlignmentType & alignm
         align_path.ids = paths_index.locate(align_path.search);
     }
 
-    cout << paired_align_paths << endl;
-    cout << endl;
+    cerr << paired_align_paths << endl;
+    cerr << endl;
 }
 
 template class AlignmentPathFinder<vg::Alignment>;
