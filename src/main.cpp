@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
 
             if (alignment_1.subpath_size() > 0 && alignment_2.subpath_size() > 0) {
 
-                auto paired_align_paths = alignment_path_finder.findPairedAlignmentPathsIds(alignment_1, alignment_2);
+                auto paired_align_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
                 addPairedAlignmentPathsThreaded(&connected_paths_threads, &paired_align_paths_threads, paired_align_paths, omp_get_thread_num());
             }
         });
@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
 
             if (alignment_1.has_path() && alignment_2.has_path()) {
 
-                auto paired_align_paths = alignment_path_finder.findPairedAlignmentPathsIds(alignment_1, alignment_2);
+                auto paired_align_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
                 addPairedAlignmentPathsThreaded(&connected_paths_threads, &paired_align_paths_threads, paired_align_paths, omp_get_thread_num());
             }
         });

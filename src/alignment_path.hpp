@@ -17,9 +17,10 @@ class AlignmentPath {
     
         AlignmentPath();
 
-        gbwt::SearchState search;
+        vector<gbwt::node_type> path;
         int32_t end_offset;
 
+        gbwt::SearchState search;
         vector<gbwt::size_type> ids;
 
         int32_t seq_length;
