@@ -275,7 +275,6 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
                 }
 
                 found_overlap = true;
-                break;
             }
         }
 
