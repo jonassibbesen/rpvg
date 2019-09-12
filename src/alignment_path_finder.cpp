@@ -5,7 +5,7 @@
 
 #include "utils.hpp"
 
-// #define debug
+#define debug
 
 
 template<class AlignmentType>
@@ -86,37 +86,47 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(co
 
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * align_path, const vg::Path & path) const {
+
+    cout << endl;
+    cout << *align_path<< endl;
+
+    assert(align_path->path_end_pos <= align_path->path.size());
     
     auto mapping_it = path.mapping().cbegin();
     assert(mapping_it != path.mapping().cend());
 
-    auto path_it = find(align_path->path.begin(), align_path->path.end(), mapping_to_gbwt(*mapping_it));
 
-    while (path_it != align_path->path.end() && mapping_it != path.mapping().cend()) {
+    cout << mapping_to_gbwt(*mapping_it) << endl;
 
-        if (*path_it != mapping_to_gbwt(*mapping_it)) {
+    while (align_path->path_end_pos < align_path->path.size() && mapping_it != path.mapping().cend()) {
 
-            align_path->search = paths_index.extend(align_path->search, gbwt::ENDMARKER);                
-            assert(align_path->search.empty());
-            
-            break;            
-        }
+        ++align_path->path_end_pos;
 
-        if (align_path->path.back() == mapping_to_gbwt(*mapping_it)) {
-            
-            align_path->seq_length -= align_path->end_offset;
-            align_path->end_offset = mapping_it->position().offset() + mapping_from_length(*mapping_it);
+        if (align_path->path.at(align_path->path_end_pos - 1) != mapping_to_gbwt(*mapping_it)) {
+
+            align_path->search = gbwt::SearchState();               
+
+    cout << *align_path<< endl;
+
+            assert(align_path->search.empty());  
+        
+        } else {
+
+            align_path->seq_length -= align_path->seq_end_offset;
+            align_path->seq_end_offset = mapping_it->position().offset() + mapping_from_length(*mapping_it);
             align_path->seq_length += mapping_it->position().offset() + mapping_to_length(*mapping_it);
         } 
 
-        ++path_it;
         ++mapping_it;
     }
+
+    cout << *align_path<< endl;    
 
     while (mapping_it != path.mapping().cend()) {
 
         align_path->path.emplace_back(mapping_to_gbwt(*mapping_it));
-        align_path->end_offset = mapping_it->position().offset() + mapping_from_length(*mapping_it);
+        ++align_path->path_end_pos;
+        align_path->seq_end_offset = mapping_it->position().offset() + mapping_from_length(*mapping_it);
 
         if (align_path->path.size() == 1) {
 
@@ -130,9 +140,13 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * ali
             align_path->search = paths_index.extend(align_path->search, align_path->path.back());                
         }
 
+        cout << *align_path<< endl;    
+
         align_path->seq_length += mapping_to_length(*mapping_it);
         ++mapping_it;
     }
+
+    cout << *align_path<< endl;    
 }
 
 template<class AlignmentType>
@@ -210,14 +224,10 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 #ifdef debug
 
     cerr << endl;
-    cerr << pb2json(alignment_1) << endl;
-    cerr << findAlignmentPaths(alignment_1) << endl;
-    cerr << pb2json(alignment_2_rc) << endl;
-    cerr << findAlignmentPaths(alignment_2_rc) << endl;
-    cerr << pb2json(alignment_2) << endl;
-    cerr << findAlignmentPaths(alignment_2) << endl;
-    cerr << pb2json(alignment_1_rc) << endl;
-    cerr << findAlignmentPaths(alignment_1_rc) << endl;
+    findAlignmentPaths(alignment_1);
+    findAlignmentPaths(alignment_2_rc);
+    findAlignmentPaths(alignment_2);
+    findAlignmentPaths(alignment_1_rc);
 
 #endif
 
@@ -248,6 +258,14 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
     auto start_align_paths = extendAlignmentPath(AlignmentPath(), start_alignment);
     auto end_alignment_start_nodes_index = getAlignmentStartNodesIndex(end_alignment);
 
+    cout << pb2json(start_alignment) << endl;
+    cout << pb2json(end_alignment) << endl;
+
+    for (auto bla: end_alignment_start_nodes_index) {
+
+        cout << bla.first << " " << bla.second << endl;
+    }
+
     std::queue<AlignmentPath> paired_align_path_queue;
 
     for (auto & align_path: start_align_paths) {
@@ -255,15 +273,20 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
         assert(!align_path.search.empty());
         assert(!align_path.path.empty());
 
-        align_path.seq_length += (node_seq_lengths.at(gbwt::Node::id(align_path.search.node)) - align_path.end_offset);
-        align_path.end_offset = node_seq_lengths.at(gbwt::Node::id(align_path.search.node));
+        align_path.seq_length += (node_seq_lengths.at(gbwt::Node::id(align_path.search.node)) - align_path.seq_end_offset);
+        align_path.seq_end_offset = node_seq_lengths.at(gbwt::Node::id(align_path.search.node));
 
         bool found_overlap = false;
 
+        cout << align_path << endl;
+
         for (auto & start_nodes: end_alignment_start_nodes_index) {
 
-            if (find(align_path.path.begin(), align_path.path.end(), start_nodes.first) != align_path.path.end()) {
+            auto path_it = find(align_path.path.begin(), align_path.path.end(), start_nodes.first); 
 
+            while (path_it != align_path.path.end()) {
+
+                align_path.path_end_pos = path_it - align_path.path.begin();
                 auto complete_paired_align_paths = extendAlignmentPath(align_path, end_alignment, start_nodes.second);
 
                 for (auto & complete_align_path: complete_paired_align_paths) {
@@ -275,6 +298,9 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
                 }
 
                 found_overlap = true;
+
+                ++path_it;
+                path_it = find(path_it, align_path.path.end(), start_nodes.first); 
             }
         }
 
@@ -294,13 +320,39 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
 
         if (end_alignment_start_nodes_index_it != end_alignment_start_nodes_index.end()) {
 
-            auto complete_paired_align_paths = extendAlignmentPath(*cur_paired_align_path, end_alignment, end_alignment_start_nodes_index_it->second);
+            while (true) {
 
-            for (auto & complete_align_path: complete_paired_align_paths) {
+                cout << *cur_paired_align_path << endl;
 
-                if (!complete_align_path.search.empty() && complete_align_path.seq_length <= max_pair_seq_length) {
+                assert(cur_paired_align_path->path_end_pos == cur_paired_align_path->path.size());
+                --cur_paired_align_path->path_end_pos;
 
-                    paired_align_paths->emplace_back(complete_align_path);                         
+                cout << *cur_paired_align_path << endl;
+                cout << "bla" << endl;
+
+                auto complete_paired_align_paths = extendAlignmentPath(*cur_paired_align_path, end_alignment, end_alignment_start_nodes_index_it->second);
+
+                cout << complete_paired_align_paths << endl;
+
+                for (auto & complete_align_path: complete_paired_align_paths) {
+
+                    if (!complete_align_path.search.empty() && complete_align_path.seq_length <= max_pair_seq_length) {
+
+                        paired_align_paths->emplace_back(complete_align_path);                         
+                    }
+                }
+
+                cur_paired_align_path->search = paths_index.extend(cur_paired_align_path->search, cur_paired_align_path->search.node);
+
+                if (!cur_paired_align_path->search.empty()) { 
+
+                    cur_paired_align_path->path.emplace_back(cur_paired_align_path->search.node);
+                    cur_paired_align_path->path_end_pos = cur_paired_align_path->path.size();
+                    cur_paired_align_path->seq_length += cur_paired_align_path->seq_end_offset;
+                
+                } else {
+
+                    break;
                 }
             }
 
@@ -336,9 +388,10 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
 
                     paired_align_path_queue.push(*cur_paired_align_path);
                     paired_align_path_queue.back().path.emplace_back(extended_path.node);
+                    ++paired_align_path_queue.back().path_end_pos;
+                    paired_align_path_queue.back().seq_end_offset = node_seq_lengths.at(gbwt::Node::id(extended_path.node));
                     paired_align_path_queue.back().search = extended_path;
-                    paired_align_path_queue.back().end_offset = node_seq_lengths.at(gbwt::Node::id(extended_path.node));
-                    paired_align_path_queue.back().seq_length += paired_align_path_queue.back().end_offset;
+                    paired_align_path_queue.back().seq_length += paired_align_path_queue.back().seq_end_offset;
                 }
             }
 
