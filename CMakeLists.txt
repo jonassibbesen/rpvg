@@ -100,8 +100,6 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/external/libvgio/lib
 )
 
-file(COPY ${PROJECT_SOURCE_DIR}/external/libvgio/lib/libvgio.dylib DESTINATION ${PROJECT_SOURCE_DIR}/external/libvgio)
-
 add_dependencies(${PROJECT_NAME} catch2-proj)
 add_dependencies(${PROJECT_NAME} cxxopts-proj)
 add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
@@ -156,4 +154,8 @@ add_test(
   NAME ${PROJECT_NAME}-tests
   COMMAND ${PROJECT_NAME}-tests
 )
+
+file(COPY ${PROJECT_SOURCE_DIR}/external/libvgio/lib/libvgio.dylib DESTINATION ${PROJECT_SOURCE_DIR}/external/libvgio)
+
+
 
