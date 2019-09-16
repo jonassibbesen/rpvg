@@ -67,7 +67,9 @@ ExternalProject_Add(libvgio-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
-  INSTALL_COMMAND ""
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ./install.sh ${PROJECT_SOURCE_DIR}/external/libvgio
 )
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -88,14 +90,17 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/external/gbwt/include 
   ${PROJECT_SOURCE_DIR}/external/gssw/src 
-  ${PROJECT_SOURCE_DIR}/external/libvgio 
-  ${PROJECT_SOURCE_DIR}/external/libvgio/include)
+  ${PROJECT_SOURCE_DIR}/external/libvgio/include
+)
 
 link_directories(
+  ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gssw/lib 
-  ${PROJECT_SOURCE_DIR}/external/libvgio 
-  ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib)
+  ${PROJECT_SOURCE_DIR}/external/libvgio/lib
+)
+
+file(COPY ${PROJECT_SOURCE_DIR}/external/libvgio/lib/libvgio.dylib DESTINATION ${PROJECT_SOURCE_DIR}/external/libvgio)
 
 add_dependencies(${PROJECT_NAME} catch2-proj)
 add_dependencies(${PROJECT_NAME} cxxopts-proj)
@@ -106,10 +111,10 @@ add_dependencies(${PROJECT_NAME} libvgio-proj)
 
 target_link_libraries(${PROJECT_NAME}
   protobuf 
+  sdsl
   gbwt 
   gssw 
-  vgio 
-  sdsl
+  vgio
 )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
