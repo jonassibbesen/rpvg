@@ -47,7 +47,7 @@ void addPairedAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("vgprob", "calculate read path probabilities");
+    cxxopts::Options options("rpvg", "calculate read-path probabilities using variation graphs");
 
     options.add_options()
       ("g,graph", "vg graph file name (required)", cxxopts::value<string>())

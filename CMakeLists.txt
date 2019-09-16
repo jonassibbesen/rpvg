@@ -1,14 +1,14 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.12)
+
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-project(vgprob)
+project(rpvg)
 
-find_package(Protobuf REQUIRED)
 find_package(OpenMP REQUIRED)
 
 ExternalProject_Add(catch2-proj
   GIT_REPOSITORY "https://github.com/catchorg/Catch2.git"
-  GIT_TAG "820271bf246afd4a381ff753b0cda14aeb1d0a1c"
+  GIT_TAG "af8b2538a62db34b3cec10ceb74e3d29bd06e37f"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/catch2"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -19,7 +19,7 @@ ExternalProject_Add(catch2-proj
 
 ExternalProject_Add(cxxopts-proj
   GIT_REPOSITORY "https://github.com/jarro2783/cxxopts.git"
-  GIT_TAG "3c73d91c0b04e2b59462f0a741be8c07024c1bc0"
+  GIT_TAG "4a0af0e95038450baa160ed7ba863072c39f457c"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/cxxopts"
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
@@ -40,7 +40,7 @@ ExternalProject_Add(sdsl-lite-proj
 
 ExternalProject_Add(gbwt-proj
   GIT_REPOSITORY "https://github.com/jltsiren/gbwt.git"
-  GIT_TAG "fefa626dec310edef0c7269d65c59bb95e22f6dd"
+  GIT_TAG "4f5dea6a3b7b63528cceae896379a5a5cb52b481"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -63,7 +63,7 @@ ExternalProject_Add(gssw-proj
 
 ExternalProject_Add(libvgio-proj
   GIT_REPOSITORY "https://github.com/vgteam/libvgio.git"
-  GIT_TAG "f6f93ddeeb97a3977ad8109f16bf031da718e40a"
+  GIT_TAG "a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
