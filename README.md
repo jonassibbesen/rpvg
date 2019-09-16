@@ -1,5 +1,5 @@
 # rpvg
-Method for calculating Read Probabilities using Variation Graphs.
+Method for calculating Read-path Probabilities using Variation Graphs.
 
 ### Compilation
 *rpvg* requires that [protobuf](https://github.com/protocolbuffers/protobuf), [htslib](https://github.com/samtools/htslib) and OpenMP are installed before compilation. 
