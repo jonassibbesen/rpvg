@@ -63,13 +63,11 @@ ExternalProject_Add(gssw-proj
 
 ExternalProject_Add(libvgio-proj
   GIT_REPOSITORY "https://github.com/vgteam/libvgio.git"
-  GIT_TAG "a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664"
+  GIT_TAG "99c6bcdd542651dcbcc9e102304e50d793b54eef"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ./install.sh ${PROJECT_SOURCE_DIR}/external/libvgio
+  INSTALL_COMMAND ""
 )
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -90,6 +88,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/external/gbwt/include 
   ${PROJECT_SOURCE_DIR}/external/gssw/src 
+  ${PROJECT_SOURCE_DIR}/external/libvgio
   ${PROJECT_SOURCE_DIR}/external/libvgio/include
 )
 
@@ -97,7 +96,7 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gssw/lib 
-  ${PROJECT_SOURCE_DIR}/external/libvgio/lib
+  ${PROJECT_SOURCE_DIR}/external/libvgio
 )
 
 add_dependencies(${PROJECT_NAME} catch2-proj)
@@ -154,8 +153,4 @@ add_test(
   NAME ${PROJECT_NAME}-tests
   COMMAND ${PROJECT_NAME}-tests
 )
-
-file(COPY ${PROJECT_SOURCE_DIR}/external/libvgio/lib/libvgio.dylib DESTINATION ${PROJECT_SOURCE_DIR}/external/libvgio)
-
-
 
