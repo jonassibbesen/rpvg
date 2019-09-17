@@ -8,7 +8,7 @@ find_package(OpenMP REQUIRED)
 
 ExternalProject_Add(catch2-proj
   GIT_REPOSITORY "https://github.com/catchorg/Catch2.git"
-  GIT_TAG "af8b2538a62db34b3cec10ceb74e3d29bd06e37f"
+  GIT_TAG "820271bf246afd4a381ff753b0cda14aeb1d0a1c"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/catch2"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -19,7 +19,7 @@ ExternalProject_Add(catch2-proj
 
 ExternalProject_Add(cxxopts-proj
   GIT_REPOSITORY "https://github.com/jarro2783/cxxopts.git"
-  GIT_TAG "4a0af0e95038450baa160ed7ba863072c39f457c"
+  GIT_TAG "3c73d91c0b04e2b59462f0a741be8c07024c1bc0"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/cxxopts"
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
@@ -63,7 +63,7 @@ ExternalProject_Add(gssw-proj
 
 ExternalProject_Add(libvgio-proj
   GIT_REPOSITORY "https://github.com/vgteam/libvgio.git"
-  GIT_TAG "99c6bcdd542651dcbcc9e102304e50d793b54eef"
+  GIT_TAG "f6f93ddeeb97a3977ad8109f16bf031da718e40a"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
