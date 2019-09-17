@@ -93,10 +93,10 @@ include_directories(
 )
 
 link_directories(
-  ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/external/gbwt 
   ${PROJECT_SOURCE_DIR}/external/gssw/lib 
   ${PROJECT_SOURCE_DIR}/external/libvgio
+  ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib
 )
 
 add_dependencies(${PROJECT_NAME} catch2-proj)
