@@ -40,7 +40,7 @@ ExternalProject_Add(sdsl-lite-proj
 
 ExternalProject_Add(gbwt-proj
   GIT_REPOSITORY "https://github.com/jltsiren/gbwt.git"
-  GIT_TAG "4f5dea6a3b7b63528cceae896379a5a5cb52b481"
+  GIT_TAG "fefa626dec310edef0c7269d65c59bb95e22f6dd"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
