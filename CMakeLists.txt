@@ -108,10 +108,10 @@ add_dependencies(${PROJECT_NAME} libvgio-proj)
 
 target_link_libraries(${PROJECT_NAME}
   protobuf 
-  sdsl
   gbwt 
   gssw 
   vgio
+  sdsl
 )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
