@@ -40,8 +40,8 @@ class AlignmentPathFinder {
 
 		void pairAlignmentPaths(vector<AlignmentPath> * paired_align_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment) const;
 
-		map<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::Alignment & alignment) const;
-		map<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::MultipathAlignment & alignment) const;
+		multimap<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::Alignment & alignment) const;
+		multimap<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::MultipathAlignment & alignment) const;
 };
 
 
