@@ -40,7 +40,7 @@ ExternalProject_Add(sdsl-lite-proj
 
 ExternalProject_Add(gbwt-proj
   GIT_REPOSITORY "https://github.com/jltsiren/gbwt.git"
-  GIT_TAG "fefa626dec310edef0c7269d65c59bb95e22f6dd"
+  GIT_TAG "4f5dea6a3b7b63528cceae896379a5a5cb52b481"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gbwt"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -63,7 +63,7 @@ ExternalProject_Add(gssw-proj
 
 ExternalProject_Add(libvgio-proj
   GIT_REPOSITORY "https://github.com/vgteam/libvgio.git"
-  GIT_TAG "f6f93ddeeb97a3977ad8109f16bf031da718e40a"
+  GIT_TAG "5f9e7cbd873ad11c82dcfddb0488e1b769d6dd9b"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
