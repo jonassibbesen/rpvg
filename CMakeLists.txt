@@ -45,7 +45,6 @@ ExternalProject_Add(gbwt-proj
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
-  BUILD_COMMAND make
   INSTALL_COMMAND ""
   DEPENDS sdsl-lite-proj
 )
@@ -57,7 +56,6 @@ ExternalProject_Add(gssw-proj
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
-  BUILD_COMMAND make
   INSTALL_COMMAND ""
 )
 
@@ -67,6 +65,7 @@ ExternalProject_Add(libvgio-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
+  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/external/libvgio .
   INSTALL_COMMAND ""
 )
 
