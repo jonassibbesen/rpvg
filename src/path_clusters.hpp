@@ -1,6 +1,6 @@
 
-#ifndef VGPROB_SRC_PATHCLUSTERS_HPP
-#define VGPROB_SRC_PATHCLUSTERS_HPP
+#ifndef RPVG_SRC_PATHCLUSTERS_HPP
+#define RPVG_SRC_PATHCLUSTERS_HPP
 
 #include <vector>
 #include <unordered_map>
