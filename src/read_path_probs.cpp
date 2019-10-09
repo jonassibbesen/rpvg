@@ -51,12 +51,21 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
             log_probs -= align_paths_log_probs_sum;
         }
 
+        double read_path_probs_sum = 0;
+
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
             for (auto & path: align_paths.at(i).ids) {
 
-                read_path_probs.at(clustered_path_index.at(path)) = exp(align_paths_log_probs.at(i)) / align_paths.at(i).ids.size();
+                read_path_probs.at(clustered_path_index.at(path)) = exp(align_paths_log_probs.at(i));
             }
+
+            read_path_probs_sum += exp(align_paths_log_probs.at(i)) * align_paths.at(i).ids.size();
+        }
+
+        for (auto & probs: read_path_probs) {
+
+            probs /= read_path_probs_sum;
         }
     }
 }

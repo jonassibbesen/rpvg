@@ -248,7 +248,7 @@ int main(int argc, char* argv[]) {
         output_buffer = output_file.rdbuf();
     }
 
-   ostream output_stream(output_buffer);
+    ostream output_stream(output_buffer);
 
     for (size_t i = 0; i < clustered_paired_align_path_probs.size(); ++i) {
 
