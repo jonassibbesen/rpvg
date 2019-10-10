@@ -52,11 +52,11 @@ int main(int argc, char* argv[]) {
     options.add_options()
       ("g,graph", "vg graph file name (required)", cxxopts::value<string>())
       ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
-      ("a,alignments", "gam alignments file name (required)", cxxopts::value<string>())
+      ("a,alignments", "gam(p) alignment file name (required)", cxxopts::value<string>())
       ("o,output", "output file prefix", cxxopts::value<string>()->default_value("stdout"))
       ("i,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("m,multipath", "alignment input is multipath gamp format", cxxopts::value<bool>())
+      ("m,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
       ("t,threads", "number of compute threads", cxxopts::value<int32_t>()->default_value("1"))
       ("h,help", "print help", cxxopts::value<bool>())
       ;
