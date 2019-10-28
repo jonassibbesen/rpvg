@@ -134,7 +134,12 @@ int main(int argc, char* argv[]) {
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
-    const auto num_paths = paths_index->metadata.haplotype_count;
+    auto num_paths = paths_index->metadata.haplotype_count;
+
+    if (paths_index->bidirectional()) {
+
+        num_paths *= 2;
+    }
 
     vector<unordered_map<int32_t, unordered_set<int32_t> > > connected_paths_threads(num_threads);
     vector<vector<vector<AlignmentPath> > > paired_align_paths_threads(num_threads);
