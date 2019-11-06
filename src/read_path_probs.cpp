@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <numeric>
+#include <limits>
 
 #include "gssw.h"
 
@@ -34,16 +35,18 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
         noise_prob = align_paths.front().mapqProb();
         assert(noise_prob < 1);
 
-        auto align_paths_log_probs = calcRelativeAlignmentScoreLogProbs(align_paths);
+        vector<double> align_paths_log_probs;
+        align_paths_log_probs.reserve(align_paths.size());
+
         double align_paths_log_probs_sum = numeric_limits<double>::lowest();
 
-        for (size_t i = 0; i < align_paths.size(); ++i) {
+        for (auto & align_path: align_paths) {
 
-            assert(align_paths.at(i).mapqs.size() == 2);
-            assert(align_paths.at(i).scores.size() == 2);
+            assert(align_path.mapqs.size() == 2);
+            assert(align_path.scores.size() == 2);
 
-            align_paths_log_probs.at(i) += fragment_length_dist.logProb(align_paths.at(i).seq_length);
-            align_paths_log_probs_sum = add_log(align_paths_log_probs_sum, align_paths_log_probs.at(i));
+            align_paths_log_probs.emplace_back(score_log_base * align_path.scoreSum() + fragment_length_dist.logProb(align_path.seq_length));
+            align_paths_log_probs_sum = add_log(align_paths_log_probs_sum, align_paths_log_probs.back());
         }
 
         for (auto & log_probs: align_paths_log_probs) {
@@ -68,27 +71,6 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
             probs /= read_path_probs_sum;
         }
     }
-}
-
-vector<double> ReadPathProbs::calcRelativeAlignmentScoreLogProbs(const vector<AlignmentPath> & align_paths) const {
-
-    vector<double> align_score_log_probs;
-    align_score_log_probs.reserve(align_paths.size());
-
-    double score_log_probs_sum = numeric_limits<double>::lowest();
-
-    for (auto & align_path: align_paths) {
-
-        align_score_log_probs.emplace_back(score_log_base * align_path.scoreSum());
-        score_log_probs_sum = add_log(score_log_probs_sum, align_score_log_probs.back());
-    }
-
-    for (auto & log_probs: align_score_log_probs) {
-
-        log_probs -= score_log_probs_sum;
-    }
-
-    return align_score_log_probs;
 }
 
 double ReadPathProbs::calcReadMappingProbs(const vg::Alignment & alignment, const vector<double> & quality_match_probs, const vector<double> & quality_mismatch_probs, const double indel_prob) const {

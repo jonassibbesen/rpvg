@@ -136,11 +136,6 @@ int main(int argc, char* argv[]) {
 
     auto num_paths = paths_index->metadata.haplotype_count;
 
-    if (paths_index->bidirectional()) {
-
-        num_paths *= 2;
-    }
-
     vector<unordered_map<int32_t, unordered_set<int32_t> > > connected_paths_threads(num_threads);
     vector<vector<vector<AlignmentPath> > > paired_align_paths_threads(num_threads);
 

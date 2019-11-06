@@ -249,7 +249,16 @@ inline string getPathName(const gbwt::GBWT & paths_index, size_t path_id) {
     
     } else {
 
-        sstream << paths_index.metadata.sample(paths_index.metadata.path(path_id).sample);
+        const gbwt::PathName& path_name = paths_index.metadata.path(path_id);
+
+        sstream << paths_index.metadata.sample(path_name.sample);
+
+        if (paths_index.metadata.hasContigNames()) {
+
+            sstream << "_" << paths_index.metadata.contig(path_name.contig);
+            sstream << "_" << path_name.phase;
+            sstream << "_" << path_name.count;
+        }
     }
 
     return sstream.str();

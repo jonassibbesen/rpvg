@@ -30,7 +30,6 @@ class ReadPathProbs {
         double score_log_base;
 
     	double calcReadMappingProbs(const vg::Alignment & alignment, const vector<double> & quality_match_probs, const vector<double> & quality_mismatch_probs, const double indel_prob) const;
-        vector<double> calcRelativeAlignmentScoreLogProbs(const vector<AlignmentPath> & align_paths) const;
 };
 
 bool operator==(const ReadPathProbs & lhs, const ReadPathProbs & rhs);

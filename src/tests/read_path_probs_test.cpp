@@ -95,10 +95,10 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
 		REQUIRE(doubleCompare(read_path_probs_3.noise_prob, 0.109));
 		REQUIRE(read_path_probs_3.read_path_probs.size() == 4);
-		REQUIRE(doubleCompare(read_path_probs_3.read_path_probs.at(0), 0.2943204134206829));
-		REQUIRE(doubleCompare(read_path_probs_3.read_path_probs.at(1), 0.2943204134206829));
+		REQUIRE(doubleCompare(read_path_probs_3.read_path_probs.at(0), 0.3705310960764731));
+		REQUIRE(doubleCompare(read_path_probs_3.read_path_probs.at(1), 0.3705310960764731));
 		REQUIRE(doubleCompare(read_path_probs_3.read_path_probs.at(2), 0));
-		REQUIRE(doubleCompare(read_path_probs_3.read_path_probs.at(3), 0.4113591731586340));
+		REQUIRE(doubleCompare(read_path_probs_3.read_path_probs.at(3), 0.2589378078470537));
 	}
 }
 
