@@ -70,7 +70,7 @@ TEST_CASE("Path index can calculate path lengths") {
     	fragment_length_dist = FragmentLengthDist(20, 1);
 
     	REQUIRE(doubleCompare(paths_index.effectivePathLength(0, fragment_length_dist), 18));
-    	REQUIRE(doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 7));
+    	REQUIRE(doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 1));
 	}
 }
 
