@@ -8,6 +8,7 @@
 #include <chrono>
 #include <limits>
 #include <algorithm>
+#include <iomanip>
 
 #include "cxxopts.hpp"
 #include "gbwt/gbwt.h"
@@ -15,8 +16,10 @@
 #include "vg/io/stream.hpp"
 #include "vg/io/basic_stream.hpp"
 #include "io/register_libvg_io.hpp"
+#include "gssw.h"
 #include "utils.hpp"
 #include "fragment_length_dist.hpp"
+#include "paths_index.hpp"
 #include "alignment_path.hpp"
 #include "alignment_path_finder.hpp"
 #include "path_clusters.hpp"
@@ -57,6 +60,7 @@ int main(int argc, char* argv[]) {
       ("i,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("m,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
+      ("s,positional", "add positional probability using effective path lengths", cxxopts::value<bool>())
       ("t,threads", "number of compute threads", cxxopts::value<int32_t>()->default_value("1"))
       ("h,help", "print help", cxxopts::value<bool>())
       ;
@@ -126,7 +130,9 @@ int main(int argc, char* argv[]) {
     vg::Graph graph = vg::io::inputStream(option_results["graph"].as<string>());
 
     assert(vg::io::register_libvg_io());
-    unique_ptr<gbwt::GBWT> paths_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
+    unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
+
+    PathsIndex paths_index(*gbwt_index, graph);
 
     double time2 = gbwt::readTimer();
     cerr << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
@@ -134,14 +140,12 @@ int main(int argc, char* argv[]) {
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
-    auto num_paths = paths_index->metadata.haplotype_count;
-
     vector<unordered_map<int32_t, unordered_set<int32_t> > > connected_paths_threads(num_threads);
     vector<vector<vector<AlignmentPath> > > paired_align_paths_threads(num_threads);
 
     if (option_results.count("multipath")) {
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(graph, *paths_index, fragment_length_dist.maxLength());
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, fragment_length_dist.maxLength());
 
         vg::io::for_each_interleaved_pair_parallel<vg::MultipathAlignment>(alignments_istream, [&](vg::MultipathAlignment & alignment_1, vg::MultipathAlignment & alignment_2) {
 
@@ -154,7 +158,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder(graph, *paths_index, fragment_length_dist.maxLength());
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, fragment_length_dist.maxLength());
 
         vg::io::for_each_interleaved_pair_parallel<vg::Alignment>(alignments_istream, [&](vg::Alignment & alignment_1, vg::Alignment & alignment_2) {
 
@@ -186,7 +190,7 @@ int main(int argc, char* argv[]) {
     double time6 = gbwt::readTimer();
     cerr << "Merged connected path threads " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    auto path_clusters = PathClusters(connected_paths_threads.front(), num_paths);
+    auto path_clusters = PathClusters(connected_paths_threads.front(), paths_index.index().metadata.haplotype_count);
 
     double time62 = gbwt::readTimer();
     cerr << "Found path clusters " << time62 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
@@ -205,6 +209,7 @@ int main(int argc, char* argv[]) {
     cerr << "Clustered paired alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     vector<vector<ReadPathProbs> > clustered_paired_align_path_probs(path_clusters.cluster_to_path_index.size());
+    const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
     #pragma omp parallel
     {  
@@ -214,16 +219,24 @@ int main(int argc, char* argv[]) {
             clustered_paired_align_path_probs.at(i).reserve(clustered_paired_align_paths.at(i).size());
 
             unordered_map<int32_t, int32_t> clustered_path_index;
+            vector<int32_t> effective_path_lengths; 
+            effective_path_lengths.reserve(path_clusters.cluster_to_path_index.at(i).size());
 
             for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
 
                 assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
+                effective_path_lengths.emplace_back(paths_index.effectivePathLength(path_id, fragment_length_dist)); 
             }
 
             for (auto & align_paths: clustered_paired_align_paths.at(i)) {
 
-                clustered_paired_align_path_probs.at(i).emplace_back(clustered_path_index.size());
+                clustered_paired_align_path_probs.at(i).emplace_back(ReadPathProbs(clustered_path_index.size(), score_log_base));
                 clustered_paired_align_path_probs.at(i).back().calcReadPathProbs(align_paths, clustered_path_index, fragment_length_dist);
+
+                if (option_results.count("positional")) {
+
+                    clustered_paired_align_path_probs.at(i).back().addPositionalProbs(effective_path_lengths);
+                }
             }
 
             sort(clustered_paired_align_path_probs.at(i).begin(), clustered_paired_align_path_probs.at(i).end());
@@ -262,9 +275,11 @@ int main(int argc, char* argv[]) {
         output_stream << "#\nx Noise";
         for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
 
-            output_stream << " " << getPathName(*paths_index, path_id);
+            output_stream << " " << paths_index.pathName(path_id);
         }
         output_stream << endl;
+
+        output_stream << setprecision(8);
 
         int32_t num_paired_paths = 1;
         int32_t prev_unique_probs_idx = 0;

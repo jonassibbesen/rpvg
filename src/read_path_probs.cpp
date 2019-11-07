@@ -6,20 +6,16 @@
 #include <numeric>
 #include <limits>
 
-#include "gssw.h"
 
-
-ReadPathProbs::ReadPathProbs() {
+ReadPathProbs::ReadPathProbs() : score_log_base(1) {
 
     noise_prob = 1;     
-    score_log_base = 1;
 }
 
-ReadPathProbs::ReadPathProbs(const int32_t num_paths) {
+ReadPathProbs::ReadPathProbs(const int32_t num_paths, const double score_log_base_in) : score_log_base(score_log_base_in) {
 
     noise_prob = 1;
     read_path_probs = vector<double>(num_paths, 0);
-    score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 }
 
 void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<int32_t, int32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist) {
@@ -69,8 +65,27 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
         for (auto & probs: read_path_probs) {
 
             probs /= read_path_probs_sum;
+            probs *= (1 - noise_prob);
         }
     }
+}
+
+void ReadPathProbs::addPositionalProbs(const vector<int32_t> & path_lengths) {
+
+    assert(path_lengths.size() == read_path_probs.size());
+    double read_path_probs_sum = 0;
+
+    for (size_t i = 0; i < read_path_probs.size(); ++i) {
+
+        read_path_probs.at(i) /= path_lengths.at(i);
+        read_path_probs_sum += read_path_probs.at(i);
+    }
+
+    for (auto & probs: read_path_probs) {
+
+        probs /= read_path_probs_sum;
+        probs *= (1 - noise_prob);
+    }    
 }
 
 double ReadPathProbs::calcReadMappingProbs(const vg::Alignment & alignment, const vector<double> & quality_match_probs, const vector<double> & quality_mismatch_probs, const double indel_prob) const {

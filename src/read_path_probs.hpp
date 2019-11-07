@@ -6,6 +6,7 @@
 
 #include "vg/io/basic_stream.hpp"
 #include "alignment_path.hpp"
+#include "paths_index.hpp"
 #include "fragment_length_dist.hpp"
 #include "utils.hpp"
 
@@ -18,12 +19,13 @@ class ReadPathProbs {
     public: 
     	
     	ReadPathProbs();
-    	ReadPathProbs(const int32_t num_paths);
+    	ReadPathProbs(const int32_t num_paths, const double score_log_base_in);
         
         double noise_prob;
         vector<double> read_path_probs;
 
         void calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<int32_t, int32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist);
+        void addPositionalProbs(const vector<int32_t> & path_lengths);
 
     private:
 

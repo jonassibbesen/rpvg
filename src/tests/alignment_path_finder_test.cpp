@@ -90,8 +90,10 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
     vg::Alignment alignment_1;
     json2pb(alignment_1, alignment_1_str);
 
-    AlignmentPathFinder<vg::Alignment> alignment_path_finder(graph, gbwt_index, 1000);
-    REQUIRE(gbwt_index.bidirectional() == false);
+    PathsIndex paths_index(gbwt_index, graph);
+    REQUIRE(paths_index.index().bidirectional() == false);
+
+    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, 1000);
 
     auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
     REQUIRE(alignment_paths.size() == 2);
@@ -170,8 +172,10 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
         gbwt::GBWT gbwt_index_bd;
         gbwt_index_bd.load(gbwt_stream_bd);
 
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(graph, gbwt_index_bd, 1000);
-        REQUIRE(gbwt_index_bd.bidirectional() == true);
+        PathsIndex paths_index_bd(gbwt_index_bd, graph);
+        REQUIRE(paths_index_bd.index().bidirectional() == true);
+
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, 1000);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths_bd.size() == 1);
@@ -299,8 +303,10 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
     vg::Alignment alignment_2;
     json2pb(alignment_2, alignment_2_str);
 
-    AlignmentPathFinder<vg::Alignment> alignment_path_finder(graph, gbwt_index, 1000);
-    REQUIRE(gbwt_index.bidirectional() == false);
+    PathsIndex paths_index(gbwt_index, graph);
+    REQUIRE(paths_index.index().bidirectional() == false);
+
+    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, 1000);
 
     auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
     REQUIRE(alignment_paths.size() == 3);
@@ -507,8 +513,10 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         gbwt::GBWT gbwt_index_bd;
         gbwt_index_bd.load(gbwt_stream_bd);
 
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(graph, gbwt_index_bd, 1000);
-        REQUIRE(gbwt_index_bd.bidirectional() == true);
+        PathsIndex paths_index_bd(gbwt_index_bd, graph);
+        REQUIRE(paths_index_bd.index().bidirectional() == true);
+
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, 1000);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
@@ -632,8 +640,10 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
     vg::Alignment alignment_2;
     json2pb(alignment_2, alignment_2_str);
 
-    AlignmentPathFinder<vg::Alignment> alignment_path_finder(graph, gbwt_index, 1000);
-    REQUIRE(gbwt_index.bidirectional() == false);
+    PathsIndex paths_index(gbwt_index, graph);
+    REQUIRE(paths_index.index().bidirectional() == false);
+
+    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, 1000);
 
     auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
     REQUIRE(alignment_paths.size() == 3);
@@ -798,8 +808,10 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
         gbwt::GBWT gbwt_index_bd;
         gbwt_index_bd.load(gbwt_stream_bd);
 
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(graph, gbwt_index_bd, 1000);
-        REQUIRE(gbwt_index_bd.bidirectional() == true);
+        PathsIndex paths_index_bd(gbwt_index_bd, graph);
+        REQUIRE(paths_index_bd.index().bidirectional() == true);
+
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, 1000);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
@@ -951,8 +963,10 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
     vg::MultipathAlignment alignment_1;
     json2pb(alignment_1, alignment_1_str);
 
-    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(graph, gbwt_index, 1000);
-    REQUIRE(gbwt_index.bidirectional() == false);
+    PathsIndex paths_index(gbwt_index, graph);
+    REQUIRE(paths_index.index().bidirectional() == false);
+
+    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, 1000);
     
     auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
     REQUIRE(alignment_paths.size() == 2);
@@ -1019,8 +1033,10 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
         gbwt::GBWT gbwt_index_bd;
         gbwt_index_bd.load(gbwt_stream_bd);
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(graph, gbwt_index_bd, 1000);
-        REQUIRE(gbwt_index_bd.bidirectional() == true);
+        PathsIndex paths_index_bd(gbwt_index_bd, graph);
+        REQUIRE(paths_index_bd.index().bidirectional() == true);
+
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, 1000);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths_bd.size() == 2);
@@ -1221,8 +1237,10 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     vg::MultipathAlignment alignment_2;
     json2pb(alignment_2, alignment_2_str);
 
-    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(graph, gbwt_index, 1000);
-    REQUIRE(gbwt_index.bidirectional() == false);
+    PathsIndex paths_index(gbwt_index, graph);
+    REQUIRE(paths_index.index().bidirectional() == false);
+
+    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, 1000);
 
     auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
     REQUIRE(alignment_paths.size() == 3);
@@ -1390,9 +1408,11 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
         gbwt::GBWT gbwt_index_bd;
         gbwt_index_bd.load(gbwt_stream_bd);
+        
+        PathsIndex paths_index_bd(gbwt_index_bd, graph);
+        REQUIRE(paths_index_bd.index().bidirectional() == true);
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(graph, gbwt_index_bd, 1000);
-        REQUIRE(gbwt_index_bd.bidirectional() == true);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, 1000);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);

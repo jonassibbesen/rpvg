@@ -5,8 +5,8 @@
 #include <vector>
 #include <map>
 
-#include "gbwt/gbwt.h"
 #include "vg/io/basic_stream.hpp"
+#include "paths_index.hpp"
 #include "alignment_path.hpp"
 
 using namespace std;
@@ -17,7 +17,7 @@ class AlignmentPathFinder {
 
     public: 
     
-       	AlignmentPathFinder(const vg::Graph & graph, const gbwt::GBWT & paths_index_in, const int32_t max_pair_seq_length_in);
+       	AlignmentPathFinder(const PathsIndex & paths_index_in, const int32_t max_pair_seq_length_in);
        	void setMaxPairSeqLength(const int32_t max_pair_seq_length_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
@@ -25,9 +25,7 @@ class AlignmentPathFinder {
 
 	private:
 
-        vector<int32_t> node_seq_lengths;
-       	const gbwt::GBWT & paths_index;
-
+       	const PathsIndex & paths_index;
        	int32_t max_pair_seq_length;
 
 		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment) const;

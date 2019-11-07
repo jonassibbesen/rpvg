@@ -233,32 +233,6 @@ inline bool doubleCompare(const double a, const double b) {
     return ((a == b) or (abs(a - b) < abs(min(a, b)) * double_precision));
 }
 
-// Get path name from GBWT index using path id.
-inline string getPathName(const gbwt::GBWT & paths_index, size_t path_id) {
-
-    stringstream sstream;
-
-    if (!paths_index.hasMetadata() || !paths_index.metadata.hasPathNames() || paths_index.metadata.paths() <= path_id || !paths_index.metadata.hasSampleNames()) {
-        
-        sstream << path_id + 1;
-    
-    } else {
-
-        const gbwt::PathName& path_name = paths_index.metadata.path(path_id);
-
-        sstream << paths_index.metadata.sample(path_name.sample);
-
-        if (paths_index.metadata.hasContigNames()) {
-
-            sstream << "_" << paths_index.metadata.contig(path_name.contig);
-            sstream << "_" << path_name.phase;
-            sstream << "_" << path_name.count;
-        }
-    }
-
-    return sstream.str();
-}
-
 template<class T>
 inline ostream & operator<<(ostream & os, const vector<T> & values) {
 

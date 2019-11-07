@@ -74,6 +74,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 add_library(${PROJECT_NAME} 
   src/fragment_length_dist.cpp 
+  src/paths_index.cpp
   src/alignment_path.cpp 
   src/alignment_path_finder.cpp 
   src/path_clusters.cpp 
