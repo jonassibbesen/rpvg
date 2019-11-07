@@ -5,34 +5,6 @@
 #include "../utils.hpp"
 
 
-TEST_CASE("Different AlignmentPaths can be equal") {
-    
-	AlignmentPath alignment_path_1;
-
-	alignment_path_1.mapqs.push_back(10);
-	alignment_path_1.mapqs.push_back(20);
-
-	alignment_path_1.scores.push_back(1);
-	alignment_path_1.scores.push_back(2);
-
-	AlignmentPath alignment_path_2 = alignment_path_1;
-    REQUIRE(alignment_path_1 == alignment_path_2);
-
-    swap(alignment_path_1.mapqs.front(), alignment_path_1.mapqs.back());
-	REQUIRE(alignment_path_1 == alignment_path_2);
-
-	swap(alignment_path_1.scores.front(), alignment_path_1.scores.back());
-    REQUIRE(alignment_path_1 == alignment_path_2);
-
-	alignment_path_1.scores.push_back(3);
-	alignment_path_1.scores.push_back(4);
-
-	alignment_path_2.scores.push_back(4);
-	alignment_path_2.scores.push_back(3);
-
-    REQUIRE(alignment_path_1 == alignment_path_2);
-}
-
 TEST_CASE("Multiple mapping qualities can be combined into single probability") {
     
 	AlignmentPath alignment_path;
@@ -58,3 +30,8 @@ TEST_CASE("Multiple mapping qualities can be combined into single probability") 
 	}
 }
 
+TEST_CASE("Empty alignmentPath is complete") {
+    
+	AlignmentPath alignment_path;
+	REQUIRE(alignment_path.complete() == true);
+}

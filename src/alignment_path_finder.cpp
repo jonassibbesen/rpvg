@@ -40,12 +40,31 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
     cerr << pb2json(alignment) << endl;
 
 #endif
-            
+
     auto align_paths = extendAlignmentPath(AlignmentPath(), alignment);
+
+    if (!paths_index.bidirectional()) {
+
+        function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+        AlignmentType alignment_rc = lazy_reverse_complement_alignment(alignment, node_seq_length_func);
+
+        auto align_paths_rc = extendAlignmentPath(AlignmentPath(), alignment_rc);
+
+        align_paths.reserve(align_paths.size() + align_paths_rc.size());
+        align_paths.insert(align_paths.end(), align_paths_rc.begin(), align_paths_rc.end());
+    }       
 
     for (auto & align_path: align_paths) {
 
         align_path.ids = paths_index.locate(align_path.search);
+
+        if (paths_index.bidirectional()) {
+
+            for (auto & id: align_path.ids) {
+
+                id = gbwt::Path::id(id);
+            }
+        }
     }
 
 #ifdef debug
@@ -201,29 +220,38 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentPa
 template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
-    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
-
-    AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_seq_length_func);
-    AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_seq_length_func);
-
 #ifdef debug
 
     cerr << endl;
     findAlignmentPaths(alignment_1);
-    findAlignmentPaths(alignment_2_rc);
     findAlignmentPaths(alignment_2);
-    findAlignmentPaths(alignment_1_rc);
 
 #endif
 
     vector<AlignmentPath> paired_align_paths;
 
+    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+    AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_seq_length_func);
+
     pairAlignmentPaths(&paired_align_paths, alignment_1, alignment_2_rc);
-    pairAlignmentPaths(&paired_align_paths, alignment_2, alignment_1_rc);
+
+    if (!paths_index.bidirectional()) {
+
+        AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_seq_length_func);
+        pairAlignmentPaths(&paired_align_paths, alignment_2, alignment_1_rc);
+    }
 
     for (auto & align_path: paired_align_paths) {
 
         align_path.ids = paths_index.locate(align_path.search);
+
+        if (paths_index.bidirectional()) {
+
+            for (auto & id: align_path.ids) {
+
+                id = gbwt::Path::id(id);
+            }
+        }
     }
 
 #ifdef debug

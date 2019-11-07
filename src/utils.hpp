@@ -236,11 +236,6 @@ inline bool doubleCompare(const double a, const double b) {
 // Get path name from GBWT index using path id.
 inline string getPathName(const gbwt::GBWT & paths_index, size_t path_id) {
 
-    if (paths_index.bidirectional()) {
-
-        path_id = gbwt::Path::id(path_id);
-    }
-
     stringstream sstream;
 
     if (!paths_index.hasMetadata() || !paths_index.metadata.hasPathNames() || paths_index.metadata.paths() <= path_id || !paths_index.metadata.hasSampleNames()) {

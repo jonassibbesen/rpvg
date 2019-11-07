@@ -32,6 +32,8 @@ class AlignmentPath {
         int32_t mapqMin() const;
         double mapqProb() const;
         int32_t scoreSum() const;
+
+        bool complete() const;
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
