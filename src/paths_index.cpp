@@ -87,7 +87,7 @@ double PathsIndex::effectivePathLength(const int32_t path_id, const FragmentLeng
 
     if (!isfinite(trunc_fragment_length_mean)) {
 
-        return 0;
+        return path_length;
     }
 
     return max(0.0, path_length - trunc_fragment_length_mean);
