@@ -62,6 +62,8 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
             read_path_probs_sum += exp(align_paths_log_probs.at(i)) * align_paths.at(i).ids.size();
         }
 
+        assert(read_path_probs_sum > 0);
+
         for (auto & probs: read_path_probs) {
 
             probs /= read_path_probs_sum;
@@ -81,11 +83,14 @@ void ReadPathProbs::addPositionalProbs(const vector<int32_t> & path_lengths) {
         read_path_probs_sum += read_path_probs.at(i);
     }
 
-    for (auto & probs: read_path_probs) {
+    if (read_path_probs_sum > 0) {
 
-        probs /= read_path_probs_sum;
-        probs *= (1 - noise_prob);
-    }    
+        for (auto & probs: read_path_probs) {
+
+            probs /= read_path_probs_sum;
+            probs *= (1 - noise_prob);
+        }  
+    }  
 }
 
 double ReadPathProbs::calcReadMappingProbs(const vg::Alignment & alignment, const vector<double> & quality_match_probs, const vector<double> & quality_mismatch_probs, const double indel_prob) const {
