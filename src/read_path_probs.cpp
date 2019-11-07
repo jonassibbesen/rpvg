@@ -72,14 +72,22 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
     }
 }
 
-void ReadPathProbs::addPositionalProbs(const vector<int32_t> & path_lengths) {
+void ReadPathProbs::addPositionalProbs(const vector<double> & path_lengths) {
 
     assert(path_lengths.size() == read_path_probs.size());
     double read_path_probs_sum = 0;
 
     for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
-        read_path_probs.at(i) /= path_lengths.at(i);
+        if (doubleCompare(path_lengths.at(i), 0)) {
+
+            read_path_probs.at(i) = 0;
+
+        } else {
+
+            read_path_probs.at(i) /= path_lengths.at(i);
+        }
+
         read_path_probs_sum += read_path_probs.at(i);
     }
 

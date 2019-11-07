@@ -25,7 +25,7 @@ class ReadPathProbs {
         vector<double> read_path_probs;
 
         void calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<int32_t, int32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist);
-        void addPositionalProbs(const vector<int32_t> & path_lengths);
+        void addPositionalProbs(const vector<double> & path_lengths);
 
     private:
 

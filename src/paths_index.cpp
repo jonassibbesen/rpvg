@@ -70,7 +70,7 @@ int32_t PathsIndex::pathLength(const int32_t path_id) const {
     return path_length;
 }
 
-int32_t PathsIndex::effectivePathLength(const int32_t path_id, const FragmentLengthDist & fragment_length_dist) const {
+double PathsIndex::effectivePathLength(const int32_t path_id, const FragmentLengthDist & fragment_length_dist) const {
 
     const int32_t path_length = pathLength(path_id); 
 
@@ -79,15 +79,28 @@ int32_t PathsIndex::effectivePathLength(const int32_t path_id, const FragmentLen
         return 0;
     }
 
-    const double pi = acos(-1);
-
     // https://en.wikipedia.org/wiki/Truncated_normal_distribution
+    const double alpha = (1 - fragment_length_dist.mean()) / fragment_length_dist.sd();
     const double beta = (path_length - fragment_length_dist.mean()) / fragment_length_dist.sd();
-    const double lower_phi = exp(-0.5 * pow(beta, 2)) / sqrt(2 * pi);
-    const double upper_phi = 0.5 * (1 + erf(beta / sqrt(2)));
 
-    const double trunc_frag_length_mean = fragment_length_dist.mean() - fragment_length_dist.sd() * lower_phi / upper_phi;
+    const double trunc_fragment_length_mean = fragment_length_dist.mean() + fragment_length_dist.sd() * (calculateLowerPhi(alpha) - calculateLowerPhi(beta)) / (calculateUpperPhi(beta) - calculateUpperPhi(alpha));
 
-    return max(0.0, path_length - trunc_frag_length_mean);
+    if (!isfinite(trunc_fragment_length_mean)) {
+
+        return 0;
+    }
+
+    return max(0.0, path_length - trunc_fragment_length_mean);
 }
+
+double PathsIndex::calculateLowerPhi(const double value) const {
+
+    return (exp(-0.5 * pow(value, 2)) / sqrt(2 * acos(-1)));
+}
+
+double PathsIndex::calculateUpperPhi(const double value) const {
+
+    return (0.5 * (1 + erf(value / sqrt(2))));
+}
+
 

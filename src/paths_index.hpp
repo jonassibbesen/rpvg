@@ -23,13 +23,15 @@ class PathsIndex {
 
         string pathName(const int32_t path_id) const;
         int32_t pathLength(const int32_t path_id) const;
-        int32_t effectivePathLength(const int32_t path_id, const FragmentLengthDist & fragment_length_dist) const;
+        double effectivePathLength(const int32_t path_id, const FragmentLengthDist & fragment_length_dist) const;
 
     private:
 
         const gbwt::GBWT & index_;
         vector<int32_t> node_lengths;
-;
+
+        double calculateLowerPhi(const double value) const;
+        double calculateUpperPhi(const double value) const;
 };
 
 

@@ -219,7 +219,7 @@ int main(int argc, char* argv[]) {
             clustered_paired_align_path_probs.at(i).reserve(clustered_paired_align_paths.at(i).size());
 
             unordered_map<int32_t, int32_t> clustered_path_index;
-            vector<int32_t> effective_path_lengths; 
+            vector<double> effective_path_lengths; 
             effective_path_lengths.reserve(path_clusters.cluster_to_path_index.at(i).size());
 
             for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {

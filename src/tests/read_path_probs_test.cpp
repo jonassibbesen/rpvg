@@ -106,7 +106,7 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Positional probabilities are calculated from path lengths") {
 
-		read_path_probs.addPositionalProbs(vector<int32_t>({3, 2}));
+		read_path_probs.addPositionalProbs(vector<double>({3, 2}));
 
 		REQUIRE(doubleCompare(read_path_probs.noise_prob, 0.109));
 		REQUIRE(read_path_probs.read_path_probs.size() == 2);
