@@ -21,6 +21,24 @@ PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph) :
         assert(node_lengths.at(node.id()) == 0);
         node_lengths.at(node.id()) = node.sequence().size();
     }
+}
+
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::PathPositionHandleGraph & graph) : index_(gbwt_index) {
+
+    node_lengths = vector<int32_t>(graph.get_node_count() + 1, 0);
+
+    assert(graph.for_each_handle([&](const handlegraph::handle_t & handle) {
+
+        auto id = graph.get_id(handle);
+
+        while (id >= node_lengths.size()) {
+
+            node_lengths.resize(node_lengths.size() * 2, 0);
+        }
+
+        assert(node_lengths.at(id) == 0);
+        node_lengths.at(id) =  graph.get_length(handle);
+    }));
 } 
 
 const gbwt::GBWT & PathsIndex::index() const {
@@ -62,7 +80,7 @@ int32_t PathsIndex::pathLength(const int32_t path_id) const {
 
     int32_t path_length = 0;
     
-    for (auto & node: index_.extract(gbwt::Path::encode(path_id, false))) {
+    for (auto & node: index_.extract(path_id)) {
 
         path_length += nodeLength(gbwt::Node::id(node));
     }
@@ -90,7 +108,7 @@ double PathsIndex::effectivePathLength(const int32_t path_id, const FragmentLeng
         return 1;
     }
 
-    return max(0.0, path_length - trunc_fragment_length_mean);
+    return max(1.0, path_length - trunc_fragment_length_mean);
 }
 
 double PathsIndex::calculateLowerPhi(const double value) const {

@@ -16,6 +16,7 @@
 #include "vg/io/stream.hpp"
 #include "vg/io/basic_stream.hpp"
 #include "io/register_libvg_io.hpp"
+#include "handlegraph/path_position_handle_graph.hpp"
 #include "gssw.h"
 #include "utils.hpp"
 #include "fragment_length_dist.hpp"
@@ -53,7 +54,7 @@ int main(int argc, char* argv[]) {
     cxxopts::Options options("rpvg", "calculate read-path probabilities using variation graphs");
 
     options.add_options()
-      ("g,graph", "vg graph file name (required)", cxxopts::value<string>())
+      ("g,graph", "xg graph file name (required)", cxxopts::value<string>())
       ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
       ("a,alignments", "gam(p) alignment file name (required)", cxxopts::value<string>())
       ("o,output", "output file prefix", cxxopts::value<string>()->default_value("stdout"))
@@ -127,12 +128,12 @@ int main(int argc, char* argv[]) {
 
     double time1 = gbwt::readTimer();
 
-    vg::Graph graph = vg::io::inputStream(option_results["graph"].as<string>());
+    unique_ptr<handlegraph::PathPositionHandleGraph> graph = vg::io::VPKG::load_one<handlegraph::PathPositionHandleGraph>(option_results["graph"].as<string>());
 
     assert(vg::io::register_libvg_io());
     unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
-    PathsIndex paths_index(*gbwt_index, graph);
+    PathsIndex paths_index(*gbwt_index, *graph);
 
     double time2 = gbwt::readTimer();
     cerr << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;

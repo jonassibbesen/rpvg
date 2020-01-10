@@ -13,9 +13,9 @@
 #include "google/protobuf/util/json_util.h"
 #include "vg/io/basic_stream.hpp"
 #include "gbwt/gbwt.h"
+#include "handlegraph/handle_graph.hpp"
 
 using namespace std;
-
 
 //------------------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ inline int mapping_from_length(const vg::Mapping & m) {
 // Note that edit sequences are not reverse complemented.
 // Original function in vg repo: reverse_complement_mapping().
 inline vg::Mapping lazy_reverse_complement_mapping(const vg::Mapping& mapping,
-                                   const function<int64_t(id_t)> & node_length) {
+                                   const function<int64_t(int64_t)> & node_length) {
     // Make a new reversed mapping
     vg::Mapping mapping_rc = mapping;
 
@@ -110,7 +110,7 @@ inline vg::Mapping lazy_reverse_complement_mapping(const vg::Mapping& mapping,
 // Reverse complements path. Note that edit sequences are not reverse complemented. 
 // Original function in vg repo: reverse_complement_path().
 inline vg::Path lazy_reverse_complement_path(const vg::Path& path,
-                             const function<int64_t(id_t)> & node_length) {
+                             const function<int64_t(int64_t)> & node_length) {
 
     vg::Path path_rc;
 
@@ -126,7 +126,7 @@ inline vg::Path lazy_reverse_complement_path(const vg::Path& path,
 // Reverse complements alignment. Note that sequences, paths and edit sequences 
 // are not reverse complemented. Original function in vg repo: reverse_complement_alignment().
 inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
-                                       const function<int64_t(id_t)>& node_length) {
+                                       const function<int64_t(int64_t)>& node_length) {
     // We're going to reverse the alignment and all its mappings.
     // TODO: should we/can we do this in place?
     

@@ -6,6 +6,7 @@
 // Keep these includes in alphabetical order.
 
 #include "register_loader_saver_gbwt.hpp"
+#include "register_loader_saver_xg.hpp"
 
 #include "register_libvg_io.hpp"
 
@@ -18,6 +19,7 @@ using namespace std;
 
 bool register_libvg_io() {
     register_loader_saver_gbwt();
+    register_loader_saver_xg();
     return true;
 }
     

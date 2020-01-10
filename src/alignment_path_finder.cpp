@@ -136,6 +136,11 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentPath * ali
 
         align_path->seq_length += mapping_to_length(*mapping_it);
         ++mapping_it;
+
+        if (align_path->search.empty()) {
+
+            break;
+        }
     }
 }
 
@@ -187,16 +192,19 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentPa
         cur_align_path.first.scores.back() += subpath.score();
         extendAlignmentPath(&cur_align_path.first, subpath.path());
 
-        if (subpath.next_size() > 0) {
+        if (cur_align_path.first.path.empty() || !cur_align_path.first.search.empty()) {
 
-            for (auto & next_subpath_idx: subpath.next()) {
+            if (subpath.next_size() > 0) {
 
-                align_paths_queue.push(make_pair(cur_align_path.first, next_subpath_idx));
+                for (auto & next_subpath_idx: subpath.next()) {
+
+                    align_paths_queue.push(make_pair(cur_align_path.first, next_subpath_idx));
+                }
+
+            } else {
+
+                align_paths->emplace_back(cur_align_path.first);
             }
-
-        } else if (!cur_align_path.first.search.empty()) {
-
-            align_paths->emplace_back(cur_align_path.first);
         }
 
         align_paths_queue.pop();

@@ -3,11 +3,11 @@
  * Defines IO for a GBWT index from stream files.
  */
 
-#include <vg/io/registry.hpp>
+#include "vg/io/registry.hpp"
 #include "register_loader_saver_gbwt.hpp"
 
-#include <gbwt/gbwt.h>
-#include <gbwt/dynamic_gbwt.h>
+#include "gbwt/gbwt.h"
+#include "gbwt/dynamic_gbwt.h"
 
 namespace vg {
 

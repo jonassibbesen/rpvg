@@ -43,8 +43,8 @@ TEST_CASE("Path index can calculate path lengths") {
     gbwt_thread_2[1] = gbwt::Node::encode(3, false);
     gbwt_thread_2[2] = gbwt::Node::encode(4, false);
 
-    gbwt_builder.insert(gbwt_thread_1, true);
-    gbwt_builder.insert(gbwt_thread_2, true);
+    gbwt_builder.insert(gbwt_thread_1, false);
+    gbwt_builder.insert(gbwt_thread_2, false);
 
     gbwt_builder.finish();
 
@@ -55,7 +55,7 @@ TEST_CASE("Path index can calculate path lengths") {
     gbwt_index.load(gbwt_stream);
 
     PathsIndex paths_index(gbwt_index, graph);
-    REQUIRE(paths_index.index().bidirectional() == true);
+    REQUIRE(paths_index.index().bidirectional() == false);
 
     REQUIRE(paths_index.pathLength(0) == 38);
     REQUIRE(paths_index.pathLength(1) == 7);

@@ -69,6 +69,29 @@ ExternalProject_Add(libvgio-proj
   INSTALL_COMMAND ""
 )
 
+ExternalProject_Add(libhandlegraph-proj
+  GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
+  GIT_TAG "47791b556bb963d7f1922548cf512749e59dab86"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libhandlegraph"
+  BUILD_IN_SOURCE TRUE
+  UPDATE_COMMAND ""
+  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/external/libhandlegraph .
+  INSTALL_COMMAND ""
+)
+
+ExternalProject_Add(xg-proj
+  GIT_REPOSITORY "https://github.com/jonassibbesen/xg.git"
+  GIT_TAG "ef394b055aaa527d938997b6b4556fef4d6d05c1"
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/xg"
+  BUILD_IN_SOURCE TRUE
+  UPDATE_COMMAND ""
+  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/external/xg -DINSTALL_DIR=${PROJECT_SOURCE_DIR}/external/xg -DCOMPILE_HANDLE=0 -DCOMPILE_SDSL=0 -Dhandlegraph_INCLUDE=${PROJECT_SOURCE_DIR}/external/libhandlegraph/src/include/ -Dhandlegraph_LIB=${PROJECT_SOURCE_DIR}/external/libhandlegraph -Dsdsl-lite_INCLUDE=${PROJECT_SOURCE_DIR}/external/sdsl-lite/include -Dsdsl-lite-divsufsort_INCLUDE=${PROJECT_SOURCE_DIR}/external/sdsl-lite/include -Dsdsl-lite_LIB=${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib -Dsdsl-lite-divsufsort_LIB=${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib .
+  INSTALL_COMMAND ""
+  DEPENDS sdsl-lite-proj
+  DEPENDS libhandlegraph-proj
+)
+
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
@@ -81,6 +104,7 @@ add_library(${PROJECT_NAME}
   src/read_path_probs.cpp 
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
+  src/io/register_loader_saver_xg.cpp
 )
 
 include_directories(
@@ -90,6 +114,10 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/external/gssw/src 
   ${PROJECT_SOURCE_DIR}/external/libvgio
   ${PROJECT_SOURCE_DIR}/external/libvgio/include
+  ${PROJECT_SOURCE_DIR}/external/libhandlegraph/src/include
+  ${PROJECT_SOURCE_DIR}/external/xg/src
+  ${PROJECT_SOURCE_DIR}/external/xg/mmmultimap-prefix/src/mmmultimap/src
+  ${PROJECT_SOURCE_DIR}/external/xg/ips4o-prefix/src/ips4o
 )
 
 link_directories(
@@ -97,6 +125,8 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/external/gssw/lib 
   ${PROJECT_SOURCE_DIR}/external/libvgio
   ${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib
+  ${PROJECT_SOURCE_DIR}/external/libhandlegraph
+  ${PROJECT_SOURCE_DIR}/external/xg/lib
 )
 
 add_dependencies(${PROJECT_NAME} catch2-proj)
@@ -105,6 +135,8 @@ add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
 add_dependencies(${PROJECT_NAME} gbwt-proj)
 add_dependencies(${PROJECT_NAME} gssw-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
+add_dependencies(${PROJECT_NAME} libhandlegraph-proj)
+add_dependencies(${PROJECT_NAME} xg-proj)
 
 target_link_libraries(${PROJECT_NAME}
   protobuf 
@@ -112,6 +144,10 @@ target_link_libraries(${PROJECT_NAME}
   gssw 
   vgio
   sdsl
+  handlegraph
+  xg
+  divsufsort
+  divsufsort64
 )
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
