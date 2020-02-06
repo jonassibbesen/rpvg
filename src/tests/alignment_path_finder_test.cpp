@@ -314,18 +314,18 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
     SECTION("Paired-end read alignment finds alignment path(s)") {
 
         REQUIRE(alignment_paths.at(0).complete() == true);
-        REQUIRE(alignment_paths.at(0).path == vector<gbwt::node_type>({2, 4, 8, 12}));
+        REQUIRE(alignment_paths.at(0).path == vector<gbwt::node_type>({2, 4, 8, 10, 12}));
         REQUIRE(alignment_paths.at(0).seq_end_offset == 6);
-        REQUIRE(alignment_paths.at(0).ids == vector<gbwt::size_type>({2}));
-        REQUIRE(alignment_paths.at(0).seq_length == 17);
+        REQUIRE(alignment_paths.at(0).ids == vector<gbwt::size_type>({0}));
+        REQUIRE(alignment_paths.at(0).seq_length == 19);
         REQUIRE(alignment_paths.at(0).mapqs == vector<int32_t>({10, 20}));
         REQUIRE(alignment_paths.at(0).scores == vector<int32_t>({1, 2}));
 
         REQUIRE(alignment_paths.at(1).complete() == true);
-        REQUIRE(alignment_paths.at(1).path == vector<gbwt::node_type>({2, 4, 8, 10, 12}));
+        REQUIRE(alignment_paths.at(1).path == vector<gbwt::node_type>({2, 4, 8, 12}));
         REQUIRE(alignment_paths.at(1).seq_end_offset == alignment_paths.at(0).seq_end_offset);
-        REQUIRE(alignment_paths.at(1).ids == vector<gbwt::size_type>({0}));
-        REQUIRE(alignment_paths.at(1).seq_length == 19);
+        REQUIRE(alignment_paths.at(1).ids == vector<gbwt::size_type>({2}));
+        REQUIRE(alignment_paths.at(1).seq_length == 17);
         REQUIRE(alignment_paths.at(1).mapqs == alignment_paths.at(0).mapqs);
         REQUIRE(alignment_paths.at(1).scores == alignment_paths.at(0).scores);
 
@@ -333,7 +333,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         REQUIRE(alignment_paths.at(2).path == vector<gbwt::node_type>({13, 9, 5, 3}));
         REQUIRE(alignment_paths.at(2).seq_end_offset == 2);
         REQUIRE(alignment_paths.at(2).ids == vector<gbwt::size_type>({1}));
-        REQUIRE(alignment_paths.at(2).seq_length == alignment_paths.at(0).seq_length);
+        REQUIRE(alignment_paths.at(2).seq_length == alignment_paths.at(1).seq_length);
         REQUIRE(alignment_paths.at(2).mapqs == vector<int32_t>({20, 10}));
         REQUIRE(alignment_paths.at(2).scores == vector<int32_t>({2, 1}));
     }
@@ -363,7 +363,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         auto alignment_paths_ext = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ext.size() == 1);
 
-        REQUIRE(alignment_paths_ext.front() == alignment_paths.at(1));
+        REQUIRE(alignment_paths_ext.front() == alignment_paths.at(0));
 
         new_mapping = alignment_2.mutable_path()->add_mapping();
         new_mapping->mutable_position()->set_node_id(4);
@@ -377,7 +377,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         alignment_paths_ext = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ext.size() == 1);
 
-        REQUIRE(alignment_paths_ext.front() == alignment_paths.at(1));             
+        REQUIRE(alignment_paths_ext.front() == alignment_paths.at(0));             
     }
 
     SECTION("Partial overlapping paired-end read alignment finds alignment path(s)") {
@@ -397,7 +397,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         auto alignment_paths_ov = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ov.size() == 2);
 
-        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(0));
+        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(1));
         REQUIRE(alignment_paths_ov.back() == alignment_paths.at(2));
 
         new_edit->set_from_length(8);
@@ -415,7 +415,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         alignment_paths_ov = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ov.size() == 2);
 
-        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(0));
+        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(1));
         REQUIRE(alignment_paths_ov.back() == alignment_paths.at(2));
 
         new_mapping = alignment_2.mutable_path()->add_mapping();
@@ -430,7 +430,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         alignment_paths_ov = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ov.size() == 2);
 
-        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(0));
+        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(1));
         REQUIRE(alignment_paths_ov.back() == alignment_paths.at(2));
     }
 
@@ -521,7 +521,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
 
-        alignment_paths.at(0).ids = vector<gbwt::size_type>({1});
+        alignment_paths.at(1).ids = vector<gbwt::size_type>({1});
         REQUIRE(alignment_paths_bd.at(0) == alignment_paths.at(0));
         REQUIRE(alignment_paths_bd.at(1) == alignment_paths.at(1));
     }
@@ -540,7 +540,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         alignment_paths_len = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_len.size() == 2);
         
-        REQUIRE(alignment_paths_len.front() == alignment_paths.at(0));
+        REQUIRE(alignment_paths_len.front() == alignment_paths.at(1));
         REQUIRE(alignment_paths_len.back() == alignment_paths.at(2));
 
         alignment_path_finder.setMaxPairSeqLength(10);
@@ -1248,20 +1248,20 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     SECTION("Paired-end multipath read alignment finds alignment path(s)") {
 
         REQUIRE(alignment_paths.at(0).complete() == true);
-        REQUIRE(alignment_paths.at(0).path == vector<gbwt::node_type>({2, 6, 10, 12, 16}));
+        REQUIRE(alignment_paths.at(0).path == vector<gbwt::node_type>({4, 6, 8, 10, 14, 16}));
         REQUIRE(alignment_paths.at(0).seq_end_offset == 1);
-        REQUIRE(alignment_paths.at(0).ids == vector<gbwt::size_type>({0}));
-        REQUIRE(alignment_paths.at(0).seq_length == 7);
+        REQUIRE(alignment_paths.at(0).ids == vector<gbwt::size_type>({1}));
+        REQUIRE(alignment_paths.at(0).seq_length == 10);
         REQUIRE(alignment_paths.at(0).mapqs == vector<int32_t>({10, 20}));
-        REQUIRE(alignment_paths.at(0).scores == vector<int32_t>({10, 10}));
+        REQUIRE(alignment_paths.at(0).scores == vector<int32_t>({8, 12}));
 
         REQUIRE(alignment_paths.at(1).complete() == true);
-        REQUIRE(alignment_paths.at(1).path == vector<gbwt::node_type>({4, 6, 8, 10, 14, 16}));
+        REQUIRE(alignment_paths.at(1).path == vector<gbwt::node_type>({2, 6, 10, 12, 16}));
         REQUIRE(alignment_paths.at(1).seq_end_offset == alignment_paths.at(0).seq_end_offset);
-        REQUIRE(alignment_paths.at(1).ids == vector<gbwt::size_type>({1}));
-        REQUIRE(alignment_paths.at(1).seq_length == 10);
+        REQUIRE(alignment_paths.at(1).ids == vector<gbwt::size_type>({0}));
+        REQUIRE(alignment_paths.at(1).seq_length == 7);
         REQUIRE(alignment_paths.at(1).mapqs == alignment_paths.at(0).mapqs);
-        REQUIRE(alignment_paths.at(1).scores == vector<int32_t>({8, 12}));
+        REQUIRE(alignment_paths.at(1).scores == vector<int32_t>({10, 10}));
 
         REQUIRE(alignment_paths.at(2).complete() == true);
         REQUIRE(alignment_paths.at(2).path == vector<gbwt::node_type>({17, 15, 11, 9, 7, 5}));
@@ -1299,7 +1299,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         auto alignment_paths_ext = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ext.size() == 2);
 
-        REQUIRE(alignment_paths_ext.front() == alignment_paths.at(1));
+        REQUIRE(alignment_paths_ext.front() == alignment_paths.at(0));
         REQUIRE(alignment_paths_ext.back() == alignment_paths.at(2));           
     }
 
@@ -1322,7 +1322,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         auto alignment_paths_ov = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ov.size() == 1);
 
-        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(0));
+        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(1));
 
         new_edit->set_from_length(2);
         new_edit->set_to_length(2);
@@ -1330,7 +1330,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         alignment_paths_ov = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ov.size() == 1);
 
-        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(0));
+        REQUIRE(alignment_paths_ov.front() == alignment_paths.at(1));
     }
 
     SECTION("Perfect overlapping paired-end multipath read alignment finds alignment path(s)") {
@@ -1435,7 +1435,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         alignment_paths_len = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_len.size() == 1);
         
-        REQUIRE(alignment_paths_len.front() == alignment_paths.at(0));
+        REQUIRE(alignment_paths_len.front() == alignment_paths.at(1));
 
         alignment_path_finder.setMaxPairSeqLength(6);
 

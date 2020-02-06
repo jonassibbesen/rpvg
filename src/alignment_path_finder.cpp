@@ -373,6 +373,9 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
         }
 
         auto out_edges_it = out_edges.begin(); 
+        assert(out_edges_it != out_edges.end());
+        
+        ++out_edges_it;
 
         while (out_edges_it != out_edges.end()) {
 
@@ -395,7 +398,27 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentPath
             ++out_edges_it;
         }
 
-        paired_align_path_queue.pop();
+        if (out_edges.begin()->first != gbwt::ENDMARKER) {
+            
+            cur_paired_align_path->search = paths_index.index().extend(cur_paired_align_path->search, out_edges.begin()->first);
+
+            // End current extension if empty (no haplotypes found). 
+            if (cur_paired_align_path->search.empty()) { 
+
+                paired_align_path_queue.pop(); 
+
+            } else {
+
+                cur_paired_align_path->path.emplace_back(cur_paired_align_path->search.node);
+                ++cur_paired_align_path->path_end_pos;
+                cur_paired_align_path->seq_end_offset = paths_index.nodeLength(gbwt::Node::id(cur_paired_align_path->search.node));
+                cur_paired_align_path->seq_length += cur_paired_align_path->seq_end_offset;
+            }
+    
+        } else {
+
+            paired_align_path_queue.pop();
+        }
     }
 }
 
