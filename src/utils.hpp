@@ -75,7 +75,8 @@ inline int mapping_from_length(const vg::Mapping & m) {
 inline vg::Mapping lazy_reverse_complement_mapping(const vg::Mapping& mapping,
                                    const function<int64_t(int64_t)> & node_length) {
     // Make a new reversed mapping
-    vg::Mapping mapping_rc = mapping;
+    vg::Mapping mapping_rc;
+    *mapping_rc.mutable_position() = mapping.position();
 
     // switching around to the reverse strand requires us to change offsets
     // that are nonzero to count the unused bases on the other side of the block
@@ -95,9 +96,6 @@ inline vg::Mapping lazy_reverse_complement_mapping(const vg::Mapping& mapping,
         // Toggle the reversed-ness flag
         p->set_is_reverse(!p->is_reverse());
     }
-
-    // Clear out all the edits. TODO: we wasted time copying them
-    mapping_rc.clear_edit();
 
     for (int64_t i = mapping.edit_size() - 1; i >= 0; i--) {
         // For each edit in reverse order, put it in reverse complemented
@@ -130,7 +128,10 @@ inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
     // We're going to reverse the alignment and all its mappings.
     // TODO: should we/can we do this in place?
     
-    vg::Alignment aln_rc = aln;
+    vg::Alignment aln_rc;
+    aln_rc.set_score(aln.score());
+    aln_rc.set_mapping_quality(aln.mapping_quality());
+
     *aln_rc.mutable_path() = lazy_reverse_complement_path(aln.path(), node_length);
     
     return aln_rc;
@@ -141,13 +142,11 @@ inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
 // are not reverse complemented. Original name in vg repo: rev_comp_multipath_alignment().
 inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::MultipathAlignment& multipath_aln, const function<int64_t(int64_t)>& node_length) {
     
-    vg::MultipathAlignment multipath_aln_rc = multipath_aln;
+    vg::MultipathAlignment multipath_aln_rc;
+    multipath_aln_rc.set_mapping_quality(multipath_aln.mapping_quality());
 
     vector< vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());
     vector<size_t> reverse_starts;
-    
-    // remove subpaths to avoid duplicating
-    multipath_aln_rc.clear_subpath();
     
     // add subpaths in reverse order to maintain topological ordering
     for (int64_t i = multipath_aln.subpath_size() - 1; i >= 0; i--) {
@@ -177,9 +176,6 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
             rc_subpath->add_next(multipath_aln.subpath_size() - reverse_edge_list[j] - 1);
         }
     }
-    
-    // remove start nodes that are invalid in reverse
-    multipath_aln_rc.clear_start();
     
     // assume that if the original multipath alignment had its starts labeled they want them
     // labeled in the reverse complement too
