@@ -8,7 +8,7 @@ find_package(OpenMP REQUIRED)
 
 ExternalProject_Add(catch2-proj
   GIT_REPOSITORY "https://github.com/catchorg/Catch2.git"
-  GIT_TAG "820271bf246afd4a381ff753b0cda14aeb1d0a1c"
+  GIT_TAG "b3b07215d1ca2224aea6ff3e21d87ad0f7750df2"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/catch2"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -19,7 +19,7 @@ ExternalProject_Add(catch2-proj
 
 ExternalProject_Add(cxxopts-proj
   GIT_REPOSITORY "https://github.com/jarro2783/cxxopts.git"
-  GIT_TAG "3c73d91c0b04e2b59462f0a741be8c07024c1bc0"
+  GIT_TAG "943cdcfbbaa205f9a1789d96c7a57accfabcd233"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/cxxopts"
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
@@ -51,7 +51,7 @@ ExternalProject_Add(gbwt-proj
 
 ExternalProject_Add(gssw-proj
   GIT_REPOSITORY "https://github.com/vgteam/gssw.git"
-  GIT_TAG "79e0599d46133dc1c1c7dce451f29808c2f7e3a9"
+  GIT_TAG "9f8efbca6dbfa3b7a4e6a65d0ef7cf5009e4aca1"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/gssw"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -61,7 +61,7 @@ ExternalProject_Add(gssw-proj
 
 ExternalProject_Add(libvgio-proj
   GIT_REPOSITORY "https://github.com/vgteam/libvgio.git"
-  GIT_TAG "5f9e7cbd873ad11c82dcfddb0488e1b769d6dd9b"
+  GIT_TAG "fc9523feb660815b02a932e8e7f58467d462455e"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -71,7 +71,7 @@ ExternalProject_Add(libvgio-proj
 
 ExternalProject_Add(libhandlegraph-proj
   GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
-  GIT_TAG "47791b556bb963d7f1922548cf512749e59dab86"
+  GIT_TAG "962018b84d8525ca93e79efd5f3726a0683bcfdf"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libhandlegraph"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
@@ -81,11 +81,11 @@ ExternalProject_Add(libhandlegraph-proj
 
 ExternalProject_Add(xg-proj
   GIT_REPOSITORY "https://github.com/jonassibbesen/xg.git"
-  GIT_TAG "ef394b055aaa527d938997b6b4556fef4d6d05c1"
+  GIT_TAG "aa3d221d34bf2227ba42ca0c1e189536f7b6962d"
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/xg"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/external/xg -DINSTALL_DIR=${PROJECT_SOURCE_DIR}/external/xg -DCOMPILE_HANDLE=0 -DCOMPILE_SDSL=0 -Dhandlegraph_INCLUDE=${PROJECT_SOURCE_DIR}/external/libhandlegraph/src/include/ -Dhandlegraph_LIB=${PROJECT_SOURCE_DIR}/external/libhandlegraph -Dsdsl-lite_INCLUDE=${PROJECT_SOURCE_DIR}/external/sdsl-lite/include -Dsdsl-lite-divsufsort_INCLUDE=${PROJECT_SOURCE_DIR}/external/sdsl-lite/include -Dsdsl-lite_LIB=${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib -Dsdsl-lite-divsufsort_LIB=${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib .
+  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/external/xg -DINSTALL_DIR=${PROJECT_SOURCE_DIR}/external/xg -DIS_RPVG_LIB=1 -Dhandlegraph_INCLUDE=${PROJECT_SOURCE_DIR}/external/libhandlegraph/src/include/ -Dhandlegraph_LIB=${PROJECT_SOURCE_DIR}/external/libhandlegraph -Dsdsl-lite_INCLUDE=${PROJECT_SOURCE_DIR}/external/sdsl-lite/include -Dsdsl-lite-divsufsort_INCLUDE=${PROJECT_SOURCE_DIR}/external/sdsl-lite/include -Dsdsl-lite_LIB=${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib -Dsdsl-lite-divsufsort_LIB=${PROJECT_SOURCE_DIR}/external/sdsl-lite/lib .
   INSTALL_COMMAND ""
   DEPENDS sdsl-lite-proj
   DEPENDS libhandlegraph-proj
@@ -116,8 +116,8 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/external/libvgio/include
   ${PROJECT_SOURCE_DIR}/external/libhandlegraph/src/include
   ${PROJECT_SOURCE_DIR}/external/xg/src
-  ${PROJECT_SOURCE_DIR}/external/xg/mmmultimap-prefix/src/mmmultimap/src
-  ${PROJECT_SOURCE_DIR}/external/xg/ips4o-prefix/src/ips4o
+  ${PROJECT_SOURCE_DIR}/external/xg/deps/mmmultimap/src
+  ${PROJECT_SOURCE_DIR}/external/xg/deps/ips4o
 )
 
 link_directories(

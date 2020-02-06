@@ -6,7 +6,8 @@
 #include <string>
 
 #include "gbwt/gbwt.h"
-#include "handlegraph/path_position_handle_graph.hpp"
+#include "handlegraph/handle_graph.hpp"
+#include "xg.hpp"
 #include "vg/io/basic_stream.hpp"
 #include "fragment_length_dist.hpp"
 
@@ -18,7 +19,7 @@ class PathsIndex {
     public: 
     	
         PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph);
-        PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::PathPositionHandleGraph & graph);
+        PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleGraph & graph);
 
         const gbwt::GBWT & index() const;
         int32_t nodeLength(const int32_t node_id) const;

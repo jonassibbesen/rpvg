@@ -16,7 +16,7 @@
 #include "vg/io/stream.hpp"
 #include "vg/io/basic_stream.hpp"
 #include "io/register_libvg_io.hpp"
-#include "handlegraph/path_position_handle_graph.hpp"
+#include "handlegraph/handle_graph.hpp"
 #include "gssw.h"
 #include "utils.hpp"
 #include "fragment_length_dist.hpp"
@@ -128,9 +128,9 @@ int main(int argc, char* argv[]) {
 
     double time1 = gbwt::readTimer();
 
-    unique_ptr<handlegraph::PathPositionHandleGraph> graph = vg::io::VPKG::load_one<handlegraph::PathPositionHandleGraph>(option_results["graph"].as<string>());
-
     assert(vg::io::register_libvg_io());
+
+    unique_ptr<handlegraph::HandleGraph> graph = vg::io::VPKG::load_one<handlegraph::HandleGraph>(option_results["graph"].as<string>());
     unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
     PathsIndex paths_index(*gbwt_index, *graph);

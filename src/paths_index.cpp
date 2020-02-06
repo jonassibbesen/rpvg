@@ -23,7 +23,7 @@ PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph) :
     }
 }
 
-PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::PathPositionHandleGraph & graph) : index_(gbwt_index) {
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleGraph & graph) : index_(gbwt_index) {
 
     node_lengths = vector<int32_t>(graph.get_node_count() + 1, 0);
 
