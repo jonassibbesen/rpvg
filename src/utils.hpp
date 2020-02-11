@@ -142,13 +142,14 @@ inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
 // are not reverse complemented. Original name in vg repo: rev_comp_multipath_alignment().
 inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::MultipathAlignment& multipath_aln, const function<int64_t(int64_t)>& node_length) {
     
-    vg::MultipathAlignment multipath_aln_rc = multipath_aln;
+    vg::MultipathAlignment multipath_aln_rc;
+    multipath_aln_rc.set_mapping_quality(multipath_aln.mapping_quality());
 
     vector< vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());
     vector<size_t> reverse_starts;
     
     // remove subpaths to avoid duplicating
-    multipath_aln_rc.clear_subpath();
+    // multipath_aln_rc.clear_subpath();
     
     // add subpaths in reverse order to maintain topological ordering
     for (int64_t i = multipath_aln.subpath_size() - 1; i >= 0; i--) {
@@ -180,7 +181,7 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
     }
     
     // remove start nodes that are invalid in reverse
-    multipath_aln_rc.clear_start();
+    // multipath_aln_rc.clear_start();
     
     // assume that if the original multipath alignment had its starts labeled they want them
     // labeled in the reverse complement too

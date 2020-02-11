@@ -7,7 +7,6 @@
 
 #include "gbwt/gbwt.h"
 #include "handlegraph/handle_graph.hpp"
-#include "xg.hpp"
 #include "vg/io/basic_stream.hpp"
 #include "fragment_length_dist.hpp"
 
