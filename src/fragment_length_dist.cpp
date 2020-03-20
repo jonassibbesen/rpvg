@@ -10,9 +10,12 @@
 
 static const int32_t max_length_sd_multiplicity = 10;
 
-FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(0) {}
+FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(1) {}
 
-FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in): mean_(mean_in), sd_(sd_in) {}
+FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in): mean_(mean_in), sd_(sd_in) {
+
+    assert(isValid());
+}
 
 FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool is_multipath) {
 
@@ -38,6 +41,8 @@ FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool 
             }        
         }
     }
+
+    assert(isValid());
 }
 
 bool FragmentLengthDist::parseAlignment(const vg::Alignment & alignment) {
