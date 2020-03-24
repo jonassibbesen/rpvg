@@ -51,14 +51,14 @@ void addAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set<int32
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("rpvg", "calculate expression from read-path probabilities in variation graphs");
+    cxxopts::Options options("rpvg", "calculate expression from read aligment path probabilities in variation graphs");
 
     options.add_options()
       ("g,graph", "vg graph file name (required)", cxxopts::value<string>())
       ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
       ("a,alignments", "gam(p) alignment file name (required)", cxxopts::value<string>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
-      ("l,long-reads", "alignment input is non-fragmented long reads (only single-end)", cxxopts::value<bool>())
+      ("l,long-reads", "alignment input is non-fragmented long reads (single-end only)", cxxopts::value<bool>())
       ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
       ("o,output", "output file prefix", cxxopts::value<string>()->default_value("stdout"))
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
