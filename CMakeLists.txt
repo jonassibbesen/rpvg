@@ -51,6 +51,10 @@ ExternalProject_Add(libhandlegraph-proj
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+add_library(xg 
+  deps/xg/src/xg.cpp
+)
+
 add_library(${PROJECT_NAME} 
   src/fragment_length_dist.cpp 
   src/paths_index.cpp
@@ -86,10 +90,6 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/deps/libhandlegraph
 )
 
-add_library(xg 
-  deps/xg/src/xg.cpp
-)
-
 target_link_libraries(xg
   sdsl
   handlegraph
@@ -108,6 +108,9 @@ target_link_libraries(${PROJECT_NAME}
   divsufsort
   divsufsort64
 )
+
+add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
+add_dependencies(${PROJECT_NAME} libhandlegraph-proj)
 
 add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
 add_dependencies(${PROJECT_NAME} gbwt-proj)
