@@ -5,7 +5,7 @@ Method for calculating read-path probabilities using variation graphs. For each 
 ### Compilation
 *rpvg* requires that [protobuf](https://github.com/protocolbuffers/protobuf), [htslib](https://github.com/samtools/htslib) and OpenMP are installed before compilation. 
 
-1. `git clone https://github.com/jonassibbesen/rpvg.git`
+1. `git clone --recursive https://github.com/jonassibbesen/rpvg.git`
 2. `cd rpvg`
 3. `mkdir build && cd build`
 4. `cmake ..`
@@ -15,6 +15,6 @@ Method for calculating read-path probabilities using variation graphs. For each 
 ### Running rpvg
 *rpvg* requires the following three arguments:
 ```
-rpvg -g graph.vg -p paths.gbwt -a alignments.gam > probs.txt
+rpvg -g graph.xg -p paths.gbwt -a alignments.gam > probs.txt
 ```
 Use `-m` if the input alignment format is multipath (.gamp). Fragment length distribution mean and standard deviation can be given using `-i` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. 
