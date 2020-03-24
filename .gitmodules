@@ -1,0 +1,21 @@
+[submodule "deps/Catch2"]
+	path = deps/Catch2
+	url = https://github.com/catchorg/Catch2.git
+[submodule "deps/cxxopts"]
+	path = deps/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
+[submodule "deps/sdsl-lite"]
+	path = deps/sdsl-lite
+	url = https://github.com/simongog/sdsl-lite.git
+[submodule "deps/gbwt"]
+	path = deps/gbwt
+	url = https://github.com/jltsiren/gbwt.git
+[submodule "deps/gssw"]
+	path = deps/gssw
+	url = https://github.com/vgteam/gssw.git
+[submodule "deps/libvgio"]
+	path = deps/libvgio
+	url = https://github.com/vgteam/libvgio.git
+[submodule "deps/libhandlegraph"]
+	path = deps/libhandlegraph
+	url = https://github.com/vgteam/libhandlegraph.git
