@@ -109,8 +109,8 @@ target_link_libraries(${PROJECT_NAME}
   divsufsort64
 )
 
-add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
-add_dependencies(${PROJECT_NAME} libhandlegraph-proj)
+add_dependencies(xg sdsl-lite-proj)
+add_dependencies(xg libhandlegraph-proj)
 
 add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
 add_dependencies(${PROJECT_NAME} gbwt-proj)
