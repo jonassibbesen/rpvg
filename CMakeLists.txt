@@ -6,23 +6,6 @@ project(rpvg)
 
 find_package(OpenMP REQUIRED)
 
-ExternalProject_Add(catch2-proj
-  SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/catch2"
-  BUILD_IN_SOURCE TRUE
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-)
-
-ExternalProject_Add(cxxopts-proj
-  SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/cxxopts"
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-)
-
 ExternalProject_Add(sdsl-lite-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/sdsl-lite"
   BUILD_IN_SOURCE TRUE
@@ -77,7 +60,7 @@ add_library(${PROJECT_NAME}
   src/read_path_probs.cpp 
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
-  # src/io/register_loader_saver_xg.cpp
+  src/io/register_loader_saver_xg.cpp
 )
 
 include_directories(
@@ -88,9 +71,11 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
   ${PROJECT_SOURCE_DIR}/deps/libhandlegraph/src/include
-  # ${PROJECT_SOURCE_DIR}/deps/xg/src
-  # ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmultimap/src
-  # ${PROJECT_SOURCE_DIR}/deps/xg/deps/ips4o
+  ${PROJECT_SOURCE_DIR}/deps/xg/src
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmultimap/src
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/ips4o
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src/tinyFA
 )
 
 link_directories(
@@ -99,17 +84,18 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/deps/libhandlegraph
-  # ${PROJECT_SOURCE_DIR}/deps/xg/lib
 )
 
-add_dependencies(${PROJECT_NAME} catch2-proj)
-add_dependencies(${PROJECT_NAME} cxxopts-proj)
-add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
-add_dependencies(${PROJECT_NAME} gbwt-proj)
-add_dependencies(${PROJECT_NAME} gssw-proj)
-add_dependencies(${PROJECT_NAME} libvgio-proj)
-add_dependencies(${PROJECT_NAME} libhandlegraph-proj)
-# add_dependencies(${PROJECT_NAME} xg-proj)
+add_library(xg 
+  deps/xg/src/xg.cpp
+)
+
+target_link_libraries(xg
+  sdsl
+  handlegraph
+  divsufsort
+  divsufsort64
+)
 
 target_link_libraries(${PROJECT_NAME}
   protobuf 
@@ -118,15 +104,23 @@ target_link_libraries(${PROJECT_NAME}
   vgio
   sdsl
   handlegraph
-  # xg
+  xg
   divsufsort
   divsufsort64
 )
+
+add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
+add_dependencies(${PROJECT_NAME} gbwt-proj)
+add_dependencies(${PROJECT_NAME} gssw-proj)
+add_dependencies(${PROJECT_NAME} libvgio-proj)
+add_dependencies(${PROJECT_NAME} libhandlegraph-proj)
+add_dependencies(${PROJECT_NAME} xg)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
   set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3 -Wall")
   target_link_libraries(${PROJECT_NAME} omp)
+  target_link_libraries(xg omp)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 

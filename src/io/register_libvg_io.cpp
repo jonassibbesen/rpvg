@@ -19,7 +19,7 @@ using namespace std;
 
 bool register_libvg_io() {
     register_loader_saver_gbwt();
-    // register_loader_saver_xg();
+    register_loader_saver_xg();
     return true;
 }
     

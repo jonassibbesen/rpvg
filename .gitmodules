@@ -19,3 +19,6 @@
 [submodule "deps/libhandlegraph"]
 	path = deps/libhandlegraph
 	url = https://github.com/vgteam/libhandlegraph.git
+[submodule "deps/xg"]
+	path = deps/xg
+	url = https://github.com/vgteam/xg.git
