@@ -28,15 +28,15 @@ class AlignmentPathFinder {
        	const PathsIndex & paths_index;
        	int32_t max_pair_seq_length;
 
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment) const;
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::Alignment & alignment, const int32_t subpath_start_idx) const;
-		void extendAlignmentPath(AlignmentPath * align_path, const vg::Path & path) const;
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const;
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const int32_t subpath_start_idx) const;
+		void extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Path & path) const;
 
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment) const;
-		vector<AlignmentPath> extendAlignmentPath(const AlignmentPath & align_path, const vg::MultipathAlignment & alignment, const int32_t subpath_start_idx) const;
-		void extendAlignmentPaths(vector<AlignmentPath> * align_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const int32_t subpath_start_idx) const;
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment) const;
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const int32_t subpath_start_idx) const;
+		void extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const int32_t subpath_start_idx) const;
 
-		void pairAlignmentPaths(vector<AlignmentPath> * paired_align_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment) const;
+		void pairAlignmentPaths(vector<AlignmentSearchPath> * paired_align_search_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment) const;
 
 		multimap<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::Alignment & alignment) const;
 		multimap<gbwt::node_type, int32_t> getAlignmentStartNodesIndex(const vg::MultipathAlignment & alignment) const;

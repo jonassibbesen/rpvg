@@ -23,12 +23,9 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
     assert(!align_paths.empty());
     assert(clustered_path_index.size() == read_path_probs.size());
 
-    if (align_paths.front().mapqMin() > 0) {
+    if (!doubleCompare(align_paths.front().mapq_prob, 1)) {
 
-        assert(align_paths.front().mapqs.size() == 2);
-        assert(align_paths.front().scores.size() == 2);
-
-        noise_prob = align_paths.front().mapqProb();
+        noise_prob = align_paths.front().mapq_prob;
         assert(noise_prob < 1);
 
         vector<double> align_paths_log_probs;
@@ -38,10 +35,7 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
 
         for (auto & align_path: align_paths) {
 
-            assert(align_path.mapqs.size() == 2);
-            assert(align_path.scores.size() == 2);
-
-            align_paths_log_probs.emplace_back(score_log_base * align_path.scoreSum());
+            align_paths_log_probs.emplace_back(score_log_base * align_path.score_sum);
 
             if (!is_single_end) {
 
