@@ -40,6 +40,8 @@ class AlignmentSearchPath {
 
         vector<gbwt::node_type> path;
         int32_t path_end_pos;
+
+        int32_t seq_start_offset;
         int32_t seq_end_offset;
 
         gbwt::SearchState search;

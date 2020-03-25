@@ -43,6 +43,7 @@ ostream & operator<<(ostream & os, const vector<AlignmentPath> & align_path) {
 AlignmentSearchPath::AlignmentSearchPath() {
 
     path_end_pos = 0;
+    seq_start_offset = 0;
     seq_end_offset = 0;
     seq_length = 0;
 }
@@ -73,10 +74,12 @@ int32_t AlignmentSearchPath::scoreSum() const {
 
 bool AlignmentSearchPath::complete() const {
 
-    if (path_end_pos != path.size() || path.empty() || search.node != path.back()) {
+    if (path.empty() || path_end_pos != path.size()) {
 
         return false;
     }
+
+    assert(search.node == path.back());
 
     return true;
 }
@@ -85,6 +88,7 @@ ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path
 
     os << "(" << align_search_path.path << ")";
     os << " | " << align_search_path.path_end_pos;
+    os << " | " << align_search_path.seq_start_offset;
     os << " | " << align_search_path.seq_end_offset;
     os << " | " << gbwt::Node::id(align_search_path.search.node);
     os << " | " << align_search_path.search.size();
