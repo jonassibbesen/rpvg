@@ -128,7 +128,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-  set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3")
+  set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -latomic -g -O3")
 
 endif()
 
