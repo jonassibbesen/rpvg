@@ -1,5 +1,5 @@
 
-#include "catch2/catch.hpp"
+#include "catch.hpp"
 
 #include "../alignment_path.hpp"
 #include "../utils.hpp"

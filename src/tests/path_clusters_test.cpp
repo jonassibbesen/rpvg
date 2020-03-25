@@ -1,5 +1,5 @@
 
-#include "catch2/catch.hpp"
+#include "catch.hpp"
 
 #include "../path_clusters.hpp"
 #include "../utils.hpp"

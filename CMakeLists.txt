@@ -68,6 +68,7 @@ add_library(${PROJECT_NAME}
 )
 
 include_directories(
+  ${PROJECT_SOURCE_DIR}/deps/Catch2/single_include/catch2 
   ${PROJECT_SOURCE_DIR}/deps/cxxopts/include 
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/deps/gbwt/include 
@@ -127,7 +128,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-  set(CMAKE_CXX_FLAGS "--std=c++14 -latomic -g -O3")
+  set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3")
 
 endif()
 

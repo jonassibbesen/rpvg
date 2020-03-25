@@ -1,5 +1,5 @@
 
-#include "catch2/catch.hpp"
+#include "catch.hpp"
 
 #include "vg/io/basic_stream.hpp"
 #include "../fragment_length_dist.hpp"

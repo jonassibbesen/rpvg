@@ -1,5 +1,6 @@
 
-#include "catch2/catch.hpp"
+#include "catch.hpp"
+
 #include "gssw.h"
 
 #include "../read_path_probs.hpp"
