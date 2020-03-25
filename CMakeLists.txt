@@ -4,6 +4,8 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 project(rpvg)
 
+set(CMAKE_CXX_STANDARD 14)
+
 find_package(OpenMP REQUIRED)
 
 ExternalProject_Add(sdsl-lite-proj
@@ -121,13 +123,13 @@ add_dependencies(${PROJECT_NAME} xg)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-  set(CMAKE_CXX_FLAGS "-Xpreprocessor -fopenmp -g -O3")
+  set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3")
   target_link_libraries(${PROJECT_NAME} omp)
   target_link_libraries(xg omp)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-  set(CMAKE_CXX_FLAGS "-fopenmp -g -O3")
+  set(CMAKE_CXX_FLAGS "--std=c++14 -latomic -g -O3")
 
 endif()
 
