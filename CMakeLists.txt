@@ -4,8 +4,6 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 project(rpvg)
 
-set(CMAKE_CXX_STANDARD 14)
-
 find_package(OpenMP REQUIRED)
 
 ExternalProject_Add(sdsl-lite-proj
