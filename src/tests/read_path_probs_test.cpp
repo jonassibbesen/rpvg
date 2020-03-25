@@ -51,14 +51,7 @@ TEST_CASE("Multiple ReadPathProbs can be sorted") {
 
 TEST_CASE("Read path probabilities can be calculated from alignment paths") {
     
-	vector<AlignmentPath> alignment_paths(1, AlignmentPath());
-	alignment_paths.front().ids.push_back(100);
-	alignment_paths.front().ids.push_back(200);
-	alignment_paths.front().seq_length = 10;
-	alignment_paths.front().mapqs.push_back(10);
-	alignment_paths.front().mapqs.push_back(20);
-	alignment_paths.front().scores.push_back(1);
-	alignment_paths.front().scores.push_back(2);
+	vector<AlignmentPath> alignment_paths(1, AlignmentPath(10, 0.109, 3, vector<gbwt::size_type>({100, 200})));
 
 	unordered_map<int32_t, int32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
@@ -73,7 +66,7 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Extremely improbable alignment path returns finite probabilities") {
 
-    	alignment_paths.front().seq_length = 10000; 
+    	vector<AlignmentPath> alignment_paths(1, AlignmentPath(10000, 0.109, 3, vector<gbwt::size_type>({100, 200})));
 
 		ReadPathProbs read_path_probs_2(2, score_log_base);
 		read_path_probs_2.calcReadPathProbs(alignment_paths, clustered_path_index, fragment_length_dist, false);
@@ -83,14 +76,8 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Probabilities are calculated from multiple alignment paths") {
 
-		alignment_paths.emplace_back(AlignmentPath());
-		alignment_paths.back().ids.push_back(50);
-		alignment_paths.back().seq_length = 15;
-		alignment_paths.back().mapqs.push_back(10);
-		alignment_paths.back().mapqs.push_back(20);
-		alignment_paths.back().scores.push_back(3);
-		alignment_paths.back().scores.push_back(2);
-
+		alignment_paths.emplace_back(AlignmentPath(15, 0.109, 5, vector<gbwt::size_type>({50})));
+		
 		clustered_path_index.emplace(10, 2);
 		clustered_path_index.emplace(50, 3);
 
