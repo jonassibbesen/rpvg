@@ -28,6 +28,11 @@ inline double phred_to_prob(int phred) {
     return pow(10, -((double)phred) / 10);
 }
 
+// Convert probability of wrongness to integer Phred quality score.
+inline double prob_to_phred(double prob) {
+    return -10.0 * log10(prob);
+}
+
 // log normal pdf, from http://stackoverflow.com/a/10848293/238609
 template <typename T>
 inline T log_normal_pdf(T x, T m, T s)

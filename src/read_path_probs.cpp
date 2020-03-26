@@ -23,9 +23,9 @@ void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths,
     assert(!align_paths.empty());
     assert(clustered_path_index.size() == read_path_probs.size());
 
-    if (!doubleCompare(align_paths.front().mapq_prob, 1)) {
+    if (align_paths.front().mapq_comb > 0) {
 
-        noise_prob = align_paths.front().mapq_prob;
+        noise_prob = phred_to_prob(align_paths.front().mapq_comb);
         assert(noise_prob < 1);
 
         vector<double> align_paths_log_probs;

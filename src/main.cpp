@@ -28,25 +28,22 @@
 #include "read_path_probs.hpp"
 
 
-void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * align_paths_threads, const vector<AlignmentPath> & align_paths, const int32_t thread_idx) {
+void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, int32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const int32_t thread_idx) {
 
-    if (!align_paths.empty()) {
+    if (!align_paths->empty()) {
 
-        auto anchor_path_id = align_paths.front().ids.front();
+        if (align_paths->size() == 1) {
 
-        for (auto & align_path: align_paths) {
+            align_paths->front().seq_length = mean_fragment_length;
+            align_paths->front().score_sum = 1;            
+        
+        } else {
 
-            for (auto & path_id: align_path.ids) {
-
-                if (anchor_path_id != path_id) {
-
-                    connected_paths_threads->at(thread_idx)[anchor_path_id].emplace(path_id);
-                    connected_paths_threads->at(thread_idx)[path_id].emplace(anchor_path_id);
-                }
-            }
+            sort(align_paths->begin(), align_paths->end());
         }
 
-        align_paths_threads->at(thread_idx).emplace_back(align_paths);
+        auto all_align_paths_threads_it = all_align_paths_threads->at(thread_idx).emplace(*align_paths, 0);
+        all_align_paths_threads_it.first->second++;
     }    
 }
 
@@ -158,8 +155,7 @@ int main(int argc, char* argv[]) {
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
-    vector<spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > > connected_paths_threads(num_threads);
-    vector<vector<vector<AlignmentPath> > > align_paths_threads(num_threads);
+    vector<spp::sparse_hash_map<vector<AlignmentPath>, int32_t> > all_align_paths_threads(num_threads);
 
     if (is_multipath) {
 
@@ -172,7 +168,7 @@ int main(int argc, char* argv[]) {
                 if (alignment.subpath_size() > 0) {
 
                     auto align_paths = alignment_path_finder.findAlignmentPaths(alignment);
-                    addAlignmentPathsThreaded(&connected_paths_threads, &align_paths_threads, align_paths, omp_get_thread_num());
+                    addAlignmentPathsThreaded(&all_align_paths_threads, &align_paths, fragment_length_dist.mean(), omp_get_thread_num());
                 }
             });           
 
@@ -183,7 +179,7 @@ int main(int argc, char* argv[]) {
                 if (alignment_1.subpath_size() > 0 && alignment_2.subpath_size() > 0) {
 
                     auto paired_align_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
-                    addAlignmentPathsThreaded(&connected_paths_threads, &align_paths_threads, paired_align_paths, omp_get_thread_num());
+                    addAlignmentPathsThreaded(&all_align_paths_threads, &paired_align_paths, fragment_length_dist.mean(), omp_get_thread_num());
                 }
             });
         }
@@ -199,7 +195,7 @@ int main(int argc, char* argv[]) {
                 if (alignment.has_path()) {
 
                     auto align_paths = alignment_path_finder.findAlignmentPaths(alignment);
-                    addAlignmentPathsThreaded(&connected_paths_threads, &align_paths_threads, align_paths, omp_get_thread_num());
+                    addAlignmentPathsThreaded(&all_align_paths_threads, &align_paths, fragment_length_dist.mean(), omp_get_thread_num());
                 }
             });           
 
@@ -210,7 +206,7 @@ int main(int argc, char* argv[]) {
                 if (alignment_1.has_path() && alignment_2.has_path()) {
 
                     auto paired_align_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
-                    addAlignmentPathsThreaded(&connected_paths_threads, &align_paths_threads, paired_align_paths, omp_get_thread_num());
+                    addAlignmentPathsThreaded(&all_align_paths_threads, &paired_align_paths, fragment_length_dist.mean(), omp_get_thread_num());
                 }
             });
         }
@@ -221,48 +217,58 @@ int main(int argc, char* argv[]) {
     double time5 = gbwt::readTimer();
     cerr << "Found alignment paths " << time5 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    for (size_t i = 1; i < connected_paths_threads.size(); ++i) {
+    spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > connected_align_paths(num_threads);
 
-        for (auto & connected_path_clusters: connected_paths_threads.at(i)) {
+    for (auto & all_align_paths: all_align_paths_threads) {
 
-            auto connected_paths_threads_it = connected_paths_threads.front().emplace(connected_path_clusters.first, spp::sparse_hash_set<int32_t>());
-            for (auto & paths: connected_path_clusters.second) {
+        for (auto & align_paths: all_align_paths) {
 
-                connected_paths_threads_it.first->second.emplace(paths);
+            auto anchor_path_id = align_paths.first.front().ids.front();
+
+            for (auto & align_path: align_paths.first) {
+
+                for (auto & path_id: align_path.ids) {
+
+                    if (anchor_path_id != path_id) {
+
+                        connected_align_paths[anchor_path_id].emplace(path_id);
+                        connected_align_paths[path_id].emplace(anchor_path_id);
+                    }
+                }
             }
         }
     }
 
+    auto path_clusters = PathClusters(connected_align_paths, paths_index.index().metadata.haplotype_count);
+
     double time6 = gbwt::readTimer();
-    cerr << "Merged connected path threads " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
-
-    auto path_clusters = PathClusters(connected_paths_threads.front(), paths_index.index().metadata.haplotype_count);
-
-    double time62 = gbwt::readTimer();
-    cerr << "Found path clusters " << time62 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Created alignment path cluster index " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
  
-    vector<vector<vector<AlignmentPath> > > clustered_align_paths(path_clusters.cluster_to_path_index.size());
+    vector<vector<spp::sparse_hash_map<vector<AlignmentPath>, int32_t>::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
 
-    for (auto & align_paths: align_paths_threads) {
+    for (size_t i = 0; i < all_align_paths_threads.size(); ++i) {
 
-        for (auto & align_path: align_paths) {
+        auto align_paths_it = all_align_paths_threads.at(i).begin();
 
-            clustered_align_paths.at(path_clusters.path_to_cluster_index.at(align_path.front().ids.front())).push_back(move(align_path));
+        while (align_paths_it != all_align_paths_threads.at(i).end()) {
+
+            align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_it->first.front().ids.front())).emplace_back(align_paths_it);
+            ++align_paths_it;
         }
     }
 
     double time7 = gbwt::readTimer();
     cerr << "Clustered alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    vector<vector<ReadPathProbs> > clustered_align_path_probs(path_clusters.cluster_to_path_index.size());
+    vector<vector<pair<ReadPathProbs, int32_t> > > clustered_align_path_probs(path_clusters.cluster_to_path_index.size());
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
     #pragma omp parallel
     {  
         #pragma omp for
-        for (size_t i = 0; i < clustered_align_paths.size(); ++i) {
+        for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
 
-            clustered_align_path_probs.at(i).reserve(clustered_align_paths.at(i).size());
+            clustered_align_path_probs.at(i).reserve(align_paths_clusters.at(i).size());
 
             unordered_map<int32_t, int32_t> clustered_path_index;
             vector<double> effective_path_lengths; 
@@ -278,14 +284,14 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            for (auto & align_paths: clustered_align_paths.at(i)) {
+            for (auto & align_paths: align_paths_clusters.at(i)) {
 
-                clustered_align_path_probs.at(i).emplace_back(ReadPathProbs(clustered_path_index.size(), score_log_base));
-                clustered_align_path_probs.at(i).back().calcReadPathProbs(align_paths, clustered_path_index, fragment_length_dist, is_single_end);
+                clustered_align_path_probs.at(i).emplace_back(ReadPathProbs(clustered_path_index.size(), score_log_base), align_paths->second);
+                clustered_align_path_probs.at(i).back().first.calcReadPathProbs(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);
 
                 if (!is_long_reads) {
 
-                    clustered_align_path_probs.at(i).back().addPositionalProbs(effective_path_lengths);
+                    clustered_align_path_probs.at(i).back().first.addPositionalProbs(effective_path_lengths);
                 }
             }
 
@@ -315,7 +321,7 @@ int main(int argc, char* argv[]) {
 
     for (size_t i = 0; i < clustered_align_path_probs.size(); ++i) {
 
-        const vector<ReadPathProbs> & clustered_probs = clustered_align_path_probs.at(i);
+        const vector<pair<ReadPathProbs, int32_t> > & clustered_probs = clustered_align_path_probs.at(i);
 
         if (clustered_probs.empty()) {
 
@@ -331,24 +337,24 @@ int main(int argc, char* argv[]) {
 
         output_stream << setprecision(8);
 
-        int32_t num_align_paths = 1;
+        int32_t num_align_paths = clustered_probs.front().second;
         int32_t prev_unique_probs_idx = 0;
 
         for (size_t j = 1; j < clustered_probs.size(); ++j) {
 
-            if (clustered_probs.at(prev_unique_probs_idx) == clustered_probs.at(j)) {
+            if (clustered_probs.at(prev_unique_probs_idx).first == clustered_probs.at(j).first) {
 
-                num_align_paths++;
+                num_align_paths += clustered_probs.at(j).second;
             
             } else {
 
-                output_stream << num_align_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
-                num_align_paths = 1;
+                output_stream << num_align_paths << " " << clustered_probs.at(prev_unique_probs_idx).first << endl;
+                num_align_paths = clustered_probs.at(j).second;
                 prev_unique_probs_idx = j;
             }
         }
 
-        output_stream << num_align_paths << " " << clustered_probs.at(prev_unique_probs_idx) << endl;
+        output_stream << num_align_paths << " " << clustered_probs.at(prev_unique_probs_idx).first << endl;
     }
 
     if (option_results["output"].as<string>() != "stdout") {

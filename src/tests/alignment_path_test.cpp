@@ -53,7 +53,7 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	AlignmentPath alignment_path(alignment_search_path, vector<gbwt::size_type>({2, 1}));
 	
 	REQUIRE(alignment_path.seq_length == 100);
-	REQUIRE(doubleCompare(alignment_path.mapq_prob, 0.109));
+	REQUIRE(alignment_path.mapq_comb == 10);
 	REQUIRE(alignment_path.score_sum == 110);
 	REQUIRE(alignment_path.ids == vector<gbwt::size_type>({2, 1}));
 }
