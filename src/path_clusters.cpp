@@ -6,7 +6,7 @@
 #include <algorithm>
 
 
-PathClusters::PathClusters(const unordered_map<int32_t, unordered_set<int32_t> > & connected_paths, const int32_t num_paths) {
+PathClusters::PathClusters(const spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > & connected_paths, const int32_t num_paths) {
 
     path_to_cluster_index = vector<int32_t>(num_paths, -1);
 

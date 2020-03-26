@@ -12,6 +12,7 @@
 
 #include "cxxopts.hpp"
 #include "gbwt/gbwt.h"
+#include "sparsepp/spp.h"
 #include "vg/io/vpkg.hpp"
 #include "vg/io/stream.hpp"
 #include "vg/io/basic_stream.hpp"
@@ -27,7 +28,7 @@
 #include "read_path_probs.hpp"
 
 
-void addAlignmentPathsThreaded(vector<unordered_map<int32_t, unordered_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * align_paths_threads, const vector<AlignmentPath> & align_paths, const int32_t thread_idx) {
+void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > > * connected_paths_threads, vector<vector<vector<AlignmentPath> > > * align_paths_threads, const vector<AlignmentPath> & align_paths, const int32_t thread_idx) {
 
     if (!align_paths.empty()) {
 
@@ -157,7 +158,7 @@ int main(int argc, char* argv[]) {
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
-    vector<unordered_map<int32_t, unordered_set<int32_t> > > connected_paths_threads(num_threads);
+    vector<spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > > connected_paths_threads(num_threads);
     vector<vector<vector<AlignmentPath> > > align_paths_threads(num_threads);
 
     if (is_multipath) {
@@ -224,7 +225,7 @@ int main(int argc, char* argv[]) {
 
         for (auto & connected_path_clusters: connected_paths_threads.at(i)) {
 
-            auto connected_paths_threads_it = connected_paths_threads.front().emplace(connected_path_clusters.first, unordered_set<int32_t>());
+            auto connected_paths_threads_it = connected_paths_threads.front().emplace(connected_path_clusters.first, spp::sparse_hash_set<int32_t>());
             for (auto & paths: connected_path_clusters.second) {
 
                 connected_paths_threads_it.first->second.emplace(paths);

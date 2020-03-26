@@ -70,6 +70,7 @@ add_library(${PROJECT_NAME}
 include_directories(
   ${PROJECT_SOURCE_DIR}/deps/Catch2/single_include/catch2 
   ${PROJECT_SOURCE_DIR}/deps/cxxopts/include 
+  ${PROJECT_SOURCE_DIR}/deps/sparsepp
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/deps/gbwt/include 
   ${PROJECT_SOURCE_DIR}/deps/gssw/src 

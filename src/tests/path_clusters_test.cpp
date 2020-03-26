@@ -1,13 +1,15 @@
 
 #include "catch.hpp"
 
+#include "sparsepp/spp.h"
+
 #include "../path_clusters.hpp"
 #include "../utils.hpp"
 
 
 TEST_CASE("Connected paths can be clustered") {
 
-	unordered_map<int32_t, unordered_set<int32_t> > connected_paths;
+	spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > connected_paths;
 	
 	connected_paths[1].emplace(2);
 	connected_paths[1].emplace(5);
