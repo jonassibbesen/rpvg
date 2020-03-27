@@ -24,7 +24,7 @@ The following code was copied and modified from https://github.com/vgteam/vg
 */
 
 // Convert integer Phred quality score to probability of wrongness.
-inline double phred_to_prob(int phred) {
+inline double phred_to_prob(uint32_t phred) {
     return pow(10, -((double)phred) / 10);
 }
 
@@ -56,18 +56,18 @@ inline gbwt::node_type mapping_to_gbwt(const vg::Mapping & mapping) {
     return gbwt::Node::encode(mapping.position().node_id(), mapping.position().is_reverse());
 }
 
-inline int mapping_to_length(const vg::Mapping & m) {
-    int l = 0;
-    for (int i = 0; i < m.edit_size(); ++i) {
+inline uint32_t mapping_to_length(const vg::Mapping & m) {
+    uint32_t l = 0;
+    for (uint32_t i = 0; i < m.edit_size(); ++i) {
         const vg::Edit& e = m.edit(i);
         l += e.to_length();
     }
     return l;
 }
 
-inline int mapping_from_length(const vg::Mapping & m) {
-    int l = 0;
-    for (int i = 0; i < m.edit_size(); ++i) {
+inline uint32_t mapping_from_length(const vg::Mapping & m) {
+    uint32_t l = 0;
+    for (uint32_t i = 0; i < m.edit_size(); ++i) {
         const vg::Edit& e = m.edit(i);
         l += e.from_length();
     }

@@ -9,49 +9,72 @@
 
 PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph) : index_(gbwt_index) {
 
-    node_lengths = vector<int32_t>(graph.node_size() + 1, 0);
+    node_lengths = vector<int32_t>(graph.node_size() + 1, -1);
+    uint32_t max_node_id = 0;
 
     for (auto & node: graph.node()) {
 
-        if (node.id() >= node_lengths.size()) {
+        auto id = node.id();
+        max_node_id = max(max_node_id, static_cast<uint32_t>(id));
 
-            node_lengths.resize(node.id() + 1, 0);
+        while (id >= node_lengths.size()) {
+
+            node_lengths.resize(node_lengths.size() * 2, -1);
         }
 
-        assert(node_lengths.at(node.id()) == 0);
+        assert(node_lengths.at(id) == -1);
         node_lengths.at(node.id()) = node.sequence().size();
     }
+
+    assert(node_lengths.size() > max_node_id);
+    node_lengths.resize(max_node_id + 1);
 }
 
 PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleGraph & graph) : index_(gbwt_index) {
 
-    node_lengths = vector<int32_t>(graph.get_node_count() + 1, 0);
+    node_lengths = vector<int32_t>(graph.get_node_count() + 1, -1);
+    uint32_t max_node_id = 0;
 
     assert(graph.for_each_handle([&](const handlegraph::handle_t & handle) {
 
         auto id = graph.get_id(handle);
+        max_node_id = max(max_node_id, static_cast<uint32_t>(id));
 
         while (id >= node_lengths.size()) {
 
-            node_lengths.resize(node_lengths.size() * 2, 0);
+            node_lengths.resize(node_lengths.size() * 2, -1);
         }
 
-        assert(node_lengths.at(id) == 0);
-        node_lengths.at(id) =  graph.get_length(handle);
+        assert(node_lengths.at(id) == -1);
+        node_lengths.at(id) = graph.get_length(handle);
     }));
+
+    assert(node_lengths.size() > max_node_id);
+    node_lengths.resize(max_node_id + 1);
 } 
 
 const gbwt::GBWT & PathsIndex::index() const {
 
     return index_;
 }
-        
-int32_t PathsIndex::nodeLength(const int32_t node_id) const {
 
+bool PathsIndex::hasNodeId(const uint32_t node_id) const {
+
+    if (node_id >= node_lengths.size()) {
+
+        return false;
+    }
+
+    return (node_lengths.at(node_id) != -1);
+}
+        
+uint32_t PathsIndex::nodeLength(const uint32_t node_id) const {
+
+    assert(hasNodeId(node_id));
     return node_lengths.at(node_id);
 }
 
-string PathsIndex::pathName(const int32_t path_id) const {
+string PathsIndex::pathName(const uint32_t path_id) const {
 
     stringstream sstream;
 
@@ -76,9 +99,9 @@ string PathsIndex::pathName(const int32_t path_id) const {
     return sstream.str();
 }
 
-int32_t PathsIndex::pathLength(const int32_t path_id) const {
+uint32_t PathsIndex::pathLength(const uint32_t path_id) const {
 
-    int32_t path_length = 0;
+    uint32_t path_length = 0;
     
     for (auto & node: index_.extract(path_id)) {
 
@@ -88,9 +111,9 @@ int32_t PathsIndex::pathLength(const int32_t path_id) const {
     return path_length;
 }
 
-double PathsIndex::effectivePathLength(const int32_t path_id, const FragmentLengthDist & fragment_length_dist) const {
+double PathsIndex::effectivePathLength(const uint32_t path_id, const FragmentLengthDist & fragment_length_dist) const {
 
-    const int32_t path_length = pathLength(path_id); 
+    const uint32_t path_length = pathLength(path_id); 
 
     if (path_length == 0) {
 

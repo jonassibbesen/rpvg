@@ -29,8 +29,8 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
 	vg::Graph graph;
 	json2pb(graph, graph_str);
 
-    vector<int32_t> node_seq_lengths = {0, 4, 1, 1, 8};
-    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+    vector<uint32_t> node_seq_lengths = {0, 4, 1, 1, 8};
+    function<size_t(const uint32_t)> node_seq_length_func = [&](const uint32_t node_id) { return node_seq_lengths.at(node_id); };
 
 	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(4, true)));
@@ -202,8 +202,8 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
     vg::Graph graph;
     json2pb(graph, graph_str);
 
-    vector<int32_t> node_seq_lengths = {0, 4, 1, 1, 8, 2, 7};
-    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+    vector<uint32_t> node_seq_lengths = {0, 4, 1, 1, 8, 2, 7};
+    function<size_t(const uint32_t)> node_seq_length_func = [&](const uint32_t node_id) { return node_seq_lengths.at(node_id); };
 
     gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(6, true)));
@@ -523,8 +523,8 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
     vg::Graph graph;
     json2pb(graph, graph_str);
 
-    vector<int32_t> node_seq_lengths = {0, 4, 4, 4, 4};
-    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+    vector<uint32_t> node_seq_lengths = {0, 4, 4, 4, 4};
+    function<size_t(const uint32_t)> node_seq_length_func = [&](const uint32_t node_id) { return node_seq_lengths.at(node_id); };
 
     gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(6, true)));
@@ -651,7 +651,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
         new_edit->set_from_length(4);
         new_edit->set_to_length(4);
 
-        for (int32_t i = 0; i < 2; i++) {
+        for (uint32_t i = 0; i < 2; i++) {
 
             new_mapping = alignment_1.mutable_path()->add_mapping();
             new_mapping->mutable_position()->set_node_id(2);
@@ -697,7 +697,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
 
     SECTION("Partial overlapping circular paired-end read alignment finds circular alignment path(s)") {
 
-        for (int32_t i = 0; i < 2; i++) {
+        for (uint32_t i = 0; i < 2; i++) {
 
             auto new_mapping = alignment_1.mutable_path()->add_mapping();
             new_mapping->mutable_position()->set_node_id(2);
@@ -712,7 +712,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
         alignment_2.mutable_path()->mutable_mapping(0)->mutable_edit(0)->set_from_length(4);
         alignment_2.mutable_path()->mutable_mapping(0)->mutable_edit(0)->set_to_length(4);
 
-        for (int32_t i = 0; i < 3; i++) {
+        for (uint32_t i = 0; i < 3; i++) {
 
             auto new_mapping = alignment_2.mutable_path()->add_mapping();
             new_mapping->mutable_position()->set_node_id(2);
@@ -787,8 +787,8 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
     vg::Graph graph;
     json2pb(graph, graph_str);
 
-    vector<int32_t> node_seq_lengths = {0, 1, 1, 3, 2, 3, 3};
-    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+    vector<uint32_t> node_seq_lengths = {0, 1, 1, 3, 2, 3, 3};
+    function<size_t(const uint32_t)> node_seq_length_func = [&](const uint32_t node_id) { return node_seq_lengths.at(node_id); };
 
     gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(6, true)));
@@ -1011,8 +1011,8 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     vg::Graph graph;
     json2pb(graph, graph_str);
 
-    vector<int32_t> node_seq_lengths = {0, 1, 1, 2, 3, 2, 1, 1, 3};
-    function<size_t(const int64_t)> node_seq_length_func = [&](const int64_t node_id) { return node_seq_lengths.at(node_id); };
+    vector<uint32_t> node_seq_lengths = {0, 1, 1, 2, 3, 2, 1, 1, 3};
+    function<size_t(const uint32_t)> node_seq_length_func = [&](const uint32_t node_id) { return node_seq_lengths.at(node_id); };
 
     gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(8, true)));

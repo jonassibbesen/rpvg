@@ -19,12 +19,12 @@ class ReadPathProbs {
     public: 
     	
     	ReadPathProbs();
-    	ReadPathProbs(const int32_t num_paths, const double score_log_base_in);
+    	ReadPathProbs(const uint32_t num_paths, const double score_log_base_in);
         
         double noise_prob;
         vector<double> read_path_probs;
 
-        void calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<int32_t, int32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end);
+        void calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end);
         void addPositionalProbs(const vector<double> & path_lengths);
 
     private:

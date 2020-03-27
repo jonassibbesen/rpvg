@@ -21,11 +21,13 @@ class PathsIndex {
         PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleGraph & graph);
 
         const gbwt::GBWT & index() const;
-        int32_t nodeLength(const int32_t node_id) const;
 
-        string pathName(const int32_t path_id) const;
-        int32_t pathLength(const int32_t path_id) const;
-        double effectivePathLength(const int32_t path_id, const FragmentLengthDist & fragment_length_dist) const;
+        bool hasNodeId(const uint32_t node_id) const;
+        uint32_t nodeLength(const uint32_t node_id) const;
+
+        string pathName(const uint32_t path_id) const;
+        uint32_t pathLength(const uint32_t path_id) const;
+        double effectivePathLength(const uint32_t path_id, const FragmentLengthDist & fragment_length_dist) const;
 
     private:
 

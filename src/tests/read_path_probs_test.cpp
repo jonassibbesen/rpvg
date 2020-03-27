@@ -53,7 +53,7 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
     
 	vector<AlignmentPath> alignment_paths(1, AlignmentPath(10, 10, 3, vector<gbwt::size_type>({100, 200})));
 
-	unordered_map<int32_t, int32_t> clustered_path_index({{100, 0}, {200, 1}});
+	unordered_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
 	ReadPathProbs read_path_probs(2, score_log_base);

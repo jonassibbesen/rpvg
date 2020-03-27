@@ -9,7 +9,7 @@
 
 TEST_CASE("Connected paths can be clustered") {
 
-	spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > connected_paths;
+	spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_paths;
 	
 	connected_paths[1].emplace(2);
 	connected_paths[1].emplace(5);
@@ -22,12 +22,12 @@ TEST_CASE("Connected paths can be clustered") {
 	PathClusters path_clusters(connected_paths, 7);
 
     REQUIRE(path_clusters.path_to_cluster_index.size() == 7);
-    REQUIRE(path_clusters.path_to_cluster_index == vector<int32_t>({0, 1, 1, 2, 3, 1, 2}));
+    REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 1, 1, 2, 3, 1, 2}));
 
     REQUIRE(path_clusters.cluster_to_path_index.size() == 4);
-    REQUIRE(path_clusters.cluster_to_path_index.at(0) == vector<int32_t>({0}));
-    REQUIRE(path_clusters.cluster_to_path_index.at(1) == vector<int32_t>({1, 2, 5}));
-    REQUIRE(path_clusters.cluster_to_path_index.at(2) == vector<int32_t>({3, 6}));
-    REQUIRE(path_clusters.cluster_to_path_index.at(3) == vector<int32_t>({4}));
+    REQUIRE(path_clusters.cluster_to_path_index.at(0) == vector<uint32_t>({0}));
+    REQUIRE(path_clusters.cluster_to_path_index.at(1) == vector<uint32_t>({1, 2, 5}));
+    REQUIRE(path_clusters.cluster_to_path_index.at(2) == vector<uint32_t>({3, 6}));
+    REQUIRE(path_clusters.cluster_to_path_index.at(3) == vector<uint32_t>({4}));
 }
 

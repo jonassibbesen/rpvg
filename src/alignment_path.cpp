@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <numeric>
 
-AlignmentPath::AlignmentPath(const int32_t seq_length_in, const int32_t mapq_comb_in, const int32_t score_sum_in, const vector<gbwt::size_type> & ids_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), score_sum(score_sum_in), ids(ids_in) {}
+AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const vector<gbwt::size_type> & ids_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), score_sum(score_sum_in), ids(ids_in) {}
 
 AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const vector<gbwt::size_type> & ids_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), ids(ids_in) {}
 
@@ -63,7 +63,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb, rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.ids == rhs.ids);
+    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.ids == rhs.ids);
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -153,12 +153,12 @@ double AlignmentSearchPath::mapqProb() const {
     return (1 - prob);
 }
 
-int32_t AlignmentSearchPath::mapqComb() const {
+uint32_t AlignmentSearchPath::mapqComb() const {
 
     return round(prob_to_phred(mapqProb()));
 }
 
-int32_t AlignmentSearchPath::scoreSum() const {
+uint32_t AlignmentSearchPath::scoreSum() const {
 
     return accumulate(scores.begin(), scores.end(), 0);
 }

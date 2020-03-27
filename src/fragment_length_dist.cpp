@@ -8,7 +8,7 @@
 #include "utils.hpp"
 
 
-static const int32_t max_length_sd_multiplicity = 10;
+static const uint32_t max_length_sd_multiplicity = 10;
 
 FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(1) {}
 
@@ -107,13 +107,13 @@ bool FragmentLengthDist::isValid() const {
     return (mean_ >= 0 && sd_ > 0);
 }
 
-int32_t FragmentLengthDist::maxLength() const {
+uint32_t FragmentLengthDist::maxLength() const {
 
     assert(isValid());
     return ceil(mean_ + sd_ * max_length_sd_multiplicity);
 }
 
-double FragmentLengthDist::logProb(const int32_t value) const {
+double FragmentLengthDist::logProb(const uint32_t value) const {
 
     assert(isValid());
     return log_normal_pdf<double>(value, mean_, sd_);

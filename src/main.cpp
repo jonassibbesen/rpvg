@@ -28,7 +28,7 @@
 #include "read_path_probs.hpp"
 
 
-void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, int32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const int32_t thread_idx) {
+void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const uint32_t thread_idx) {
 
     if (!align_paths->empty()) {
 
@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
       ("o,output", "output file prefix", cxxopts::value<string>()->default_value("stdout"))
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("t,threads", "number of compute threads", cxxopts::value<int32_t>()->default_value("1"))
+      ("t,threads", "number of compute threads", cxxopts::value<uint32_t>()->default_value("1"))
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
 
     assert(fragment_length_dist.isValid());
 
-    const int32_t num_threads = option_results["threads"].as<int32_t>();
+    const uint32_t num_threads = option_results["threads"].as<uint32_t>();
 
     assert(num_threads > 0);
     omp_set_num_threads(num_threads);
@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
-    vector<spp::sparse_hash_map<vector<AlignmentPath>, int32_t> > all_align_paths_threads(num_threads);
+    vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > all_align_paths_threads(num_threads);
 
     if (is_multipath) {
 
@@ -215,7 +215,7 @@ int main(int argc, char* argv[]) {
     double time5 = gbwt::readTimer();
     cerr << "Found alignment paths " << time5 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > connected_align_paths(num_threads);
+    spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths(num_threads);
 
     for (auto & all_align_paths: all_align_paths_threads) {
 
@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path cluster index " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
  
-    vector<vector<spp::sparse_hash_map<vector<AlignmentPath>, int32_t>::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
+    vector<vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t>::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
 
     for (size_t i = 0; i < all_align_paths_threads.size(); ++i) {
 
@@ -260,7 +260,7 @@ int main(int argc, char* argv[]) {
     double time7 = gbwt::readTimer();
     cerr << "Clustered alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    vector<vector<pair<ReadPathProbs, int32_t> > > clustered_align_path_probs(path_clusters.cluster_to_path_index.size());
+    vector<vector<pair<ReadPathProbs, uint32_t> > > clustered_align_path_probs(path_clusters.cluster_to_path_index.size());
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
     #pragma omp parallel
@@ -270,7 +270,7 @@ int main(int argc, char* argv[]) {
 
             clustered_align_path_probs.at(i).reserve(align_paths_clusters.at(i).size());
 
-            unordered_map<int32_t, int32_t> clustered_path_index;
+            unordered_map<uint32_t, uint32_t> clustered_path_index;
             vector<double> effective_path_lengths; 
 
             if (!is_long_reads) {
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
 
     for (size_t i = 0; i < clustered_align_path_probs.size(); ++i) {
 
-        const vector<pair<ReadPathProbs, int32_t> > & clustered_probs = clustered_align_path_probs.at(i);
+        const vector<pair<ReadPathProbs, uint32_t> > & clustered_probs = clustered_align_path_probs.at(i);
 
         if (clustered_probs.empty()) {
 
@@ -337,8 +337,8 @@ int main(int argc, char* argv[]) {
 
         output_stream << setprecision(8);
 
-        int32_t num_align_paths = clustered_probs.front().second;
-        int32_t prev_unique_probs_idx = 0;
+        uint32_t num_align_paths = clustered_probs.front().second;
+        uint32_t prev_unique_probs_idx = 0;
 
         for (size_t j = 1; j < clustered_probs.size(); ++j) {
 

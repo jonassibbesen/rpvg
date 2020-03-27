@@ -22,8 +22,8 @@ class FragmentLengthDist {
         double sd() const;
 
         bool isValid() const;
-        int32_t maxLength() const;
-        double logProb(const int32_t value) const;
+        uint32_t maxLength() const;
+        double logProb(const uint32_t value) const;
 
         bool parseAlignment(const vg::Alignment & alignment);
         bool parseMultipathAlignment(const vg::MultipathAlignment & alignment);

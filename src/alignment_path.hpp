@@ -19,12 +19,12 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const int32_t seq_length_in, const int32_t mapq_comb_in, const int32_t score_sum_in, const vector<gbwt::size_type> & ids_in);
+        AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const vector<gbwt::size_type> & ids_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in, const vector<gbwt::size_type> & ids_in);
 
-        int32_t seq_length;
-        int32_t mapq_comb;
-        int32_t score_sum;
+        uint32_t seq_length;
+        uint32_t mapq_comb;
+        uint32_t score_sum;
         
         vector<gbwt::size_type> ids;
 
@@ -71,21 +71,21 @@ class AlignmentSearchPath {
         AlignmentSearchPath();
 
         vector<gbwt::node_type> path;
-        int32_t path_end_pos;
+        uint32_t path_end_pos;
 
-        int32_t seq_start_offset;
-        int32_t seq_end_offset;
+        uint32_t seq_start_offset;
+        uint32_t seq_end_offset;
 
         gbwt::SearchState search;
 
-        int32_t seq_length;
+        uint32_t seq_length;
 
-        vector<int32_t> mapqs;
-        vector<int32_t> scores;
+        vector<uint32_t> mapqs;
+        vector<uint32_t> scores;
 
         double mapqProb() const;
-        int32_t mapqComb() const;
-        int32_t scoreSum() const;
+        uint32_t mapqComb() const;
+        uint32_t scoreSum() const;
 
         bool complete() const;
 };

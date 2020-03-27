@@ -12,13 +12,13 @@ ReadPathProbs::ReadPathProbs() : score_log_base(1) {
     noise_prob = 1;     
 }
 
-ReadPathProbs::ReadPathProbs(const int32_t num_paths, const double score_log_base_in) : score_log_base(score_log_base_in) {
+ReadPathProbs::ReadPathProbs(const uint32_t num_paths, const double score_log_base_in) : score_log_base(score_log_base_in) {
 
     noise_prob = 1;
     read_path_probs = vector<double>(num_paths, 0);
 }
 
-void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<int32_t, int32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
+void ReadPathProbs::calcReadPathProbs(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
 
     assert(!align_paths.empty());
     assert(clustered_path_index.size() == read_path_probs.size());
@@ -109,7 +109,7 @@ double ReadPathProbs::calcReadMappingProbs(const vg::Alignment & alignment, cons
     double align_path_prob = 0;
 
     auto & base_qualities = alignment.quality();
-    int32_t cur_pos = 0;
+    uint32_t cur_pos = 0;
 
     for (auto & mapping: alignment.path().mapping()) {
 
@@ -117,16 +117,16 @@ double ReadPathProbs::calcReadMappingProbs(const vg::Alignment & alignment, cons
 
             if (edit.from_length() == edit.to_length() && edit.sequence().empty()) {
 
-                for (int32_t i = cur_pos; i < cur_pos + edit.from_length(); ++i) {
+                for (uint32_t i = cur_pos; i < cur_pos + edit.from_length(); ++i) {
 
-                    align_path_prob += quality_match_probs.at(int32_t(base_qualities.at(i)));
+                    align_path_prob += quality_match_probs.at(uint32_t(base_qualities.at(i)));
                 }
 
             } else if (edit.from_length() == edit.to_length() && !edit.sequence().empty()) {
 
-                for (int32_t i = cur_pos; i < cur_pos + edit.from_length(); ++i) {
+                for (uint32_t i = cur_pos; i < cur_pos + edit.from_length(); ++i) {
 
-                    align_path_prob += quality_mismatch_probs.at(int32_t(base_qualities.at(i)));
+                    align_path_prob += quality_mismatch_probs.at(uint32_t(base_qualities.at(i)));
                 }
             
             } else if (edit.from_length() == 0 && edit.to_length() > 0 && !edit.sequence().empty()) {
