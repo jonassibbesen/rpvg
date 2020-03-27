@@ -35,12 +35,10 @@ void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>
         if (align_paths->size() == 1) {
 
             align_paths->front().seq_length = mean_fragment_length;
-            align_paths->front().score_sum = 1;            
-        
-        } else {
+            align_paths->front().score_sum = 1;
+        } 
 
-            sort(align_paths->begin(), align_paths->end());
-        }
+        sort(align_paths->begin(), align_paths->end());
 
         auto all_align_paths_threads_it = all_align_paths_threads->at(thread_idx).emplace(*align_paths, 0);
         all_align_paths_threads_it.first->second++;
@@ -220,6 +218,8 @@ int main(int argc, char* argv[]) {
     spp::sparse_hash_map<int32_t, spp::sparse_hash_set<int32_t> > connected_align_paths(num_threads);
 
     for (auto & all_align_paths: all_align_paths_threads) {
+
+        cerr << all_align_paths.size() << endl;
 
         for (auto & align_paths: all_align_paths) {
 

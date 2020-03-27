@@ -40,26 +40,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         align_search_paths.insert(align_search_paths.end(), align_search_paths_rc.begin(), align_search_paths_rc.end());
     }  
 
-    vector<AlignmentPath> align_paths;
-    align_paths.reserve(align_paths.size());
-
-    for (auto & align_search_path: align_search_paths) {
-
-        if (align_search_path.complete()) {
-
-            auto align_search_path_ids = paths_index.index().locate(align_search_path.search);
-
-            if (paths_index.index().bidirectional()) {
-
-                for (auto & id: align_search_path_ids) {
-
-                    id = gbwt::Path::id(id);
-                }
-            }
-
-            align_paths.emplace_back(align_search_path, align_search_path_ids);
-        }
-    }
+    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, paths_index);
 
 #ifdef debug
 
@@ -258,26 +239,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc);
     }
 
-    vector<AlignmentPath> paired_align_paths;
-    paired_align_paths.reserve(paired_align_search_paths.size());
-
-    for (auto & align_search_path: paired_align_search_paths) {
-
-        if (align_search_path.complete()) {
-
-            auto align_search_path_ids = paths_index.index().locate(align_search_path.search);
-
-            if (paths_index.index().bidirectional()) {
-
-                for (auto & id: align_search_path_ids) {
-
-                    id = gbwt::Path::id(id);
-                }
-            }
-
-            paired_align_paths.emplace_back(align_search_path, align_search_path_ids);                  
-        }
-    }
+    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, paths_index);
 
 #ifdef debug
 

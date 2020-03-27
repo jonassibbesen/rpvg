@@ -7,6 +7,8 @@
 #include "gbwt/gbwt.h"
 #include "sparsepp/spp.h"
 #include "vg/io/basic_stream.hpp"
+
+#include "paths_index.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -25,6 +27,8 @@ class AlignmentPath {
         int32_t score_sum;
         
         vector<gbwt::size_type> ids;
+
+        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const PathsIndex & paths_index);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
