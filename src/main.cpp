@@ -28,6 +28,8 @@
 #include "read_path_probs.hpp"
 
 
+static const uint32_t clustered_align_path_probs_buffer_size = 10;
+
 void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const uint32_t thread_idx) {
 
     if (!align_paths->empty()) {
@@ -47,25 +49,32 @@ void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("rpvg", "calculate expression from read aligment path probabilities in variation graphs");
+    cxxopts::Options options("rpvg", "calculate path probabilities and abundances from variation graph read aligments");
 
-    options.add_options()
+    options.add_options("Input and output")
       ("g,graph", "xg graph file name (required)", cxxopts::value<string>())
       ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
       ("a,alignments", "gam(p) alignment file name (required)", cxxopts::value<string>())
-      ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
-      ("l,long-reads", "alignment input is non-fragmented long reads (single-end only)", cxxopts::value<bool>())
       ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
+      ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("o,output", "output file prefix", cxxopts::value<string>()->default_value("stdout"))
+      ;
+
+    options.add_options("Probability calculation")
+      ("l,long-reads", "alignment input is non-fragmented long reads (single-end only)", cxxopts::value<bool>())
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
+      ;
+
+    options.add_options("General")
+      ("e,seed", "seed for random number generator", cxxopts::value<double>())      
       ("t,threads", "number of compute threads", cxxopts::value<uint32_t>()->default_value("1"))
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
     if (argc == 1) {
 
-        cerr << options.help() << endl;
+        cerr << options.help({"Input and output", "Probability calculation", "General"}) << endl;
         return 1;
     }
 
@@ -73,7 +82,7 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("help")) {
 
-        cerr << options.help() << endl;
+        cerr << options.help({"Input and output", "Probability calculation", "General"}) << endl;
         return 1;
     }
 
