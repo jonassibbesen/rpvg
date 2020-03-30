@@ -25,10 +25,11 @@
 #include "alignment_path.hpp"
 #include "alignment_path_finder.hpp"
 #include "path_clusters.hpp"
-#include "read_path_probs.hpp"
+#include "read_path_probabilities.hpp"
+#include "probability_matrix_writer.hpp"
 
 
-static const uint32_t clustered_align_path_probs_buffer_size = 10;
+static const uint32_t align_paths_cluster_probs_buffer_size = 10;
 
 void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const uint32_t thread_idx) {
 
@@ -51,30 +52,33 @@ int main(int argc, char* argv[]) {
 
     cxxopts::Options options("rpvg", "calculate path probabilities and abundances from variation graph read aligments");
 
-    options.add_options("Input and output")
-      ("g,graph", "xg graph file name (required)", cxxopts::value<string>())
-      ("p,paths", "gbwt index file name (required)", cxxopts::value<string>())
-      ("a,alignments", "gam(p) alignment file name (required)", cxxopts::value<string>())
-      ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
-      ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
-      ("o,output", "output file prefix", cxxopts::value<string>()->default_value("stdout"))
+    options.add_options("Required")
+      ("g,graph", "xg graph file name", cxxopts::value<string>())
+      ("p,paths", "GBWT index file name", cxxopts::value<string>())
+      ("a,alignments", "gam(p) alignment file name", cxxopts::value<string>())
       ;
 
-    options.add_options("Probability calculation")
+    options.add_options("General")
+      ("o,output", "output filename", cxxopts::value<string>()->default_value("stdout"))    
+      ("t,threads", "number of compute threads", cxxopts::value<uint32_t>()->default_value("1"))
+      ("r,seed", "seed for random number generator (default: unix time)", cxxopts::value<int64_t>())
+      ("h,help", "print help", cxxopts::value<bool>())
+      ;
+
+    options.add_options("Alignment")
+      ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
+      ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is non-fragmented long reads (single-end only)", cxxopts::value<bool>())
+      ;
+
+    options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ;
 
-    options.add_options("General")
-      ("e,seed", "seed for random number generator", cxxopts::value<double>())      
-      ("t,threads", "number of compute threads", cxxopts::value<uint32_t>()->default_value("1"))
-      ("h,help", "print help", cxxopts::value<bool>())
-      ;
-
     if (argc == 1) {
 
-        cerr << options.help({"Input and output", "Probability calculation", "General"}) << endl;
+        cerr << options.help({"Required", "General", "Alignment", "Probability"}) << endl;
         return 1;
     }
 
@@ -82,13 +86,40 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("help")) {
 
-        cerr << options.help({"Input and output", "Probability calculation", "General"}) << endl;
+        cerr << options.help({"Required", "General", "Alignment", "Probability"}) << endl;
         return 1;
     }
 
-    assert(option_results.count("graph") == 1);
-    assert(option_results.count("paths") == 1);
-    assert(option_results.count("alignments") == 1);
+    if (!option_results.count("graph")) {
+
+        cerr << "ERROR: Graph (xg format) input required (--graph)." << endl;
+        return 1;
+    }
+
+    if (!option_results.count("paths")) {
+
+        cerr << "ERROR: Paths (GBWT index) input required (--paths)." << endl;
+        return 1;
+    }
+
+    if (!option_results.count("alignments")) {
+
+        cerr << "ERROR: Alignments (gam or gamp format) input required (--alignments)." << endl;
+        return 1;
+    }
+
+    uint64_t rng_seed = 0; 
+
+    if (option_results.count("seed")) {
+
+        rng_seed = option_results["seed"].as<uint64_t>();
+
+    } else {
+
+        rng_seed = time(nullptr);
+    }
+
+    cerr << "Random number generator seed set to: " << rng_seed << "." << endl;
 
     bool is_single_end = option_results.count("single-end");
     bool is_long_reads = option_results.count("long-reads");
@@ -115,8 +146,6 @@ int main(int argc, char* argv[]) {
             return 1;            
         }
 
-        cerr << "WARNING: Fragment length distribution parameters not given as input. Parameters will be based on the first alignment that contains such information. Alternatively use --frag-mean and --frag-sd." << endl;
-
         ifstream frag_alignments_istream(option_results["alignments"].as<string>());
         assert(frag_alignments_istream.is_open());
 
@@ -139,6 +168,8 @@ int main(int argc, char* argv[]) {
         fragment_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
         cerr << "Fragment length distribution parameters given as input (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
     }
+
+    cerr << endl;
 
     assert(fragment_length_dist.isValid());
 
@@ -269,15 +300,22 @@ int main(int argc, char* argv[]) {
     double time7 = gbwt::readTimer();
     cerr << "Clustered alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    vector<vector<pair<ReadPathProbs, uint32_t> > > clustered_align_path_probs(path_clusters.cluster_to_path_index.size());
+    vector<vector<vector<pair<ReadPathProbabilities, uint32_t> > > > align_paths_cluster_probs_buffer(num_threads);
+    vector<vector<vector<string> > > cluster_path_names_buffer(num_threads);
+
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
+
+    ProbabilityMatrixWriter prob_matrix_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>());
 
     #pragma omp parallel
     {  
         #pragma omp for
         for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
 
-            clustered_align_path_probs.at(i).reserve(align_paths_clusters.at(i).size());
+            vector<vector<pair<ReadPathProbabilities, uint32_t> > > * thread_align_paths_cluster_probs_buffer = &(align_paths_cluster_probs_buffer.at(omp_get_thread_num()));
+
+            thread_align_paths_cluster_probs_buffer->emplace_back(vector<pair<ReadPathProbabilities, uint32_t> >());            
+            thread_align_paths_cluster_probs_buffer->back().reserve(align_paths_clusters.at(i).size());
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
             vector<double> effective_path_lengths; 
@@ -295,84 +333,49 @@ int main(int argc, char* argv[]) {
 
             for (auto & align_paths: align_paths_clusters.at(i)) {
 
-                clustered_align_path_probs.at(i).emplace_back(ReadPathProbs(clustered_path_index.size(), score_log_base), align_paths->second);
-                clustered_align_path_probs.at(i).back().first.calcReadPathProbs(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);
+                thread_align_paths_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base), align_paths->second);
+                thread_align_paths_cluster_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);
 
                 if (!is_long_reads) {
 
-                    clustered_align_path_probs.at(i).back().first.addPositionalProbs(effective_path_lengths);
+                    thread_align_paths_cluster_probs_buffer->back().back().first.addPositionalProbabilities(effective_path_lengths);
                 }
             }
 
-            sort(clustered_align_path_probs.at(i).begin(), clustered_align_path_probs.at(i).end());
+            sort(thread_align_paths_cluster_probs_buffer->back().begin(), thread_align_paths_cluster_probs_buffer->back().end());
+
+
+            vector<vector<string> > * thread_cluster_path_names_buffer = &(cluster_path_names_buffer.at(omp_get_thread_num()));
+
+            thread_cluster_path_names_buffer->emplace_back(vector<string>());            
+            thread_cluster_path_names_buffer->back().reserve(align_paths_clusters.at(i).size());
+
+            for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
+
+                thread_cluster_path_names_buffer->back().emplace_back(paths_index.pathName(path_id));
+            }
+
+            if (thread_align_paths_cluster_probs_buffer->size() == align_paths_cluster_probs_buffer_size) {
+
+                assert(thread_align_paths_cluster_probs_buffer->size() == thread_cluster_path_names_buffer->size());
+
+                prob_matrix_writer.lockWriter();
+
+                for (size_t i = 0; i < align_paths_cluster_probs_buffer_size; ++i) {
+
+                    prob_matrix_writer.writeReadPathProbabilities(thread_align_paths_cluster_probs_buffer->at(i), thread_cluster_path_names_buffer->at(i));
+                }
+
+                prob_matrix_writer.unlockWriter();
+
+                thread_align_paths_cluster_probs_buffer->clear();
+                thread_cluster_path_names_buffer->clear();
+            }
         }
     }
 
     double time8 = gbwt::readTimer();
     cerr << "Calculated and sorted alignment path probabilites " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
-
-    streambuf * output_buffer;
-    ofstream output_file;
-
-    if (option_results["output"].as<string>() == "stdout") {
-
-        output_buffer = cout.rdbuf();
-    
-    } else {
-
-        output_file.open(option_results["output"].as<string>() + ".txt");
-        assert(output_file.is_open());
-
-        output_buffer = output_file.rdbuf();
-    }
-
-    ostream output_stream(output_buffer);
-
-    for (size_t i = 0; i < clustered_align_path_probs.size(); ++i) {
-
-        const vector<pair<ReadPathProbs, uint32_t> > & clustered_probs = clustered_align_path_probs.at(i);
-
-        if (clustered_probs.empty()) {
-
-            continue;
-        }
-
-        output_stream << "#\nx Noise";
-        for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
-
-            output_stream << " " << paths_index.pathName(path_id);
-        }
-        output_stream << endl;
-
-        output_stream << setprecision(8);
-
-        uint32_t num_align_paths = clustered_probs.front().second;
-        uint32_t prev_unique_probs_idx = 0;
-
-        for (size_t j = 1; j < clustered_probs.size(); ++j) {
-
-            if (clustered_probs.at(prev_unique_probs_idx).first == clustered_probs.at(j).first) {
-
-                num_align_paths += clustered_probs.at(j).second;
-            
-            } else {
-
-                output_stream << num_align_paths << " " << clustered_probs.at(prev_unique_probs_idx).first << endl;
-                num_align_paths = clustered_probs.at(j).second;
-                prev_unique_probs_idx = j;
-            }
-        }
-
-        output_stream << num_align_paths << " " << clustered_probs.at(prev_unique_probs_idx).first << endl;
-    }
-
-    if (option_results["output"].as<string>() != "stdout") {
-
-        output_file.close();
-    }
-
-    double time9 = gbwt::readTimer();
-    cerr << "Collapsed and wrote probabilites " << time9 - time8 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
 	return 0;
 }

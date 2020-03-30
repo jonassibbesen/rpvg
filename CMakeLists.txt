@@ -61,7 +61,8 @@ add_library(${PROJECT_NAME}
   src/alignment_path.cpp 
   src/alignment_path_finder.cpp 
   src/path_clusters.cpp 
-  src/read_path_probs.cpp 
+  src/read_path_probabilities.cpp 
+  src/probability_matrix_writer.cpp 
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
   src/io/register_loader_saver_xg.cpp
@@ -144,7 +145,7 @@ add_executable(${PROJECT_NAME}-tests
   src/tests/paths_index_test.cpp
   src/tests/alignment_path_test.cpp
   src/tests/alignment_path_finder_test.cpp
-  src/tests/read_path_probs_test.cpp
+  src/tests/read_path_probabilities_test.cpp
   src/tests/path_clusters_test.cpp
 )
 
