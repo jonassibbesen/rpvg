@@ -29,7 +29,8 @@
 #include "probability_matrix_writer.hpp"
 
 
-static const uint32_t align_paths_cluster_probs_buffer_size = 10;
+static const uint32_t cluster_align_paths_probs_buffer_size = 10;
+static const double probability_precision = pow(10, -8);
 
 void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const uint32_t thread_idx) {
 
@@ -119,7 +120,7 @@ int main(int argc, char* argv[]) {
         rng_seed = time(nullptr);
     }
 
-    cerr << "Random number generator seed set to: " << rng_seed << "." << endl;
+    cerr << "Random number generator seed set to: " << rng_seed << "" << endl;
 
     bool is_single_end = option_results.count("single-end");
     bool is_long_reads = option_results.count("long-reads");
@@ -300,50 +301,60 @@ int main(int argc, char* argv[]) {
     double time7 = gbwt::readTimer();
     cerr << "Clustered alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    vector<vector<vector<pair<ReadPathProbabilities, uint32_t> > > > align_paths_cluster_probs_buffer(num_threads);
+    vector<vector<vector<pair<ReadPathProbabilities, uint32_t> > > > cluster_align_paths_probs_buffer(num_threads);
     vector<vector<vector<string> > > cluster_path_names_buffer(num_threads);
+    vector<vector<vector<double> > > cluster_path_lengths_buffer(num_threads);
 
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
-    ProbabilityMatrixWriter prob_matrix_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>());
+    ProbabilityMatrixWriter prob_matrix_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>(), probability_precision);
 
     #pragma omp parallel
     {  
         #pragma omp for
         for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
 
-            vector<vector<pair<ReadPathProbabilities, uint32_t> > > * thread_align_paths_cluster_probs_buffer = &(align_paths_cluster_probs_buffer.at(omp_get_thread_num()));
+            vector<vector<pair<ReadPathProbabilities, uint32_t> > > * thread_cluster_align_paths_probs_buffer = &(cluster_align_paths_probs_buffer.at(omp_get_thread_num()));
 
-            thread_align_paths_cluster_probs_buffer->emplace_back(vector<pair<ReadPathProbabilities, uint32_t> >());            
-            thread_align_paths_cluster_probs_buffer->back().reserve(align_paths_clusters.at(i).size());
+            thread_cluster_align_paths_probs_buffer->emplace_back(vector<pair<ReadPathProbabilities, uint32_t> >());            
+            thread_cluster_align_paths_probs_buffer->back().reserve(align_paths_clusters.at(i).size());
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
-            vector<double> effective_path_lengths; 
+            
+            vector<vector<double> > * thread_cluster_path_lengths_buffer = &(cluster_path_lengths_buffer.at(omp_get_thread_num()));
 
-            if (!is_long_reads) {
+            thread_cluster_path_lengths_buffer->emplace_back(vector<double>());            
+            thread_cluster_path_lengths_buffer->back().reserve(align_paths_clusters.at(i).size());
 
-                effective_path_lengths.reserve(path_clusters.cluster_to_path_index.at(i).size());
+            if (is_long_reads) {
 
                 for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
 
                     assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
-                    effective_path_lengths.emplace_back(paths_index.effectivePathLength(path_id, fragment_length_dist)); 
+                    thread_cluster_path_lengths_buffer->back().emplace_back(paths_index.pathLength(path_id)); 
+                }
+            
+            } else {
+
+                for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
+
+                    assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
+                    thread_cluster_path_lengths_buffer->back().emplace_back(paths_index.effectivePathLength(path_id, fragment_length_dist)); 
                 }
             }
 
             for (auto & align_paths: align_paths_clusters.at(i)) {
 
-                thread_align_paths_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base), align_paths->second);
-                thread_align_paths_cluster_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);
+                thread_cluster_align_paths_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base), align_paths->second);
+                thread_cluster_align_paths_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);
 
                 if (!is_long_reads) {
 
-                    thread_align_paths_cluster_probs_buffer->back().back().first.addPositionalProbabilities(effective_path_lengths);
+                    thread_cluster_align_paths_probs_buffer->back().back().first.addPositionalProbabilities(thread_cluster_path_lengths_buffer->back());
                 }
             }
 
-            sort(thread_align_paths_cluster_probs_buffer->back().begin(), thread_align_paths_cluster_probs_buffer->back().end());
-
+            sort(thread_cluster_align_paths_probs_buffer->back().begin(), thread_cluster_align_paths_probs_buffer->back().end());
 
             vector<vector<string> > * thread_cluster_path_names_buffer = &(cluster_path_names_buffer.at(omp_get_thread_num()));
 
@@ -355,21 +366,23 @@ int main(int argc, char* argv[]) {
                 thread_cluster_path_names_buffer->back().emplace_back(paths_index.pathName(path_id));
             }
 
-            if (thread_align_paths_cluster_probs_buffer->size() == align_paths_cluster_probs_buffer_size) {
+            if (thread_cluster_align_paths_probs_buffer->size() == cluster_align_paths_probs_buffer_size) {
 
-                assert(thread_align_paths_cluster_probs_buffer->size() == thread_cluster_path_names_buffer->size());
+                assert(thread_cluster_align_paths_probs_buffer->size() == thread_cluster_path_names_buffer->size());
+                assert(thread_cluster_align_paths_probs_buffer->size() == thread_cluster_path_lengths_buffer->size());
 
                 prob_matrix_writer.lockWriter();
 
-                for (size_t i = 0; i < align_paths_cluster_probs_buffer_size; ++i) {
+                for (size_t i = 0; i < cluster_align_paths_probs_buffer_size; ++i) {
 
-                    prob_matrix_writer.writeReadPathProbabilities(thread_align_paths_cluster_probs_buffer->at(i), thread_cluster_path_names_buffer->at(i));
+                    prob_matrix_writer.writeReadPathProbabilityCluster(thread_cluster_align_paths_probs_buffer->at(i), thread_cluster_path_names_buffer->at(i), thread_cluster_path_lengths_buffer->at(i));
                 }
 
                 prob_matrix_writer.unlockWriter();
 
-                thread_align_paths_cluster_probs_buffer->clear();
+                thread_cluster_align_paths_probs_buffer->clear();
                 thread_cluster_path_names_buffer->clear();
+                thread_cluster_path_lengths_buffer->clear();
             }
         }
     }

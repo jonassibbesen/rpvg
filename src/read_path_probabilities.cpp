@@ -16,6 +16,7 @@ ReadPathProbabilities::ReadPathProbabilities(const uint32_t num_paths, const dou
 
     noise_prob = 1;
     read_path_probs = vector<double>(num_paths, 0);
+    positive_prob_indices.reserve(num_paths);
 }
 
 void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
@@ -64,10 +65,15 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
         assert(read_path_probs_sum > 0);
 
-        for (auto & probs: read_path_probs) {
+        for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
-            probs /= read_path_probs_sum;
-            probs *= (1 - noise_prob);
+            read_path_probs.at(i) /= read_path_probs_sum;
+            read_path_probs.at(i) *= (1 - noise_prob);
+
+            if (!doubleCompare(read_path_probs.at(i), 0)) {
+
+                positive_prob_indices.emplace_back(i);
+            }
         }
     }
 }
@@ -79,6 +85,7 @@ void ReadPathProbabilities::addPositionalProbabilities(const vector<double> & pa
     if (noise_prob < 1) {
 
         double read_path_probs_sum = 0;
+        positive_prob_indices.clear();
 
         for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
@@ -89,6 +96,11 @@ void ReadPathProbabilities::addPositionalProbabilities(const vector<double> & pa
             } else {
 
                 read_path_probs.at(i) /= path_lengths.at(i);
+
+                if (!doubleCompare(read_path_probs.at(i), 0)) {
+
+                    positive_prob_indices.emplace_back(i);
+                }
             }
 
             read_path_probs_sum += read_path_probs.at(i);
@@ -145,13 +157,13 @@ double ReadPathProbabilities::calcReadMappingProbabilities(const vg::Alignment &
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 
-    if (abs(lhs.noise_prob - rhs.noise_prob) < probability_precision) {
+    if (doubleCompare(lhs.noise_prob, rhs.noise_prob)) {
 
         if (lhs.read_path_probs.size() == rhs.read_path_probs.size()) {
 
             for (size_t i = 0; i < lhs.read_path_probs.size(); ++i) {
 
-                if (abs(lhs.read_path_probs.at(i) - rhs.read_path_probs.at(i)) >= probability_precision) {
+                if (!doubleCompare(lhs.read_path_probs.at(i), rhs.read_path_probs.at(i))) {
 
                     return false;
                 }
@@ -171,7 +183,7 @@ bool operator!=(const ReadPathProbabilities & lhs, const ReadPathProbabilities &
 
 bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 
-    if (lhs.noise_prob != rhs.noise_prob) {
+    if (!doubleCompare(lhs.noise_prob, rhs.noise_prob)) {
 
         return (lhs.noise_prob < rhs.noise_prob);    
     } 
@@ -180,7 +192,7 @@ bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & 
 
     for (size_t i = 0; i < lhs.read_path_probs.size(); ++i) {
 
-        if (lhs.read_path_probs.at(i) != rhs.read_path_probs.at(i)) {
+        if (!doubleCompare(lhs.read_path_probs.at(i), rhs.read_path_probs.at(i))) {
 
             return (lhs.read_path_probs.at(i) < rhs.read_path_probs.at(i));    
         }         
@@ -189,14 +201,39 @@ bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & 
     return false;
 }
 
-ostream & operator<<(ostream & os, const ReadPathProbabilities & probs) {
+ostream & operator<<(ostream & os, const ReadPathProbabilities & read_path_probs) {
 
-    os << probs.noise_prob;
+    os << read_path_probs.noise_prob << " ";
+    bool is_first = true;
 
-    for (auto & prob: probs.read_path_probs) {
+    for (auto & idx: read_path_probs.positive_prob_indices) {
 
-        os << " " << prob;
+        if (is_first) {
+
+            is_first = false;
+            os << idx;
+        
+        } else {
+
+            os << "," << idx;
+        } 
     }
+
+    os << " ";
+    is_first = true;
+
+    for (auto & idx: read_path_probs.positive_prob_indices) {
+
+        if (is_first) {
+
+            is_first = false;
+            os << read_path_probs.read_path_probs.at(idx);
+        
+        } else {
+
+            os << "," << read_path_probs.read_path_probs.at(idx);
+        } 
+    }    
 
     return os;
 }
