@@ -145,13 +145,13 @@ double ReadPathProbabilities::calcReadMappingProbabilities(const vg::Alignment &
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 
-    if (doubleCompare(lhs.noise_prob, rhs.noise_prob)) {
+    if (abs(lhs.noise_prob - rhs.noise_prob) < probability_precision) {
 
         if (lhs.read_path_probs.size() == rhs.read_path_probs.size()) {
 
             for (size_t i = 0; i < lhs.read_path_probs.size(); ++i) {
 
-                if (!doubleCompare(lhs.read_path_probs.at(i), rhs.read_path_probs.at(i))) {
+                if (abs(lhs.read_path_probs.at(i) - rhs.read_path_probs.at(i)) >= probability_precision) {
 
                     return false;
                 }

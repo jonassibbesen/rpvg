@@ -13,6 +13,8 @@
 
 using namespace std;
 
+static double probability_precision = pow(10, -8);
+
 
 class ReadPathProbabilities {
 

@@ -21,6 +21,8 @@ ProbabilityMatrixWriter::ProbabilityMatrixWriter(const bool use_stdout_in, const
     }
 
     writer_stream = new ostream(writer_buffer);
+
+    *writer_stream << fixed << setprecision(ceil(-1 * log10(probability_precision)));
 }
 
 ProbabilityMatrixWriter::~ProbabilityMatrixWriter() {
@@ -57,7 +59,6 @@ void ProbabilityMatrixWriter::writeReadPathProbabilities(const vector<pair<ReadP
         }
 
         *writer_stream << endl;
-        *writer_stream << setprecision(8);
 
         uint32_t read_count = read_path_probs.front().second;
         uint32_t prev_unique_probs_idx = 0;
