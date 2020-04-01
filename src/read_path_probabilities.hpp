@@ -26,7 +26,7 @@ class ReadPathProbabilities {
         void calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end);
         void addPositionalProbabilities(const vector<double> & path_lengths);
 
-        string getCollapsedProbabilityString(const double precision) const;
+        vector<pair<double, vector<uint32_t> > > collapsedProbabilities(const double precision) const;
 
     private:
 

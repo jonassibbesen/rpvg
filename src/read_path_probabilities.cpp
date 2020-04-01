@@ -105,7 +105,7 @@ void ReadPathProbabilities::addPositionalProbabilities(const vector<double> & pa
     }
 }
 
-string ReadPathProbabilities::getCollapsedProbabilityString(const double precision) const {
+vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbabilities(const double precision) const {
 
     vector<pair<double, vector<uint32_t> > > collpased_probs;
 
@@ -130,30 +130,7 @@ string ReadPathProbabilities::getCollapsedProbabilityString(const double precisi
         }
     }
 
-    stringstream collpased_probs_ss;
-
-    collpased_probs_ss << noise_prob;
-
-    for (auto & prob: collpased_probs) {
-
-        collpased_probs_ss << " " << prob.first << ":";
-        bool is_first = true;
-
-        for (auto idx: prob.second) {
-
-            if (is_first) {
-
-                collpased_probs_ss << idx;
-                is_first = false;
-
-            } else {
-
-                collpased_probs_ss << "," << idx;
-            }
-        }
-    }
-
-    return collpased_probs_ss.str();
+    return collpased_probs;
 }
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 

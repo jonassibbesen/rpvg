@@ -45,7 +45,7 @@ void ProbabilityMatrixWriter::unlockWriter() {
 	writer_mutex.unlock();
 }
 
-bool ProbabilityMatrixWriter::collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2) {
+bool ProbabilityMatrixWriter::collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2) const {
 
     assert(cluster_probs_1.read_path_probs.size() == cluster_probs_2.read_path_probs.size());
 
@@ -63,6 +63,28 @@ bool ProbabilityMatrixWriter::collapseReadPathProbabilities(const ReadPathProbab
     } 
 
     return false;
+}
+
+void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs) {
+
+    for (auto & prob: collpased_probs) {
+
+        *writer_stream << " " << prob.first << ":";
+        bool is_first = true;
+
+        for (auto idx: prob.second) {
+
+            if (is_first) {
+
+                *writer_stream << idx;
+                is_first = false;
+
+            } else {
+
+                *writer_stream << "," << idx;
+            }
+        }
+    }
 }
 
 void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<string> & path_names, const vector<double> & path_lengths) {
@@ -95,13 +117,18 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<
             
             } else {
 
-                *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.getCollapsedProbabilityString(precision) << endl;
+                *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noise_prob << " ";
+                writeCollapsedProbabilities(cluster_probs.at(prev_unique_probs_idx).first.collapsedProbabilities(precision));
+                *writer_stream << endl;
+
                 read_count = cluster_probs.at(i).second;
                 prev_unique_probs_idx = i;
             }
         }
 
-        *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.getCollapsedProbabilityString(precision) << endl;
+        *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noise_prob << " ";
+        writeCollapsedProbabilities(cluster_probs.at(prev_unique_probs_idx).first.collapsedProbabilities(precision));
+        *writer_stream << endl;
     }
 }
 

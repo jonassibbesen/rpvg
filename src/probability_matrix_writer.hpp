@@ -35,7 +35,8 @@ class ProbabilityMatrixWriter {
 
     	mutex writer_mutex;
 
-        bool collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2);
+        bool collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2) const;
+        void writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs);
 };
 
 
