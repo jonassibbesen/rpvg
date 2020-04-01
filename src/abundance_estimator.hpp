@@ -6,6 +6,7 @@
 
 #include <Eigen/Dense>
 
+#include "abundances.hpp"
 #include "read_path_probabilities.hpp"
 #include "utils.hpp"
 
@@ -27,7 +28,7 @@ class AbundanceEstimator {
         AbundanceEstimator(const double min_abundance_in);
         virtual ~AbundanceEstimator() {};
 
-        virtual Eigen::RowVectorXd inferClusterAbundance(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) = 0;
+        virtual Abundances inferClusterAbundance(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) = 0;
 
     protected: 
 
@@ -41,7 +42,7 @@ class EMAbundanceEstimator : public AbundanceEstimator {
         EMAbundanceEstimator(const double min_abundance_in, const uint32_t max_em_iteration_in, const double stop_em_count_diff_in);
         ~EMAbundanceEstimator() {};
 
-        Eigen::RowVectorXd inferClusterAbundance(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths);
+        Abundances inferClusterAbundance(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths);
 
     private:
     

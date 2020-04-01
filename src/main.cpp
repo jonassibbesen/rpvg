@@ -31,7 +31,7 @@
 
 
 static const uint32_t cluster_align_paths_probs_buffer_size = 10;
-static const double prob_out_precision = pow(10, -6);
+static const double prob_out_precision = pow(10, -8);
 
 void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const uint32_t thread_idx) {
 
