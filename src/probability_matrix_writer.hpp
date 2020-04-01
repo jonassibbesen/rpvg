@@ -29,6 +29,7 @@ class ProbabilityMatrixWriter {
 
     	const bool use_stdout;
         const double precision;
+        const uint32_t num_digits;
 
 	    ofstream writer_file;
     	ostream * writer_stream;
