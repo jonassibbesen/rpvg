@@ -63,6 +63,7 @@ add_library(${PROJECT_NAME}
   src/path_clusters.cpp 
   src/read_path_probabilities.cpp 
   src/probability_matrix_writer.cpp 
+  src/abundance_estimator.cpp
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
   src/io/register_loader_saver_xg.cpp
@@ -78,6 +79,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
   ${PROJECT_SOURCE_DIR}/deps/libhandlegraph/src/include
+  ${PROJECT_SOURCE_DIR}/deps/eigen
   ${PROJECT_SOURCE_DIR}/deps/xg/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmultimap/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/ips4o

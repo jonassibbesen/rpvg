@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <numeric>
 #include <limits>
+#include <sstream>
 
 
 ReadPathProbabilities::ReadPathProbabilities() : score_log_base(1) {
@@ -16,7 +17,6 @@ ReadPathProbabilities::ReadPathProbabilities(const uint32_t num_paths, const dou
 
     noise_prob = 1;
     read_path_probs = vector<double>(num_paths, 0);
-    positive_prob_indices.reserve(num_paths);
 }
 
 void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
@@ -65,15 +65,10 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
         assert(read_path_probs_sum > 0);
 
-        for (size_t i = 0; i < read_path_probs.size(); ++i) {
+        for (auto & prob: read_path_probs) {
 
-            read_path_probs.at(i) /= read_path_probs_sum;
-            read_path_probs.at(i) *= (1 - noise_prob);
-
-            if (!doubleCompare(read_path_probs.at(i), 0)) {
-
-                positive_prob_indices.emplace_back(i);
-            }
+            prob /= read_path_probs_sum;
+            prob *= (1 - noise_prob);
         }
     }
 }
@@ -85,7 +80,6 @@ void ReadPathProbabilities::addPositionalProbabilities(const vector<double> & pa
     if (noise_prob < 1) {
 
         double read_path_probs_sum = 0;
-        positive_prob_indices.clear();
 
         for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
@@ -96,11 +90,6 @@ void ReadPathProbabilities::addPositionalProbabilities(const vector<double> & pa
             } else {
 
                 read_path_probs.at(i) /= path_lengths.at(i);
-
-                if (!doubleCompare(read_path_probs.at(i), 0)) {
-
-                    positive_prob_indices.emplace_back(i);
-                }
             }
 
             read_path_probs_sum += read_path_probs.at(i);
@@ -116,43 +105,55 @@ void ReadPathProbabilities::addPositionalProbabilities(const vector<double> & pa
     }
 }
 
-double ReadPathProbabilities::calcReadMappingProbabilities(const vg::Alignment & alignment, const vector<double> & quality_match_probs, const vector<double> & quality_mismatch_probs, const double indel_prob) const {
+string ReadPathProbabilities::getCollapsedProbabilityString(const double precision) const {
 
-    double align_path_prob = 0;
+    vector<pair<double, vector<uint32_t> > > collpased_probs;
 
-    auto & base_qualities = alignment.quality();
-    uint32_t cur_pos = 0;
+    for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
-    for (auto & mapping: alignment.path().mapping()) {
+        auto collpased_probs_it = collpased_probs.begin();
 
-        for (auto & edit: mapping.edit()) {
+        while (collpased_probs_it != collpased_probs.end()) {
 
-            if (edit.from_length() == edit.to_length() && edit.sequence().empty()) {
+            if (abs(collpased_probs_it->first - read_path_probs.at(i)) < precision) {
 
-                for (uint32_t i = cur_pos; i < cur_pos + edit.from_length(); ++i) {
-
-                    align_path_prob += quality_match_probs.at(uint32_t(base_qualities.at(i)));
-                }
-
-            } else if (edit.from_length() == edit.to_length() && !edit.sequence().empty()) {
-
-                for (uint32_t i = cur_pos; i < cur_pos + edit.from_length(); ++i) {
-
-                    align_path_prob += quality_mismatch_probs.at(uint32_t(base_qualities.at(i)));
-                }
+                collpased_probs_it->second.emplace_back(i);
+                break;
+            }
             
-            } else if (edit.from_length() == 0 && edit.to_length() > 0 && !edit.sequence().empty()) {
+            ++collpased_probs_it;
+        }
 
-                align_path_prob += edit.to_length() * indel_prob;
+        if (collpased_probs_it == collpased_probs.end()) {
 
-            } else if (edit.from_length() > 0 && edit.to_length() == 0) {
+            collpased_probs.emplace_back(read_path_probs.at(i), vector<uint32_t>(1, i));
+        }
+    }
 
-                align_path_prob += edit.from_length() * indel_prob;
+    stringstream collpased_probs_ss;
+
+    collpased_probs_ss << noise_prob;
+
+    for (auto & prob: collpased_probs) {
+
+        collpased_probs_ss << " " << prob.first << ":";
+        bool is_first = true;
+
+        for (auto idx: prob.second) {
+
+            if (is_first) {
+
+                collpased_probs_ss << idx;
+                is_first = false;
+
+            } else {
+
+                collpased_probs_ss << "," << idx;
             }
         }
-    } 
+    }
 
-    return align_path_prob;
+    return collpased_probs_ss.str();
 }
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
@@ -203,37 +204,12 @@ bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & 
 
 ostream & operator<<(ostream & os, const ReadPathProbabilities & read_path_probs) {
 
-    os << read_path_probs.noise_prob << " ";
-    bool is_first = true;
+    os << read_path_probs.noise_prob;
 
-    for (auto & idx: read_path_probs.positive_prob_indices) {
+    for (auto & prob: read_path_probs.read_path_probs) {
 
-        if (is_first) {
-
-            is_first = false;
-            os << idx;
-        
-        } else {
-
-            os << "," << idx;
-        } 
+        os << " " << prob;
     }
-
-    os << " ";
-    is_first = true;
-
-    for (auto & idx: read_path_probs.positive_prob_indices) {
-
-        if (is_first) {
-
-            is_first = false;
-            os << read_path_probs.read_path_probs.at(idx);
-        
-        } else {
-
-            os << "," << read_path_probs.read_path_probs.at(idx);
-        } 
-    }    
 
     return os;
 }

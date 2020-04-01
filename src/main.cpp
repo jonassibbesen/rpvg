@@ -27,10 +27,11 @@
 #include "path_clusters.hpp"
 #include "read_path_probabilities.hpp"
 #include "probability_matrix_writer.hpp"
+#include "abundance_estimator.hpp"
 
 
 static const uint32_t cluster_align_paths_probs_buffer_size = 10;
-static const double probability_precision = pow(10, -8);
+static const double prob_out_precision = pow(10, -6);
 
 void addAlignmentPathsThreaded(vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > * all_align_paths_threads, vector<AlignmentPath> * align_paths, const double mean_fragment_length, const uint32_t thread_idx) {
 
@@ -75,6 +76,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
+      ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
 
     if (argc == 1) {
@@ -307,7 +309,14 @@ int main(int argc, char* argv[]) {
 
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
-    ProbabilityMatrixWriter prob_matrix_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>(), probability_precision);
+    ProbabilityMatrixWriter * prob_matrix_writer = nullptr;
+   
+    if (option_results.count("prob-output")) {
+
+        prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["prob-output"].as<string>(), prob_out_precision);
+    }
+
+    AbundanceEstimator * em_abundance_estimator = new EMAbundanceEstimator(pow(10, -8), 1000, pow(10, -2));
 
     #pragma omp parallel
     {  
@@ -371,14 +380,22 @@ int main(int argc, char* argv[]) {
                 assert(thread_cluster_align_paths_probs_buffer->size() == thread_cluster_path_names_buffer->size());
                 assert(thread_cluster_align_paths_probs_buffer->size() == thread_cluster_path_lengths_buffer->size());
 
-                prob_matrix_writer.lockWriter();
+                if (prob_matrix_writer) {
 
-                for (size_t i = 0; i < cluster_align_paths_probs_buffer_size; ++i) {
+                    prob_matrix_writer->lockWriter();
 
-                    prob_matrix_writer.writeReadPathProbabilityCluster(thread_cluster_align_paths_probs_buffer->at(i), thread_cluster_path_names_buffer->at(i), thread_cluster_path_lengths_buffer->at(i));
+                    for (size_t i = 0; i < cluster_align_paths_probs_buffer_size; ++i) {
+
+                        prob_matrix_writer->writeReadPathProbabilityCluster(thread_cluster_align_paths_probs_buffer->at(i), thread_cluster_path_names_buffer->at(i), thread_cluster_path_lengths_buffer->at(i));
+                    }
+
+                    prob_matrix_writer->unlockWriter();
                 }
 
-                prob_matrix_writer.unlockWriter();
+                // for (size_t i = 0; i < cluster_align_paths_probs_buffer_size; ++i) {
+
+                //     em_abundance_estimator->inferClusterAbundance(thread_cluster_align_paths_probs_buffer->at(i), thread_cluster_path_names_buffer->at(i).size());
+                // }
 
                 thread_cluster_align_paths_probs_buffer->clear();
                 thread_cluster_path_names_buffer->clear();
@@ -387,8 +404,11 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    delete prob_matrix_writer;
+    delete em_abundance_estimator;
+
     double time8 = gbwt::readTimer();
-    cerr << "Calculated and sorted alignment path probabilites " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Inferred path probabilities and abundances " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
 	return 0;
 }
