@@ -32,7 +32,7 @@
 #include "path_abundance_writer.hpp"
 
 
-static const uint32_t read_path_cluster_probs_buffer_size = 5;
+static const uint32_t read_path_cluster_probs_buffer_size = 100;
 static const double prob_out_precision = pow(10, -8);
 
 void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> * align_paths_index, vector<AlignmentPath> * align_paths, const double mean_fragment_length) {
