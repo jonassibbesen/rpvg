@@ -23,13 +23,13 @@ class ProbabilityMatrixWriter {
     	void lockWriter();
     	void unlockWriter();
 
-        void writeReadPathProbabilityCluster(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<string> & path_names, const vector<double> & path_lengths);
+        void writeReadPathProbabilityCluster(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<string> & path_names, const vector<uint32_t> & path_lengths, const vector<double> & effective_path_lengths);
 
     private:
 
     	const bool use_stdout;
         const double precision;
-        const uint32_t num_digits;
+        const uint32_t precision_digits;
 
 	    ofstream writer_file;
     	ostream * writer_stream;
@@ -37,7 +37,7 @@ class ProbabilityMatrixWriter {
     	mutex writer_mutex;
 
         bool collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2) const;
-        void writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs);
+        void writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs, const bool write_zero);
 };
 
 
