@@ -1,6 +1,6 @@
 
-#ifndef RPVG_SRC_UTILS_HPP
-#define RPVG_SRC_UTILS_HPP
+#ifndef FERSKEN_SRC_UTILS_HPP
+#define FERSKEN_SRC_UTILS_HPP
 
 #include <assert.h>
 #include <math.h>

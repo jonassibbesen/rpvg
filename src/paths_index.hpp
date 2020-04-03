@@ -1,6 +1,6 @@
 
-#ifndef RPVG_SRC_PATHSINDEX_HPP
-#define RPVG_SRC_PATHSINDEX_HPP
+#ifndef FERSKEN_SRC_PATHSINDEX_HPP
+#define FERSKEN_SRC_PATHSINDEX_HPP
 
 #include <vector>
 #include <string>

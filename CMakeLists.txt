@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-project(rpvg)
+project(fersken)
 
 find_package(OpenMP REQUIRED)
 

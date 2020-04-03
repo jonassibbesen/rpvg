@@ -54,7 +54,7 @@ void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("rpvg", "rpvg - calculates path probabilities and abundances from variation graph read aligments");
+    cxxopts::Options options("fersken", "fersken - calculates path probabilities and abundances from variation graph read aligments");
 
     options.add_options("Required")
       ("g,graph", "xg graph file name", cxxopts::value<string>())
