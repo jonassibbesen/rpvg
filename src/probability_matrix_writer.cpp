@@ -92,26 +92,25 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
 
 void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<string> & path_names, const vector<uint32_t> & path_lengths, const vector<double> & effective_path_lengths) {
 
-    assert(!path_names.empty());
-    assert(path_names.size() == path_lengths.size());
-    assert(path_names.size() == effective_path_lengths.size());
-
-    *writer_stream << "#" << endl;
-    *writer_stream << setprecision(3);
-    *writer_stream << path_names.front() << "," << path_lengths.front() << "," << effective_path_lengths.front();
-
-    for (size_t i = 1; i < path_names.size(); ++i) {
-
-        *writer_stream << " " << path_names.at(i) << "," << path_lengths.at(i) << "," << effective_path_lengths.at(i);
-    }
-
-    *writer_stream << endl;
-
     if (!cluster_probs.empty()) {
 
-        assert(cluster_probs.front().first.read_path_probs.size() == path_names.size());
+        assert(!path_names.empty());
+        assert(path_names.size() == path_lengths.size());
+        assert(path_names.size() == effective_path_lengths.size());
 
+        *writer_stream << "#" << endl;
+        *writer_stream << setprecision(3);
+        *writer_stream << path_names.front() << "," << path_lengths.front() << "," << effective_path_lengths.front();
+
+        for (size_t i = 1; i < path_names.size(); ++i) {
+
+            *writer_stream << " " << path_names.at(i) << "," << path_lengths.at(i) << "," << effective_path_lengths.at(i);
+        }
+
+        *writer_stream << endl;
         *writer_stream << setprecision(precision_digits);
+
+        assert(cluster_probs.front().first.read_path_probs.size() == path_names.size());
 
         uint32_t read_count = cluster_probs.front().second;
         uint32_t prev_unique_probs_idx = 0;

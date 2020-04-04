@@ -54,7 +54,7 @@ void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("fersken", "fersken - calculates path probabilities and abundances from variation graph read aligments");
+    cxxopts::Options options("fersken", "fersken - infers path probabilities and abundances from variation graph read aligments");
 
     options.add_options("Required")
       ("g,graph", "xg graph file name", cxxopts::value<string>())
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     options.add_options("General")
       ("o,output", "output filename", cxxopts::value<string>()->default_value("stdout"))    
       ("t,threads", "number of compute threads", cxxopts::value<uint32_t>()->default_value("1"))
-      ("r,seed", "seed for random number generator (default: unix time)", cxxopts::value<int64_t>())
+      ("r,rng-seed", "seed for random number generator (default: unix time)", cxxopts::value<int64_t>())
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
@@ -120,9 +120,9 @@ int main(int argc, char* argv[]) {
 
     uint64_t rng_seed = 0; 
 
-    if (option_results.count("seed")) {
+    if (option_results.count("rng-seed")) {
 
-        rng_seed = option_results["seed"].as<uint64_t>();
+        rng_seed = option_results["rng-seed"].as<uint64_t>();
 
     } else {
 
@@ -327,7 +327,16 @@ int main(int argc, char* argv[]) {
         prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["prob-output"].as<string>(), prob_out_precision);
     }
 
-    PathAbundanceEstimator * em_path_abundance_estimator = new EMPathAbundanceEstimator(option_results["min-abundance"].as<double>(), option_results["max-em-it"].as<uint32_t>());
+    PathAbundanceEstimator * path_abundance_estimator;
+
+    if (true) {
+
+        path_abundance_estimator = new DiploidPathAbundanceEstimator(100, option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>(), rng_seed);
+
+    } else {
+
+        path_abundance_estimator = new SimplePathAbundanceEstimator(option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+    }
 
     #pragma omp parallel
     {  
@@ -368,7 +377,7 @@ int main(int argc, char* argv[]) {
                 read_path_cluster_probs_buffer->back().back().first.addPositionalProbabilities(path_cluster_abundances->back().effective_lengths);
             }
 
-            path_cluster_abundances->back().abundances = em_path_abundance_estimator->inferPathClusterAbundances(read_path_cluster_probs_buffer->back(), clustered_path_index.size());
+            path_cluster_abundances->back().abundances = path_abundance_estimator->inferPathClusterAbundances(read_path_cluster_probs_buffer->back(), clustered_path_index.size());
 
             assert(path_cluster_abundances->back().abundances.confidence.cols() == path_cluster_abundances->back().names.size());
             assert(path_cluster_abundances->back().abundances.expression.cols() == path_cluster_abundances->back().names.size());
@@ -415,7 +424,7 @@ int main(int argc, char* argv[]) {
     } 
 
     delete prob_matrix_writer;
-    delete em_path_abundance_estimator;
+    delete path_abundance_estimator;
 
     PathAbundanceWriter path_abundance_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>(), option_results["min-abundance"].as<double>());
     path_abundance_writer.writeThreadedPathClusterAbundances(threaded_path_cluster_abundances);

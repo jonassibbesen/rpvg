@@ -3,6 +3,7 @@
 #define FERSKEN_SRC_PATHABUNDANCEESTIMATOR_HPP
 
 #include <vector>
+#include <random>
 
 #include <Eigen/Dense>
 
@@ -25,7 +26,7 @@ class PathAbundanceEstimator {
 
     public:
 
-        PathAbundanceEstimator(const double min_abundance_in);
+        PathAbundanceEstimator(const double min_abundance_in, const uint32_t rng_seed);
         virtual ~PathAbundanceEstimator() {};
 
         virtual Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const = 0;
@@ -33,22 +34,40 @@ class PathAbundanceEstimator {
     protected: 
 
         const double min_abundance;
+        mt19937 mt_rng;
 
-        void removeNoiseAndRenormalize(Abundances * abundances) const;
+        void nullifyAbundances(Abundances * abundances) const;
+        void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;
 };
 
-class EMPathAbundanceEstimator : public PathAbundanceEstimator {
+class SimplePathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        EMPathAbundanceEstimator(const double min_abundance_in, const uint32_t max_em_iteration_in);
-        ~EMPathAbundanceEstimator() {};
+        SimplePathAbundanceEstimator(const uint32_t max_em_iterations_in, const double min_abundance, const uint32_t rng_seed = 0);
+        ~SimplePathAbundanceEstimator() {};
+
+        Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const;
+
+    protected:
+
+        const uint32_t max_em_iterations;
+    
+        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::RowMatrixXd & read_path_probs, const Eigen::RowVectorXi & read_counts) const;
+};
+
+class DiploidPathAbundanceEstimator : public SimplePathAbundanceEstimator {
+
+    public:
+
+        DiploidPathAbundanceEstimator(const uint32_t max_diploid_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed);
+        ~DiploidPathAbundanceEstimator() {};
 
         Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const;
 
     private:
     
-        const uint32_t max_em_iteration;
+        const uint32_t max_diploid_iterations;
 };
 
 
