@@ -331,22 +331,28 @@ int main(int argc, char* argv[]) {
 
     if (true) {
 
-        path_abundance_estimator = new DiploidPathAbundanceEstimator(100, option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>(), rng_seed);
+        path_abundance_estimator = new MinimumPathAbundanceEstimator(100, option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>(), rng_seed);
 
     } else {
 
         path_abundance_estimator = new SimplePathAbundanceEstimator(option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>());
     }
 
+    auto align_paths_clusters_indices = vector<uint32_t>(align_paths_clusters.size());
+    iota(align_paths_clusters_indices.begin(), align_paths_clusters_indices.end(), 0);
+
+    mt19937 mt_rng(rng_seed);
+    shuffle(align_paths_clusters_indices.begin(), align_paths_clusters_indices.end(), mt_rng);    
+
     #pragma omp parallel
     {  
         #pragma omp for
-        for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
+        for (size_t i = 0; i < align_paths_clusters_indices.size(); ++i) {
 
             vector<vector<pair<ReadPathProbabilities, uint32_t> > > * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
             read_path_cluster_probs_buffer->emplace_back(vector<pair<ReadPathProbabilities, uint32_t> >());            
-            read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(i).size());
+            read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_clusters_indices.at(i)).size());
             
             vector<PathAbundances> * path_cluster_abundances = &(threaded_path_cluster_abundances.at(omp_get_thread_num()));
             path_cluster_abundances->emplace_back(PathAbundances(path_clusters.cluster_to_path_index.at(i).size()));            
@@ -370,7 +376,7 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            for (auto & align_paths: align_paths_clusters.at(i)) {
+            for (auto & align_paths: align_paths_clusters.at(align_paths_clusters_indices.at(i))) {
 
                 read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base), align_paths->second);
                 read_path_cluster_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);

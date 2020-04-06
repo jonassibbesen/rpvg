@@ -36,16 +36,50 @@ void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(Abundances * ab
 
 SimplePathAbundanceEstimator::SimplePathAbundanceEstimator(const uint32_t max_em_iterations_in, const double min_abundance, const uint32_t rng_seed) : max_em_iterations(max_em_iterations_in), PathAbundanceEstimator(min_abundance, rng_seed) {}
 
-void SimplePathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abundances, const Eigen::RowMatrixXd & read_path_probs, const Eigen::RowVectorXi & read_counts) const {
+Abundances SimplePathAbundanceEstimator::inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const {
+
+    Abundances abundances(num_paths + 1);
+
+    if (!cluster_probs.empty()) {
+
+        Eigen::ColMatrixXd read_path_probs(cluster_probs.size(), num_paths + 1);
+        Eigen::RowVectorXui read_counts(cluster_probs.size());
+
+        for (size_t i = 0; i < read_path_probs.rows(); ++i) {
+
+            read_counts(i) = cluster_probs.at(i).second;
+            assert(cluster_probs.at(i).first.read_path_probs.size() == read_path_probs.cols() - 1);
+
+            for (size_t j = 0; j < num_paths; ++j) {
+
+                read_path_probs(i, j) = cluster_probs.at(i).first.read_path_probs.at(j);
+            }
+
+            read_path_probs(i, num_paths) = cluster_probs.at(i).first.noise_prob;
+        }
+
+        read_path_probs = read_path_probs.array().colwise() / read_path_probs.rowwise().sum().array();
+        expectationMaximizationEstimator(&abundances, read_path_probs, read_counts);
+    
+    } else {
+
+        nullifyAbundances(&abundances);
+    }
+
+    removeNoiseAndRenormalizeAbundances(&abundances);
+    return abundances;
+}
+
+void SimplePathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const {
 
     abundances->read_count = read_counts.sum();
     assert(abundances->read_count > 0);
 
-    Eigen::RowVectorXd prev_read_counts = abundances->expression * abundances->read_count;
+    Eigen::ColVectorXd prev_read_counts = abundances->expression * abundances->read_count;
 
     for (size_t i = 0; i < max_em_iterations; ++i) {
 
-        Eigen::RowMatrixXd posteriors = read_path_probs.array().rowwise() * abundances->expression.array();
+        Eigen::ColMatrixXd posteriors = read_path_probs.array().rowwise() * abundances->expression.array();
         posteriors = posteriors.array().colwise() / posteriors.rowwise().sum().array();
 
         abundances->expression = read_counts.cast<double>() * posteriors;
@@ -76,31 +110,61 @@ void SimplePathAbundanceEstimator::expectationMaximizationEstimator(Abundances *
     } 
 }
 
-Abundances SimplePathAbundanceEstimator::inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const {
+MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t num_path_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed) : num_path_iterations(num_path_iterations_in), SimplePathAbundanceEstimator(max_em_iterations, min_abundance, rng_seed) {}
+
+Abundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) {
 
     Abundances abundances(num_paths + 1);
 
     if (!cluster_probs.empty()) {
 
-        Eigen::RowMatrixXd read_path_probs(cluster_probs.size(), num_paths + 1);
-        Eigen::RowVectorXi read_counts(cluster_probs.size());
+        Eigen::ColMatrixXd read_path_log_probs(cluster_probs.size(), num_paths);
+        Eigen::RowVectorXui read_counts(cluster_probs.size());
 
-        for (size_t i = 0; i < read_path_probs.rows(); ++i) {
+        for (size_t i = 0; i < read_path_log_probs.rows(); ++i) {
 
             read_counts(i) = cluster_probs.at(i).second;
-            assert(cluster_probs.at(i).first.read_path_probs.size() == read_path_probs.cols() - 1);
+            assert(cluster_probs.at(i).first.read_path_probs.size() == read_path_log_probs.cols());
 
             for (size_t j = 0; j < num_paths; ++j) {
 
-                read_path_probs(i, j) = cluster_probs.at(i).first.read_path_probs.at(j);
+                read_path_log_probs(i, j) = log(cluster_probs.at(i).first.read_path_probs.at(j));
             }
-
-            read_path_probs(i, num_paths) = cluster_probs.at(i).first.noise_prob;
         }
 
-        read_path_probs = read_path_probs.array().colwise() / read_path_probs.rowwise().sum().array();
-        expectationMaximizationEstimator(&abundances, read_path_probs, read_counts);
-    
+        nullifyAbundances(&abundances);
+
+        abundances.read_count = read_counts.sum();
+        assert(abundances.read_count > 0);
+
+        for (size_t i = 0; i < num_path_iterations; ++i) {
+
+            Eigen::ColMatrixXd min_path_read_path_probs;
+
+            vector<uint32_t> min_column_cover = sampleMinimumPathCover(read_path_log_probs, read_counts);
+
+            Abundances min_path_abundances(min_column_cover.size());
+            expectationMaximizationEstimator(&min_path_abundances, min_path_read_path_probs, read_counts);
+
+            assert(min_column_cover.size() == min_path_read_path_probs.cols());
+
+            for (size_t j = 0; j < min_column_cover.size(); j++) {
+
+                if (min_path_abundances.confidence(j) > 0) {
+
+                    assert(doubleCompare(min_path_abundances.confidence(j), 1));
+                    abundances.confidence(min_column_cover.at(j)) += min_path_abundances.confidence(j);
+                    abundances.expression(min_column_cover.at(j)) += min_path_abundances.expression(j);
+                }
+            }
+
+            assert(min_path_abundances.read_count == abundances.read_count);
+        }
+
+        abundances.expression = abundances.expression.array() / abundances.confidence.array();
+        abundances.expression = abundances.expression.array().isNaN().select(0, abundances.expression);
+        abundances.confidence = abundances.confidence / num_path_iterations;
+
     } else {
 
         nullifyAbundances(&abundances);
@@ -110,38 +174,42 @@ Abundances SimplePathAbundanceEstimator::inferPathClusterAbundances(const vector
     return abundances;
 }
 
-DiploidPathAbundanceEstimator::DiploidPathAbundanceEstimator(const uint32_t max_diploid_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed) : max_diploid_iterations(max_diploid_iterations_in), SimplePathAbundanceEstimator(max_em_iterations, min_abundance, rng_seed) {}
+vector<uint32_t> MinimumPathAbundanceEstimator::sampleMinimumPathCover(const Eigen::ColMatrixXd & read_path_log_probs, const Eigen::RowVectorXui & read_counts) {
 
-Abundances DiploidPathAbundanceEstimator::inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const {
+    auto uncovered_read_counts = read_counts;
 
-    Abundances abundances(num_paths + 1);
+    vector<uint32_t> min_path_cover;
+    min_path_cover.reserve(read_path_log_probs.cols());
 
-    if (!cluster_probs.empty()) {
+    while (uncovered_read_counts.maxCoeff() > 0) {
+        
+        Eigen::RowVectorXd read_path_log_prob_cover = uncovered_read_counts.cast<double>() * read_path_log_probs;
+        assert(read_path_log_prob_cover.size() == read_path_log_probs.cols());
 
-        Eigen::RowMatrixXd read_path_probs(cluster_probs.size(), num_paths + 1);
-        Eigen::RowVectorXi read_counts(cluster_probs.size());
+        double read_path_log_prob_cover_sum = read_path_log_prob_cover.sum();
 
-        for (size_t i = 0; i < read_path_probs.rows(); ++i) {
+        vector<double> read_path_prob_cover;
+        read_path_prob_cover.reserve(read_path_log_prob_cover.size());
 
-            read_counts(i) = cluster_probs.at(i).second;
-            assert(cluster_probs.at(i).first.read_path_probs.size() == read_path_probs.cols() - 1);
+        cerr << read_path_log_probs << endl;
 
-            for (size_t j = 0; j < num_paths; ++j) {
+        for (auto & log_probs: read_path_log_prob_cover) {
 
-                read_path_probs(i, j) = cluster_probs.at(i).first.read_path_probs.at(j);
-            }
-
-            read_path_probs(i, num_paths) = cluster_probs.at(i).first.noise_prob;
+            read_path_prob_cover.emplace_back(exp(log_probs - read_path_log_prob_cover_sum));
         }
 
-        read_path_probs = read_path_probs.array().colwise() / read_path_probs.rowwise().sum().array();
-        expectationMaximizationEstimator(&abundances, read_path_probs, read_counts);
-    
-    } else {
+        cerr << read_path_prob_cover << endl;
 
-        nullifyAbundances(&abundances);
+        discrete_distribution<uint32_t> discrete_dist(read_path_prob_cover.begin(), read_path_prob_cover.end());
+
+        const uint32_t sampled_path_idx = discrete_dist(mt_rng); 
+        min_path_cover.emplace_back(sampled_path_idx);
+
+        cerr << read_path_log_probs.col(sampled_path_idx).transpose() << endl;
+        cerr << (!read_path_log_probs.col(sampled_path_idx).transpose().cast<bool>().array()).cast<uint32_t>() << endl;
+
+        uncovered_read_counts = (uncovered_read_counts.array() * (!read_path_log_probs.col(sampled_path_idx).transpose().cast<bool>().array()).cast<uint32_t>()).matrix();
     }
 
-    removeNoiseAndRenormalizeAbundances(&abundances);
-    return abundances;
+    return min_path_cover;
 }

@@ -16,7 +16,11 @@ using namespace std;
 
 namespace Eigen {
 
+    typedef Eigen::Matrix<uint32_t, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXui;
     typedef Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXd;
+
+    typedef Eigen::Matrix<uint32_t, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXui;
+    typedef Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXd;
     
     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXd;
@@ -53,21 +57,37 @@ class SimplePathAbundanceEstimator : public PathAbundanceEstimator {
 
         const uint32_t max_em_iterations;
     
-        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::RowMatrixXd & read_path_probs, const Eigen::RowVectorXi & read_counts) const;
+        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
+};
+
+class MinimumPathAbundanceEstimator : public SimplePathAbundanceEstimator {
+
+    public:
+
+        MinimumPathAbundanceEstimator(const uint32_t num_path_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed);
+        ~MinimumPathAbundanceEstimator() {};
+
+        Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths);
+
+    private:
+    
+        const uint32_t num_path_iterations;
+
+        vector<uint32_t> sampleMinimumPathCover(const Eigen::ColMatrixXd & read_path_noise_log_probs, const Eigen::RowVectorXui & read_counts);
 };
 
 class DiploidPathAbundanceEstimator : public SimplePathAbundanceEstimator {
 
     public:
 
-        DiploidPathAbundanceEstimator(const uint32_t max_diploid_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed);
+        DiploidPathAbundanceEstimator(const uint32_t num_diploid_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed);
         ~DiploidPathAbundanceEstimator() {};
 
         Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const;
 
     private:
     
-        const uint32_t max_diploid_iterations;
+        const uint32_t num_diploid_iterations;
 };
 
 

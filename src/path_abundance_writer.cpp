@@ -22,7 +22,7 @@ PathAbundanceWriter::PathAbundanceWriter(const bool use_stdout_in, const string 
 
     writer_stream = new ostream(writer_buffer);
     *writer_stream << fixed;
-    *writer_stream << "Name\tGroupID\tLength\tEffectiveLength\tConfidence\tGroupExpression\tReadCount\tTPM" << endl;
+    *writer_stream << "Name\tGroupID\tLength\tEffectiveLength\tIsExpressedConfidence\tMeanGroupExpression\tMeanReadCount\tMeanTPM" << endl;
 }
 
 PathAbundanceWriter::~PathAbundanceWriter() {

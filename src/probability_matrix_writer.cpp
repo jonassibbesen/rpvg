@@ -71,20 +71,20 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
         if (write_zero || !doubleCompare(prob.first, 0)) {
 
             *writer_stream << " " << prob.first << ":";
-        }
 
-        bool is_first = true;
+            bool is_first = true;
 
-        for (auto idx: prob.second) {
+            for (auto idx: prob.second) {
 
-            if (is_first) {
+                if (is_first) {
 
-                *writer_stream << idx;
-                is_first = false;
+                    *writer_stream << idx;
+                    is_first = false;
 
-            } else {
+                } else {
 
-                *writer_stream << "," << idx;
+                    *writer_stream << "," << idx;
+                }
             }
         }
     }
@@ -92,22 +92,23 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
 
 void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<string> & path_names, const vector<uint32_t> & path_lengths, const vector<double> & effective_path_lengths) {
 
+    assert(!path_names.empty());
+    assert(path_names.size() == path_lengths.size());
+    assert(path_names.size() == effective_path_lengths.size());
+
+    *writer_stream << "#" << endl;
+    *writer_stream << setprecision(3);
+    *writer_stream << path_names.front() << "," << path_lengths.front() << "," << effective_path_lengths.front();
+
+    for (size_t i = 1; i < path_names.size(); ++i) {
+
+        *writer_stream << " " << path_names.at(i) << "," << path_lengths.at(i) << "," << effective_path_lengths.at(i);
+    }
+
+    *writer_stream << endl;
+
     if (!cluster_probs.empty()) {
 
-        assert(!path_names.empty());
-        assert(path_names.size() == path_lengths.size());
-        assert(path_names.size() == effective_path_lengths.size());
-
-        *writer_stream << "#" << endl;
-        *writer_stream << setprecision(3);
-        *writer_stream << path_names.front() << "," << path_lengths.front() << "," << effective_path_lengths.front();
-
-        for (size_t i = 1; i < path_names.size(); ++i) {
-
-            *writer_stream << " " << path_names.at(i) << "," << path_lengths.at(i) << "," << effective_path_lengths.at(i);
-        }
-
-        *writer_stream << endl;
         *writer_stream << setprecision(precision_digits);
 
         assert(cluster_probs.front().first.read_path_probs.size() == path_names.size());
