@@ -197,6 +197,8 @@ int main(int argc, char* argv[]) {
 
     PathsIndex paths_index(*gbwt_index, *graph);
 
+    graph.reset(nullptr);
+
     double time2 = gbwt::readTimer();
     cerr << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
@@ -331,7 +333,7 @@ int main(int argc, char* argv[]) {
 
     if (true) {
 
-        path_abundance_estimator = new MinimumPathAbundanceEstimator(100, option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>(), rng_seed);
+        path_abundance_estimator = new MinimumPathAbundanceEstimator(10, option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>(), rng_seed);
 
     } else {
 
@@ -349,17 +351,19 @@ int main(int argc, char* argv[]) {
         #pragma omp for
         for (size_t i = 0; i < align_paths_clusters_indices.size(); ++i) {
 
+            auto align_paths_cluster_idx = align_paths_clusters_indices.at(i);
+
             vector<vector<pair<ReadPathProbabilities, uint32_t> > > * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
             read_path_cluster_probs_buffer->emplace_back(vector<pair<ReadPathProbabilities, uint32_t> >());            
-            read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_clusters_indices.at(i)).size());
+            read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
             
             vector<PathAbundances> * path_cluster_abundances = &(threaded_path_cluster_abundances.at(omp_get_thread_num()));
-            path_cluster_abundances->emplace_back(PathAbundances(path_clusters.cluster_to_path_index.at(i).size()));            
+            path_cluster_abundances->emplace_back(PathAbundances(path_clusters.cluster_to_path_index.at(align_paths_cluster_idx).size()));            
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
 
-            for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
+            for (auto & path_id: path_clusters.cluster_to_path_index.at(align_paths_cluster_idx)) {
 
                 assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
 
@@ -376,7 +380,7 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            for (auto & align_paths: align_paths_clusters.at(align_paths_clusters_indices.at(i))) {
+            for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
                 read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base), align_paths->second);
                 read_path_cluster_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);
@@ -399,9 +403,9 @@ int main(int argc, char* argv[]) {
 
                     prob_matrix_writer->lockWriter();
 
-                    for (size_t i = 0; i < read_path_cluster_probs_buffer->size(); ++i) {
+                    for (size_t j = 0; j < read_path_cluster_probs_buffer->size(); ++j) {
 
-                        prob_matrix_writer->writeReadPathProbabilityCluster(read_path_cluster_probs_buffer->at(i), path_cluster_abundances->at(path_cluster_abundances_idx).names, path_cluster_abundances->at(path_cluster_abundances_idx).lengths, path_cluster_abundances->at(path_cluster_abundances_idx).effective_lengths);
+                        prob_matrix_writer->writeReadPathProbabilityCluster(read_path_cluster_probs_buffer->at(j), path_cluster_abundances->at(path_cluster_abundances_idx).names, path_cluster_abundances->at(path_cluster_abundances_idx).lengths, path_cluster_abundances->at(path_cluster_abundances_idx).effective_lengths);
                         ++path_cluster_abundances_idx;
                     }
 

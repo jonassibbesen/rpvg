@@ -150,6 +150,7 @@ add_executable(${PROJECT_NAME}-tests
   src/tests/alignment_path_finder_test.cpp
   src/tests/read_path_probabilities_test.cpp
   src/tests/path_clusters_test.cpp
+  src/tests/path_abundance_estimator_test.cpp
 )
 
 include_directories(

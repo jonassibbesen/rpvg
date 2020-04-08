@@ -14,18 +14,6 @@
 using namespace std;
 
 
-namespace Eigen {
-
-    typedef Eigen::Matrix<uint32_t, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXui;
-    typedef Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXd;
-
-    typedef Eigen::Matrix<uint32_t, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXui;
-    typedef Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXd;
-    
-    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
-    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXd;
-}
-
 class PathAbundanceEstimator {
 
     public:
@@ -69,11 +57,11 @@ class MinimumPathAbundanceEstimator : public SimplePathAbundanceEstimator {
 
         Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths);
 
+        vector<uint32_t> sampleMinimumPathCover(const Eigen::ColMatrixXd & read_path_noise_log_probs, const Eigen::RowVectorXui & read_counts);
+
     private:
     
         const uint32_t num_path_iterations;
-
-        vector<uint32_t> sampleMinimumPathCover(const Eigen::ColMatrixXd & read_path_noise_log_probs, const Eigen::RowVectorXui & read_counts);
 };
 
 class DiploidPathAbundanceEstimator : public SimplePathAbundanceEstimator {

@@ -19,6 +19,16 @@ ReadPathProbabilities::ReadPathProbabilities(const uint32_t num_paths, const dou
     read_path_probs = vector<double>(num_paths, 0);
 }
 
+const vector<double> & ReadPathProbabilities::probabilities() const {
+
+    return read_path_probs;
+}
+
+double ReadPathProbabilities::noiseProbability() const {
+
+    return noise_prob;
+}
+
 void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
 
     assert(!align_paths.empty());
@@ -135,13 +145,13 @@ vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbabi
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 
-    if (doubleCompare(lhs.noise_prob, rhs.noise_prob)) {
+    if (doubleCompare(lhs.noiseProbability(), rhs.noiseProbability())) {
 
-        if (lhs.read_path_probs.size() == rhs.read_path_probs.size()) {
+        if (lhs.probabilities().size() == rhs.probabilities().size()) {
 
-            for (size_t i = 0; i < lhs.read_path_probs.size(); ++i) {
+            for (size_t i = 0; i < lhs.probabilities().size(); ++i) {
 
-                if (!doubleCompare(lhs.read_path_probs.at(i), rhs.read_path_probs.at(i))) {
+                if (!doubleCompare(lhs.probabilities().at(i), rhs.probabilities().at(i))) {
 
                     return false;
                 }
@@ -161,18 +171,18 @@ bool operator!=(const ReadPathProbabilities & lhs, const ReadPathProbabilities &
 
 bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 
-    if (!doubleCompare(lhs.noise_prob, rhs.noise_prob)) {
+    if (!doubleCompare(lhs.noiseProbability(), rhs.noiseProbability())) {
 
-        return (lhs.noise_prob < rhs.noise_prob);    
+        return (lhs.noiseProbability() < rhs.noiseProbability());    
     } 
 
-    assert(lhs.read_path_probs.size() == rhs.read_path_probs.size());
+    assert(lhs.probabilities().size() == rhs.probabilities().size());
 
-    for (size_t i = 0; i < lhs.read_path_probs.size(); ++i) {
+    for (size_t i = 0; i < lhs.probabilities().size(); ++i) {
 
-        if (!doubleCompare(lhs.read_path_probs.at(i), rhs.read_path_probs.at(i))) {
+        if (!doubleCompare(lhs.probabilities().at(i), rhs.probabilities().at(i))) {
 
-            return (lhs.read_path_probs.at(i) < rhs.read_path_probs.at(i));    
+            return (lhs.probabilities().at(i) < rhs.probabilities().at(i));    
         }         
     }   
 
@@ -181,9 +191,9 @@ bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & 
 
 ostream & operator<<(ostream & os, const ReadPathProbabilities & read_path_probs) {
 
-    os << read_path_probs.noise_prob;
+    os << read_path_probs.noiseProbability();
 
-    for (auto & prob: read_path_probs.read_path_probs) {
+    for (auto & prob: read_path_probs.probabilities()) {
 
         os << " " << prob;
     }

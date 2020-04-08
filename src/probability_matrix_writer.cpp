@@ -46,13 +46,13 @@ void ProbabilityMatrixWriter::unlockWriter() {
 
 bool ProbabilityMatrixWriter::collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2) const {
 
-    assert(cluster_probs_1.read_path_probs.size() == cluster_probs_2.read_path_probs.size());
+    assert(cluster_probs_1.probabilities().size() == cluster_probs_2.probabilities().size());
 
-    if (abs(cluster_probs_1.noise_prob - cluster_probs_2.noise_prob) < precision) {
+    if (abs(cluster_probs_1.noiseProbability() - cluster_probs_2.noiseProbability()) < precision) {
 
-        for (size_t i = 0; i < cluster_probs_1.read_path_probs.size(); ++i) {
+        for (size_t i = 0; i < cluster_probs_1.probabilities().size(); ++i) {
 
-            if (abs(cluster_probs_1.read_path_probs.at(i) - cluster_probs_2.read_path_probs.at(i)) >= precision) {
+            if (abs(cluster_probs_1.probabilities().at(i) - cluster_probs_2.probabilities().at(i)) >= precision) {
 
                 return false;
             }
@@ -111,7 +111,7 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<
 
         *writer_stream << setprecision(precision_digits);
 
-        assert(cluster_probs.front().first.read_path_probs.size() == path_names.size());
+        assert(cluster_probs.front().first.probabilities().size() == path_names.size());
 
         uint32_t read_count = cluster_probs.front().second;
         uint32_t prev_unique_probs_idx = 0;
@@ -124,7 +124,7 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<
             
             } else {
 
-                *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noise_prob << " ";
+                *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noiseProbability() << " ";
                 writeCollapsedProbabilities(cluster_probs.at(prev_unique_probs_idx).first.collapsedProbabilities(precision), false);
                 *writer_stream << endl;
 
@@ -133,7 +133,7 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<
             }
         }
 
-        *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noise_prob << " ";
+        *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noiseProbability() << " ";
         writeCollapsedProbabilities(cluster_probs.at(prev_unique_probs_idx).first.collapsedProbabilities(precision), false);
         *writer_stream << endl;
     }

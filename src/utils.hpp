@@ -10,12 +10,26 @@
 #include <sstream>
 #include <algorithm>
 
+#include "Eigen/Dense"
 #include "google/protobuf/util/json_util.h"
 #include "vg/io/basic_stream.hpp"
 #include "gbwt/gbwt.h"
 #include "handlegraph/handle_graph.hpp"
 
 using namespace std;
+
+
+namespace Eigen {
+
+    typedef Eigen::Matrix<uint32_t, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXui;
+    typedef Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXd;
+
+    typedef Eigen::Matrix<uint32_t, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXui;
+    typedef Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXd;
+    
+    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
+    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXd;
+}
 
 //------------------------------------------------------------------------------
 

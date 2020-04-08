@@ -1,7 +1,6 @@
 
 #include "catch.hpp"
 
-#include "vg/io/basic_stream.hpp"
 #include "../fragment_length_dist.hpp"
 #include "../utils.hpp"
 
