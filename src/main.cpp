@@ -331,7 +331,7 @@ int main(int argc, char* argv[]) {
 
     PathAbundanceEstimator * path_abundance_estimator;
 
-    if (true) {
+    if (false) {
 
         path_abundance_estimator = new MinimumPathAbundanceEstimator(10, option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>(), rng_seed);
 
