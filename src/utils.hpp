@@ -27,14 +27,18 @@ namespace Eigen {
     typedef Eigen::Matrix<uint32_t, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXui;
     typedef Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXd;
     
-    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
+    typedef Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXb;
     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXd;
+
+    typedef Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXb;
+    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
+
 }
 
 //------------------------------------------------------------------------------
 
 /*
-The following code was copied and modified from https://github.com/vgteam/vg
+The following code have been copied and modified from https://github.com/vgteam/vg
 */
 
 // Convert integer Phred quality score to probability of wrongness.

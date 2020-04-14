@@ -1,9 +1,9 @@
 
-#include "path_clusters.hpp"
-
 #include <assert.h>
 #include <queue>
 #include <algorithm>
+
+#include "path_clusters.hpp"
 
 
 PathClusters::PathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths) {

@@ -18,64 +18,30 @@ class PathAbundanceEstimator {
 
     public:
 
-        PathAbundanceEstimator(const double min_abundance_in, const uint32_t rng_seed);
+        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_abundance_in);
         virtual ~PathAbundanceEstimator() {};
 
-        virtual Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const = 0;
+        virtual Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths);
 
     protected: 
 
+        const uint32_t max_em_its;
         const double min_abundance;
-        mt19937 mt_rng;
 
-        void nullifyAbundances(Abundances * abundances) const;
-        void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;
-};
-
-class SimplePathAbundanceEstimator : public PathAbundanceEstimator {
-
-    public:
-
-        SimplePathAbundanceEstimator(const uint32_t max_em_iterations_in, const double min_abundance, const uint32_t rng_seed = 0);
-        ~SimplePathAbundanceEstimator() {};
-
-        Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const;
-
-    protected:
-
-        const uint32_t max_em_iterations;
-    
         void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
+        void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;    
 };
 
-class MinimumPathAbundanceEstimator : public SimplePathAbundanceEstimator {
+class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        MinimumPathAbundanceEstimator(const uint32_t num_path_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed);
+        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_abundance);
         ~MinimumPathAbundanceEstimator() {};
 
         Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths);
 
-        vector<uint32_t> sampleMinimumPathCover(const Eigen::ColMatrixXd & read_path_noise_log_probs, const Eigen::RowVectorXui & read_counts);
-
-    private:
-    
-        const uint32_t num_path_iterations;
-};
-
-class DiploidPathAbundanceEstimator : public SimplePathAbundanceEstimator {
-
-    public:
-
-        DiploidPathAbundanceEstimator(const uint32_t num_diploid_iterations_in, const uint32_t max_em_iterations, const double min_abundance, const uint32_t rng_seed);
-        ~DiploidPathAbundanceEstimator() {};
-
-        Abundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const uint32_t num_paths) const;
-
-    private:
-    
-        const uint32_t num_diploid_iterations;
+        vector<uint32_t> weightedMinimumPathCover(const Eigen::ColMatrixXb & read_path_cover, const Eigen::RowVectorXui & read_counts, const Eigen::RowVectorXd & path_weights);
 };
 
 

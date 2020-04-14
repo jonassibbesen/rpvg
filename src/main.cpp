@@ -60,6 +60,7 @@ int main(int argc, char* argv[]) {
       ("g,graph", "xg graph file name", cxxopts::value<string>())
       ("p,paths", "GBWT index file name", cxxopts::value<string>())
       ("a,alignments", "gam(p) alignment file name", cxxopts::value<string>())
+      ("i,inference-model", "inference model to use (transcripts or strains)", cxxopts::value<string>())
       ;
 
     options.add_options("General")
@@ -82,8 +83,9 @@ int main(int argc, char* argv[]) {
       ;
 
     options.add_options("Abundance")
-      ("e,max-em-it", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("1000"))
+      ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("1000"))
       ("n,min-abundance", "minimum abundance value", cxxopts::value<double>()->default_value("1e-6"))
+      ("y,ploidy", "sample ploidy (max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
       ;
 
     if (argc == 1) {
@@ -116,6 +118,26 @@ int main(int argc, char* argv[]) {
 
         cerr << "ERROR: Alignments (gam or gamp format) input required (--alignments)." << endl;
         return 1;
+    }
+
+    if (!option_results.count("inference-model")) {
+
+        cerr << "ERROR: Inference model required (--inference-model). Options: transcripts or strains." << endl;
+        return 1;
+    }
+
+    const string inference_model = option_results["inference-model"].as<string>();
+
+    if (inference_model != "transcripts" && inference_model != "strains") {
+
+        cerr << "ERROR: Inference model provided (--inference-model) not supported. Options: transcripts or strains." << endl;
+        return 1;
+    }
+
+    if (option_results["ploidy"].as<uint32_t>() > 2) {
+
+        cerr << "ERROR: Maximum support ploidy (--ploidy) is currently 2." << endl;
+        return 1;        
     }
 
     uint64_t rng_seed = 0; 
@@ -331,13 +353,17 @@ int main(int argc, char* argv[]) {
 
     PathAbundanceEstimator * path_abundance_estimator;
 
-    if (false) {
+    if (inference_model == "transcripts") {
 
-        path_abundance_estimator = new MinimumPathAbundanceEstimator(10, option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>(), rng_seed);
+        path_abundance_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+
+    } else if (inference_model == "strains") {
+
+        path_abundance_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
 
     } else {
 
-        path_abundance_estimator = new SimplePathAbundanceEstimator(option_results["max-em-it"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+        assert(false);
     }
 
     auto align_paths_clusters_indices = vector<uint32_t>(align_paths_clusters.size());
@@ -392,9 +418,9 @@ int main(int argc, char* argv[]) {
             assert(path_cluster_abundances->back().abundances.confidence.cols() == path_cluster_abundances->back().names.size());
             assert(path_cluster_abundances->back().abundances.expression.cols() == path_cluster_abundances->back().names.size());
 
-            if (read_path_cluster_probs_buffer->size() == read_path_cluster_probs_buffer_size) {
+            if (prob_matrix_writer) {
 
-                if (prob_matrix_writer) {
+                if (read_path_cluster_probs_buffer->size() == read_path_cluster_probs_buffer_size) {
 
                     assert(path_cluster_abundances->size() % read_path_cluster_probs_buffer_size == 0);
 
@@ -410,10 +436,12 @@ int main(int argc, char* argv[]) {
                     }
 
                     prob_matrix_writer->unlockWriter();
-                    read_path_cluster_probs_buffer->clear();
-                }
+                    read_path_cluster_probs_buffer->clear();       
+                } 
 
-                read_path_cluster_probs_buffer->clear();                
+            } else {
+
+                read_path_cluster_probs_buffer->clear();
             }
         }
     }

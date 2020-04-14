@@ -5,22 +5,25 @@
 #include "../utils.hpp"
 
 
-TEST_CASE("Minimum path cover can be sampled") {
+TEST_CASE("Weighted minimum path cover can be found") {
     
-    auto path_abundance_estimator = MinimumPathAbundanceEstimator(1, 1, 1, 1);
+    auto path_abundance_estimator = MinimumPathAbundanceEstimator(1, 1);
 
-    Eigen::ColMatrixXd read_path_noise_log_probs(4, 3);
-	read_path_noise_log_probs << -8, 0, -1.5, 0, -0.01, 0, -2, -2, 0, 0, -7, -0.1;
+    Eigen::ColMatrixXb read_path_cover(4, 3);
+	read_path_cover << 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1;
 
 	Eigen::RowVectorXui read_counts(1, 4);
 	read_counts << 1, 3, 1, 5;
 
-	REQUIRE(path_abundance_estimator.sampleMinimumPathCover(read_path_noise_log_probs, read_counts) == vector<uint32_t>({2, 1}));
+	Eigen::RowVectorXd path_weights(1, 3);
+	path_weights << 1, 1, 1;
 
-	SECTION("Minimum path cover is random") {
+	REQUIRE(path_abundance_estimator.weightedMinimumPathCover(read_path_cover, read_counts, path_weights) == vector<uint32_t>({1, 0}));
 
-    	auto path_abundance_estimator_2 = MinimumPathAbundanceEstimator(1, 1, 1, 10);
-		REQUIRE(path_abundance_estimator_2.sampleMinimumPathCover(read_path_noise_log_probs, read_counts) == vector<uint32_t>({2, 0, 1}));
+	SECTION("Weights influence minimum path cover") {
+
+		path_weights(2) = 0.01;
+		REQUIRE(path_abundance_estimator.weightedMinimumPathCover(read_path_cover, read_counts, path_weights) == vector<uint32_t>({2, 1, 0}));
 	}
 }
 

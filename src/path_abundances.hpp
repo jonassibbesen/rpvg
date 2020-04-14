@@ -19,10 +19,18 @@ struct Abundances {
     double read_count;
     	
    	Abundances() {}
-    Abundances(const uint32_t num_components) {
+    Abundances(const uint32_t num_components, const bool init_zero = false) {
 
-        confidence = Eigen::RowVectorXd::Constant(1, num_components, 1);
-        expression = Eigen::RowVectorXd::Constant(1, num_components, 1 / static_cast<float>(num_components));
+        if (init_zero) {
+
+            confidence = Eigen::RowVectorXd::Zero(1, num_components);
+            expression = Eigen::RowVectorXd::Zero(1, num_components);
+
+        } else {
+
+            confidence = Eigen::RowVectorXd::Constant(1, num_components, 1);
+            expression = Eigen::RowVectorXd::Constant(1, num_components, 1 / static_cast<float>(num_components));
+        }
 
         read_count = 0;
     }

@@ -13,6 +13,7 @@
 
 using namespace std;
 
+
 class AlignmentSearchPath;
 
 class AlignmentPath {
@@ -92,5 +93,6 @@ class AlignmentSearchPath {
 
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path);
 ostream & operator<<(ostream & os, const vector<AlignmentSearchPath> & align_search_path);
+
 
 #endif
