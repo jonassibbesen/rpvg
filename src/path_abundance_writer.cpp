@@ -43,16 +43,14 @@ void PathAbundanceWriter::writeThreadedPathClusterAbundances(const vector<vector
 
         for (auto & path_abundances: path_cluster_abundances) {
 
-            for (size_t i = 0; i < path_abundances.names.size(); ++i) {
+            for (size_t i = 0; i < path_abundances.paths.size(); ++i) {
 
-                assert(path_abundances.names.size() == path_abundances.lengths.size());
-                assert(path_abundances.names.size() == path_abundances.effective_lengths.size());
-                assert(path_abundances.names.size() == path_abundances.abundances.confidence.cols());
-                assert(path_abundances.names.size() == path_abundances.abundances.expression.cols());
+                assert(path_abundances.paths.size() == path_abundances.abundances.confidence.cols());
+                assert(path_abundances.paths.size() == path_abundances.abundances.expression.cols());
 
-                if (path_abundances.effective_lengths.at(i) > 0) {
+                if (path_abundances.paths.at(i).effective_length > 0) {
 
-                    transcript_count_sum += path_abundances.abundances.expression(0, i) * path_abundances.abundances.read_count / path_abundances.effective_lengths.at(i);
+                    transcript_count_sum += path_abundances.abundances.expression(0, i) * path_abundances.abundances.read_count / path_abundances.paths.at(i).effective_length;
                 }
             }
         }
@@ -66,19 +64,19 @@ void PathAbundanceWriter::writeThreadedPathClusterAbundances(const vector<vector
 
             ++group_id;
 
-            for (size_t i = 0; i < path_abundances.names.size(); ++i) {
+            for (size_t i = 0; i < path_abundances.paths.size(); ++i) {
 
                 double transcript_count = 0;
 
-                if (path_abundances.effective_lengths.at(i) > 0) {
+                if (path_abundances.paths.at(i).effective_length > 0) {
 
-                    transcript_count = path_abundances.abundances.expression(0, i) * path_abundances.abundances.read_count / path_abundances.effective_lengths.at(i);
+                    transcript_count = path_abundances.abundances.expression(0, i) * path_abundances.abundances.read_count / path_abundances.paths.at(i).effective_length;
                 }
 
-                *writer_stream << path_abundances.names.at(i);
+                *writer_stream << path_abundances.paths.at(i).name;
                 *writer_stream << "\t" << group_id;
-                *writer_stream << "\t" << setprecision(3) << path_abundances.lengths.at(i);
-                *writer_stream << "\t" << path_abundances.effective_lengths.at(i);
+                *writer_stream << "\t" << setprecision(3) << path_abundances.paths.at(i).length;
+                *writer_stream << "\t" << path_abundances.paths.at(i).effective_length;
                 *writer_stream << "\t" << setprecision(precision_digits) << path_abundances.abundances.confidence(0, i);
                 *writer_stream << "\t" << path_abundances.abundances.expression(0, i);
                 *writer_stream << "\t" << path_abundances.abundances.expression(0, i) * path_abundances.abundances.read_count;

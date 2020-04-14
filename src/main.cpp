@@ -57,10 +57,10 @@ int main(int argc, char* argv[]) {
     cxxopts::Options options("fersken", "fersken - infers path probabilities and abundances from variation graph read aligments");
 
     options.add_options("Required")
-      ("g,graph", "xg graph file name", cxxopts::value<string>())
-      ("p,paths", "GBWT index file name", cxxopts::value<string>())
-      ("a,alignments", "gam(p) alignment file name", cxxopts::value<string>())
-      ("i,inference-model", "inference model to use (transcripts or strains)", cxxopts::value<string>())
+      ("g,graph", "xg graph filename", cxxopts::value<string>())
+      ("p,paths", "GBWT index filename", cxxopts::value<string>())
+      ("a,alignments", "gam(p) alignment filename", cxxopts::value<string>())
+      ("i,inference-model", "inference model to use (transcripts, strains or haplotype-transcripts)", cxxopts::value<string>())
       ;
 
     options.add_options("General")
@@ -86,6 +86,7 @@ int main(int argc, char* argv[]) {
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("1000"))
       ("n,min-abundance", "minimum abundance value", cxxopts::value<double>()->default_value("1e-6"))
       ("y,ploidy", "sample ploidy (max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
+      ("f,hap-info", "haplotype information filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
     if (argc == 1) {
@@ -122,15 +123,15 @@ int main(int argc, char* argv[]) {
 
     if (!option_results.count("inference-model")) {
 
-        cerr << "ERROR: Inference model required (--inference-model). Options: transcripts or strains." << endl;
+        cerr << "ERROR: Inference model required (--inference-model). Options: transcripts, strains or haplotype-transcripts." << endl;
         return 1;
     }
 
     const string inference_model = option_results["inference-model"].as<string>();
 
-    if (inference_model != "transcripts" && inference_model != "strains") {
+    if (inference_model != "transcripts" && inference_model != "strains" && inference_model != "haplotype-transcripts") {
 
-        cerr << "ERROR: Inference model provided (--inference-model) not supported. Options: transcripts or strains." << endl;
+        cerr << "ERROR: Inference model provided (--inference-model) not supported. Options: transcripts, strains or haplotype-transcripts." << endl;
         return 1;
     }
 
@@ -138,6 +139,12 @@ int main(int argc, char* argv[]) {
 
         cerr << "ERROR: Maximum support ploidy (--ploidy) is currently 2." << endl;
         return 1;        
+    }
+
+    if (inference_model == "haplotype-transcripts" && !option_results.count("hap-info")) {
+
+        cerr << "ERROR: haplotype information file (--hap-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
+        return 1;
     }
 
     uint64_t rng_seed = 0; 
@@ -361,6 +368,10 @@ int main(int argc, char* argv[]) {
 
         path_abundance_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
 
+    } else if (inference_model == "haplotype-transcripts") {
+
+        path_abundance_estimator = new GroupedPathAbundanceEstimator(10, option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+
     } else {
 
         assert(false);
@@ -383,40 +394,39 @@ int main(int argc, char* argv[]) {
 
             read_path_cluster_probs_buffer->emplace_back(vector<pair<ReadPathProbabilities, uint32_t> >());            
             read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
-            
-            vector<PathAbundances> * path_cluster_abundances = &(threaded_path_cluster_abundances.at(omp_get_thread_num()));
-            path_cluster_abundances->emplace_back(PathAbundances(path_clusters.cluster_to_path_index.at(align_paths_cluster_idx).size()));            
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
 
+            vector<Path> cluster_paths;
+            cluster_paths.reserve(path_clusters.cluster_to_path_index.at(align_paths_cluster_idx).size());
+            
             for (auto & path_id: path_clusters.cluster_to_path_index.at(align_paths_cluster_idx)) {
 
                 assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
+                cluster_paths.emplace_back(Path());
 
-                path_cluster_abundances->back().names.emplace_back(paths_index.pathName(path_id));
-                path_cluster_abundances->back().lengths.emplace_back(paths_index.pathLength(path_id)); 
+                cluster_paths.back().name = paths_index.pathName(path_id);
+                cluster_paths.back().length = paths_index.pathLength(path_id); 
 
                 if (is_long_reads) {
 
-                    path_cluster_abundances->back().effective_lengths.emplace_back(paths_index.pathLength(path_id)); 
+                    cluster_paths.back().effective_length = paths_index.pathLength(path_id); 
 
                 } else {
 
-                    path_cluster_abundances->back().effective_lengths.emplace_back(paths_index.effectivePathLength(path_id, fragment_length_dist)); 
+                    cluster_paths.back().effective_length = paths_index.effectivePathLength(path_id, fragment_length_dist); 
                 }
             }
 
             for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
-                read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base), align_paths->second);
-                read_path_cluster_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, fragment_length_dist, is_single_end);
-                read_path_cluster_probs_buffer->back().back().first.addPositionalProbabilities(path_cluster_abundances->back().effective_lengths);
+                read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base, fragment_length_dist), align_paths->second);
+                read_path_cluster_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, cluster_paths, is_single_end);
             }
 
-            path_cluster_abundances->back().abundances = path_abundance_estimator->inferPathClusterAbundances(read_path_cluster_probs_buffer->back(), clustered_path_index.size());
+            vector<PathAbundances> * path_cluster_abundances = &(threaded_path_cluster_abundances.at(omp_get_thread_num()));
 
-            assert(path_cluster_abundances->back().abundances.confidence.cols() == path_cluster_abundances->back().names.size());
-            assert(path_cluster_abundances->back().abundances.expression.cols() == path_cluster_abundances->back().names.size());
+            path_cluster_abundances->emplace_back(path_abundance_estimator->inferPathClusterAbundances(read_path_cluster_probs_buffer->back(), cluster_paths));
 
             if (prob_matrix_writer) {
 
@@ -431,7 +441,7 @@ int main(int argc, char* argv[]) {
 
                     for (size_t j = 0; j < read_path_cluster_probs_buffer->size(); ++j) {
 
-                        prob_matrix_writer->writeReadPathProbabilityCluster(read_path_cluster_probs_buffer->at(j), path_cluster_abundances->at(path_cluster_abundances_idx).names, path_cluster_abundances->at(path_cluster_abundances_idx).lengths, path_cluster_abundances->at(path_cluster_abundances_idx).effective_lengths);
+                        prob_matrix_writer->writeReadPathProbabilityCluster(read_path_cluster_probs_buffer->at(j), path_cluster_abundances->at(path_cluster_abundances_idx).paths);
                         ++path_cluster_abundances_idx;
                     }
 
@@ -455,7 +465,7 @@ int main(int argc, char* argv[]) {
 
             for (size_t j = 0; j < threaded_read_path_cluster_probs_buffer.at(i).size(); ++j) {
 
-                prob_matrix_writer->writeReadPathProbabilityCluster(threaded_read_path_cluster_probs_buffer.at(i).at(j), threaded_path_cluster_abundances.at(i).at(path_cluster_abundances_idx).names, threaded_path_cluster_abundances.at(i).at(path_cluster_abundances_idx).lengths, threaded_path_cluster_abundances.at(i).at(path_cluster_abundances_idx).effective_lengths);
+                prob_matrix_writer->writeReadPathProbabilityCluster(threaded_read_path_cluster_probs_buffer.at(i).at(j), threaded_path_cluster_abundances.at(i).at(path_cluster_abundances_idx).paths);
                 ++path_cluster_abundances_idx;
             }
         }

@@ -8,6 +8,7 @@
 #include "alignment_path.hpp"
 #include "paths_index.hpp"
 #include "fragment_length_dist.hpp"
+#include "path.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -18,13 +19,12 @@ class ReadPathProbabilities {
     public: 
     	
     	ReadPathProbabilities();
-    	ReadPathProbabilities(const uint32_t num_paths, const double score_log_base_in);
+    	ReadPathProbabilities(const uint32_t num_paths, const double score_log_base_in, const FragmentLengthDist & fragment_length_dist_in);
         
         const vector<double> & probabilities() const;
         double noiseProbability() const;
 
-        void calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const FragmentLengthDist & fragment_length_dist, const bool is_single_end);
-        void addPositionalProbabilities(const vector<double> & path_lengths);
+        void calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<Path> & cluster_paths, const bool is_single_end);
 
         vector<pair<double, vector<uint32_t> > > collapsedProbabilities(const double precision) const;
 
@@ -33,7 +33,8 @@ class ReadPathProbabilities {
         double noise_prob;
         vector<double> read_path_probs;
 
-        double score_log_base;
+        const double score_log_base;
+        const FragmentLengthDist fragment_length_dist;
 };
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs);
