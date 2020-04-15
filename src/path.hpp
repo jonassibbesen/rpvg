@@ -1,6 +1,6 @@
 
-#ifndef FERSKEN_SRC_PATHINFO_HPP
-#define FERSKEN_SRC_PATHINFO_HPP
+#ifndef RPVG_SRC_PATHINFO_HPP
+#define RPVG_SRC_PATHINFO_HPP
 
 #include <vector>
 

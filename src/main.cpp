@@ -97,7 +97,7 @@ spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & fi
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("fersken", "fersken - infers path probabilities and abundances from variation graph read aligments");
+    cxxopts::Options options("rpvg", "rpvg - infers path probabilities and abundances from variation graph read aligments");
 
     options.add_options("Required")
       ("g,graph", "xg graph filename", cxxopts::value<string>())
