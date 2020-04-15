@@ -398,9 +398,15 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
             }
         }
 
-        path_abundances.abundances.expression = path_abundances.abundances.expression.array() / path_abundances.abundances.confidence.array();
-        path_abundances.abundances.expression = path_abundances.abundances.expression.array().isNaN().select(0, path_abundances.abundances.expression);
-        path_abundances.abundances.confidence = path_abundances.abundances.confidence / num_nested_its;
+        for (size_t i = 0; i < path_abundances.abundances.expression.cols(); ++i) {
+
+            if (path_abundances.abundances.confidence(i) > 0) {
+
+                path_abundances.abundances.expression(i) /= path_abundances.abundances.confidence(i);
+            }
+
+            path_abundances.abundances.confidence(i) /= num_nested_its;
+        }
 
         removeNoiseAndRenormalizeAbundances(&(path_abundances.abundances));
         return path_abundances;
