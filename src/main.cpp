@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
       ;
 
     options.add_options("Abundance")
-      ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("1000"))
+      ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("100000"))
       ("n,min-abundance", "minimum abundance value", cxxopts::value<double>()->default_value("1e-6"))
       ("y,ploidy", "sample ploidy (used for haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
       ("f,num-hap-it", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))

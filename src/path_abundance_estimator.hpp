@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <random>
+#include <mutex>
 
 #include <Eigen/Dense>
 
@@ -28,7 +29,9 @@ class PathAbundanceEstimator {
         const uint32_t max_em_its;
         const double min_abundance;
 
-        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
+        mutex test_mutex;
+
+        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts);
         void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;    
 };
 
