@@ -1,5 +1,5 @@
 # rpvg
-Method for inferring path probabilities and abundances from variation graph read aligments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) variation graph in xg format the probability of it originating from each path in a [GBWT](https://github.com/jltsiren/gbwt) index is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a seperate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The method supports mapped paired-end reads in both the *vg map* [Alignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L111) format (.gam) and *vg mpmap* [MultipathAlignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L156) format (.gmap). 
+Method for inferring path likelihoods and abundances from variation graph read aligments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) variation graph in xg format the probability of it originating from each path in a [GBWT](https://github.com/jltsiren/gbwt) index is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a seperate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The read-path probabilities are used to calculate likelihoods and infer abundances for each group indepedently. The method supports mapped paired-end reads in both the *vg map* [Alignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L111) format (.gam) and *vg mpmap* [MultipathAlignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L156) format (.gmap). 
 
 
 ### Compilation
@@ -13,8 +13,27 @@ Method for inferring path probabilities and abundances from variation graph read
 
 
 ### Running rpvg
-*rpvg* requires the following three arguments:
+*rpvg* requires the following four arguments:
 ```
-rpvg -g graph.xg -p paths.gbwt -a alignments.gam > abundances.txt
+rpvg -g graph.xg -p paths.gbwt -a alignments.gam -i <inference-model> > abundances.txt
 ```
-Use `-u` if the input alignment format is multipath (.gamp). Fragment length distribution mean and standard deviation can be given using `-m` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. 
+The number of threads can be given using `-t`.
+
+#### Inference models:
+The method currently contains three different inference models. Each model have been written with a particurlar path type and corresponding inference problem in mind:
+* `transcripts`: Uses Expectation Maximization (EM) to infer the abundances.
+* `strains`: Uses a combination of a weighted minimim path cover and EM. **Note that this algorithm is work in progress and have therefore not been properly evalauted yet**.
+* `haplotype-transcripts`: Uses a combination of a maximum likelihood haplotype/diplotype estimator and EM. The ploidy can be given using `-y`.
+
+#### Alignment types:
+* Use `-u` if the input alignment format is multipath (*.gamp*) from *vg mpmap*.
+* Use `-s` for single-end reads. Note that the fragment length distribtion will still be used for calculating the effective path length.
+* Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but without the effective path length.
+
+#### Fragment length distribution:
+Fragment length distribution mean and standard deviation can be given using `-m` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. 
+
+
+
+
+
