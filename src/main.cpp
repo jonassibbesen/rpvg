@@ -52,6 +52,49 @@ void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32
     }    
 }
 
+spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & filename) {
+
+    spp::sparse_hash_map<string, string> path_transcript_origin;
+
+    ifstream origin_file(filename);
+    
+    string line;
+    string element;
+
+    while (origin_file.good()) {
+
+        getline(origin_file, line);
+
+        if (line.empty()) {
+
+            continue;
+        }
+
+        auto line_ss = stringstream(line);
+
+        getline(line_ss, element, '\t');
+
+        if (element == "Name") {
+
+            continue;
+        }
+
+        auto path_transcript_origin_it = path_transcript_origin.emplace(element, "");
+        assert(path_transcript_origin_it.second);
+
+        getline(line_ss, element, '\t');        
+        getline(line_ss, element, '\t');
+
+        path_transcript_origin_it.first->second = element;
+
+        getline(line_ss, element, '\n');
+    }
+
+    origin_file.close();
+
+    return path_transcript_origin;
+}
+
 int main(int argc, char* argv[]) {
 
     cxxopts::Options options("fersken", "fersken - infers path probabilities and abundances from variation graph read aligments");
@@ -85,8 +128,9 @@ int main(int argc, char* argv[]) {
     options.add_options("Abundance")
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("1000"))
       ("n,min-abundance", "minimum abundance value", cxxopts::value<double>()->default_value("1e-6"))
-      ("y,ploidy", "sample ploidy (max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
-      ("f,hap-info", "haplotype information filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("y,ploidy", "sample ploidy (used for haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
+      ("f,num-hap-it", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))
+      ("c,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
     if (argc == 1) {
@@ -141,9 +185,9 @@ int main(int argc, char* argv[]) {
         return 1;        
     }
 
-    if (inference_model == "haplotype-transcripts" && !option_results.count("hap-info")) {
+    if (inference_model == "haplotype-transcripts" && !option_results.count("path-origin")) {
 
-        cerr << "ERROR: haplotype information file (--hap-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
+        cerr << "ERROR: Path transcript origin information file (--path-origin) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
         return 1;
     }
 
@@ -349,9 +393,9 @@ int main(int argc, char* argv[]) {
         threaded_path_cluster_abundances.at(i).reserve(ceil(align_paths_clusters.size()) / static_cast<float>(num_threads));
     }
 
-    const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
-
     ProbabilityMatrixWriter * prob_matrix_writer = nullptr;
+
+    spp::sparse_hash_map<string, string> path_transcript_origin;
    
     if (option_results.count("prob-output")) {
 
@@ -370,12 +414,16 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_abundance_estimator = new GroupedPathAbundanceEstimator(10, option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-it"].as<uint32_t>(), option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+     
+        path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 
     } else {
 
         assert(false);
     }
+
+    const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
     auto align_paths_clusters_indices = vector<uint32_t>(align_paths_clusters.size());
     iota(align_paths_clusters_indices.begin(), align_paths_clusters_indices.end(), 0);
@@ -406,6 +454,14 @@ int main(int argc, char* argv[]) {
                 cluster_paths.emplace_back(Path());
 
                 cluster_paths.back().name = paths_index.pathName(path_id);
+
+                auto path_transcript_origin_it = path_transcript_origin.find(cluster_paths.back().name);
+
+                if (path_transcript_origin_it != path_transcript_origin.end()) {
+
+                    cluster_paths.back().origin = path_transcript_origin_it->second;
+                }
+
                 cluster_paths.back().length = paths_index.pathLength(path_id); 
 
                 if (is_long_reads) {

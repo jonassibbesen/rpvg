@@ -44,18 +44,18 @@ class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {
         vector<uint32_t> weightedMinimumPathCover(const Eigen::ColMatrixXb & read_path_cover, const Eigen::RowVectorXui & read_counts, const Eigen::RowVectorXd & path_weights);
 };
 
-class GroupedPathAbundanceEstimator : public PathAbundanceEstimator {
+class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        GroupedPathAbundanceEstimator(const uint32_t num_group_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_abundance);
-        ~GroupedPathAbundanceEstimator() {};
+        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_abundance);
+        ~NestedPathAbundanceEstimator() {};
 
         PathAbundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths);
 
     private:
 
-        const uint32_t num_group_its;
+        const uint32_t num_nested_its;
         const uint32_t ploidy;
 
         mt19937 mt_rng;

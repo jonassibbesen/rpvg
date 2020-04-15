@@ -18,6 +18,8 @@ struct Path {
     
     Path() {
 
+    	name = "";
+    	origin = "";
         length = 0;
         effective_length = 0;
     }
