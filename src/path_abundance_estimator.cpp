@@ -5,7 +5,7 @@
 #include "discrete_sampler.hpp"
 
 
-PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_abundance_in) : max_em_its(max_em_its_in), min_abundance(min_abundance_in) {}
+PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in) : max_em_its(max_em_its_in), min_read_count(min_read_count_in) {}
 
 PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths) {
 
@@ -58,7 +58,7 @@ void PathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abund
 
         abundances->expression = read_counts.cast<double>() * posteriors;
 
-        if ((abundances->expression.array() - prev_read_counts.array()).abs().maxCoeff() < min_abundance * abundances->read_count) {
+        if ((abundances->expression.array() - prev_read_counts.array()).abs().maxCoeff() < min_read_count) {
 
             break;
         } 
@@ -68,14 +68,14 @@ void PathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abund
     }
 
     test_mutex.lock();
-    cerr << "EMSTATS\t" << num_it << "\t" << read_path_probs.rows() << "\t" << read_path_probs.cols() << "\t" << read_counts.cols() << endl;
+    cerr << "EMSTATS\t" << num_it << "\t" << read_path_probs.rows() << "\t" << read_path_probs.cols() << "\t" << read_counts.cols() << "\t" << abundances->read_count << endl;
     test_mutex.unlock();
 
     abundances->expression = abundances->expression / abundances->expression.sum();
 
     for (size_t i = 0; i < abundances->expression.cols(); ++i) {
 
-        if (abundances->expression(i) < min_abundance) {
+        if (abundances->expression(i) * abundances->read_count < min_read_count) {
 
             abundances->confidence(i) = 0;
             abundances->expression(i) = 0;            
@@ -104,7 +104,7 @@ void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(Abundances * ab
     abundances->read_count -= noise_read_count;
 }
 
-MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_abundance) : PathAbundanceEstimator(max_em_its, min_abundance) {}
+MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count) : PathAbundanceEstimator(max_em_its, min_read_count) {}
 
 PathAbundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths) {
 
@@ -244,7 +244,7 @@ vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const E
     return min_path_cover;
 }
 
-NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_abundance) : num_nested_its(num_nested_its_in), ploidy(ploidy_in), PathAbundanceEstimator(max_em_its, min_abundance) {
+NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count) : num_nested_its(num_nested_its_in), ploidy(ploidy_in), PathAbundanceEstimator(max_em_its, min_read_count) {
 
     assert(ploidy >= 1 && ploidy <= 2);
     mt_rng = mt19937(rng_seed);

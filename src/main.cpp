@@ -127,10 +127,10 @@ int main(int argc, char* argv[]) {
 
     options.add_options("Abundance")
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("100000"))
-      ("n,min-abundance", "minimum abundance value", cxxopts::value<double>()->default_value("1e-6"))
+      ("c,min-read-count", "minimum read count", cxxopts::value<double>()->default_value("1e-4"))
       ("y,ploidy", "sample ploidy (used for haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
-      ("f,num-hap-it", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))
-      ("c,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("n,num-hap-its", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("10"))
+      ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
     if (argc == 1) {
@@ -406,15 +406,15 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "transcripts") {
 
-        path_abundance_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+        path_abundance_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>());
 
     } else if (inference_model == "strains") {
 
-        path_abundance_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+        path_abundance_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>());
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-it"].as<uint32_t>(), option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-abundance"].as<double>());
+        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>());
      
         path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 
@@ -530,7 +530,7 @@ int main(int argc, char* argv[]) {
     delete prob_matrix_writer;
     delete path_abundance_estimator;
 
-    PathAbundanceWriter path_abundance_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>(), option_results["min-abundance"].as<double>());
+    PathAbundanceWriter path_abundance_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>(), option_results["min-read-count"].as<double>());
     path_abundance_writer.writeThreadedPathClusterAbundances(threaded_path_cluster_abundances);
 
     double time8 = gbwt::readTimer();

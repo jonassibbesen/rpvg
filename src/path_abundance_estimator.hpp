@@ -19,7 +19,7 @@ class PathAbundanceEstimator {
 
     public:
 
-        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_abundance_in);
+        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in);
         virtual ~PathAbundanceEstimator() {};
 
         virtual PathAbundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths);
@@ -27,7 +27,7 @@ class PathAbundanceEstimator {
     protected: 
 
         const uint32_t max_em_its;
-        const double min_abundance;
+        const double min_read_count;
 
         mutex test_mutex;
 
@@ -39,7 +39,7 @@ class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_abundance);
+        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count);
         ~MinimumPathAbundanceEstimator() {};
 
         PathAbundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths);
@@ -51,7 +51,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_abundance);
+        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count);
         ~NestedPathAbundanceEstimator() {};
 
         PathAbundances inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths);
