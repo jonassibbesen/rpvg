@@ -326,30 +326,39 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
             }
         }
 
-        PathAbundances path_abundances(cluster_paths, true, true);
-        path_abundances.abundances.read_count = read_counts.sum();
-
-        vector<int32_t> ploidy_path_indices(path_groups.size() * ploidy, -1);
-        Eigen::ColMatrixXd ploidy_read_path_probs(read_path_probs.rows(), path_groups.size() * ploidy + 1);
+        unordered_map<vector<uint32_t>, uint32_t> ploidy_path_indices_samples;
 
         for (size_t i = 0; i < num_nested_its; ++i) {
 
+            vector<uint32_t> ploidy_path_indices;
+            ploidy_path_indices.reserve(path_groups.size() * ploidy);
+
             for (size_t j = 0; j < group_ploidy_path_indices.size(); ++j) {
 
-                auto sampled_ploidy_path_indices = group_ploidy_path_indices.at(j).at(group_ploidy_log_samplers.at(j).sample(&mt_rng));
-                assert(sampled_ploidy_path_indices.size() == ploidy);
+                auto sampled_path_indices = group_ploidy_path_indices.at(j).at(group_ploidy_log_samplers.at(j).sample(&mt_rng));
+                assert(sampled_path_indices.size() == ploidy);
 
-                for (size_t k = 0; k < ploidy; ++k) {
-
-                    if (ploidy_path_indices.at(j * ploidy + k) != sampled_ploidy_path_indices.at(k)) {
-
-                        ploidy_read_path_probs.col(j * ploidy + k) = read_path_probs.col(sampled_ploidy_path_indices.at(k));
-                        ploidy_path_indices.at(j * ploidy + k) = sampled_ploidy_path_indices.at(k);
-                    }
-                }
+                ploidy_path_indices.insert(ploidy_path_indices.end(), sampled_path_indices.begin(), sampled_path_indices.end());
             }
 
-            ploidy_read_path_probs.conservativeResize(ploidy_read_path_probs.rows(), ploidy_read_path_probs.cols() - 1);
+            auto ploidy_path_indices_samples_it = ploidy_path_indices_samples.emplace(ploidy_path_indices, 0);
+            ploidy_path_indices_samples_it.first->second++;
+        }
+
+        PathAbundances path_abundances(cluster_paths, true, true);
+        path_abundances.abundances.read_count = read_counts.sum();
+
+        for (auto & path_indices_sample: ploidy_path_indices_samples) {
+
+            assert(path_indices_sample.first.size() == path_groups.size() * ploidy);
+            assert(path_indices_sample.second > 0);
+
+            Eigen::ColMatrixXd ploidy_read_path_probs(read_path_probs.rows(), path_indices_sample.first.size());
+
+            for (size_t i = 0; i < path_indices_sample.first.size(); ++i) {
+
+                ploidy_read_path_probs.col(i) = read_path_probs.col(path_indices_sample.first.at(i));
+            }
 
             ploidy_read_path_probs = ploidy_read_path_probs.array().colwise() / ploidy_read_path_probs.rowwise().sum().array();
             ploidy_read_path_probs = ploidy_read_path_probs.array().colwise() * (1 - noise_probs.array());
@@ -363,38 +372,38 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
             
             expectationMaximizationEstimator(&ploidy_abundances, ploidy_read_path_probs, read_counts);
 
-            for (size_t j = 0; j < ploidy_path_indices.size(); j += 2) {
+            for (size_t i = 0; i < path_indices_sample.first.size(); i += 2) {
 
-                if (ploidy_abundances.confidence(j) > 0) {
+                if (ploidy_abundances.confidence(i) > 0) {
 
-                    assert(doubleCompare(ploidy_abundances.confidence(j), 1));
+                    assert(doubleCompare(ploidy_abundances.confidence(i), 1));
 
-                    path_abundances.abundances.confidence(ploidy_path_indices.at(j)) += ploidy_abundances.confidence(j);
-                    path_abundances.abundances.expression(ploidy_path_indices.at(j)) += ploidy_abundances.expression(j);
+                    path_abundances.abundances.confidence(path_indices_sample.first.at(i)) += (ploidy_abundances.confidence(i) * path_indices_sample.second);
+                    path_abundances.abundances.expression(path_indices_sample.first.at(i)) += (ploidy_abundances.expression(i) * path_indices_sample.second);
                 }
             }
 
-            for (size_t j = 1; j < ploidy_path_indices.size(); j += 2) {
+            for (size_t i = 1; i < path_indices_sample.first.size(); i += 2) {
 
-                if (ploidy_abundances.confidence(j) > 0) {
+                if (ploidy_abundances.confidence(i) > 0) {
 
-                    assert(doubleCompare(ploidy_abundances.confidence(j), 1));
+                    assert(doubleCompare(ploidy_abundances.confidence(i), 1));
 
-                    if (ploidy_path_indices.at(j - 1) != ploidy_path_indices.at(j)) {
+                    if (path_indices_sample.first.at(i - 1) != path_indices_sample.first.at(i)) {
                         
-                        path_abundances.abundances.confidence(ploidy_path_indices.at(j)) += ploidy_abundances.confidence(j);
+                        path_abundances.abundances.confidence(path_indices_sample.first.at(i)) += (ploidy_abundances.confidence(i) * path_indices_sample.second);
                     }
                     
-                    path_abundances.abundances.expression(ploidy_path_indices.at(j)) += ploidy_abundances.expression(j);
+                    path_abundances.abundances.expression(path_indices_sample.first.at(i)) += (ploidy_abundances.expression(i) * path_indices_sample.second);
                 }
             }
 
-            assert(ploidy_abundances.confidence.cols() == ploidy_path_indices.size() + 1);
+            assert(ploidy_abundances.confidence.cols() == path_indices_sample.first.size() + 1);
 
-            if (ploidy_abundances.confidence(ploidy_path_indices.size()) > 0) {
+            if (ploidy_abundances.confidence(path_indices_sample.first.size()) > 0) {
 
-                path_abundances.abundances.confidence(cluster_paths.size()) += ploidy_abundances.confidence(ploidy_path_indices.size());
-                path_abundances.abundances.expression(cluster_paths.size()) += ploidy_abundances.expression(ploidy_path_indices.size());  
+                path_abundances.abundances.confidence(cluster_paths.size()) += (ploidy_abundances.confidence(path_indices_sample.first.size()) * path_indices_sample.second);
+                path_abundances.abundances.expression(cluster_paths.size()) += (ploidy_abundances.expression(path_indices_sample.first.size()) * path_indices_sample.second);  
             }
         }
 

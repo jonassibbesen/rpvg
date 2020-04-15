@@ -99,7 +99,7 @@ spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & fi
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("rpvg", "rpvg - infers path probabilities and abundances from variation graph read aligments");
+    cxxopts::Options options("rpvg", "rpvg - infers path likelihoods and abundances from variation graph read alignments");
 
     options.add_options("Required")
       ("g,graph", "xg graph filename", cxxopts::value<string>())
@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Alignment")
       ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
-      ("l,long-reads", "alignment input is non-fragmented long reads (single-end only)", cxxopts::value<bool>())
+      ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
       ;
 
     options.add_options("Probability")
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
 
     options.add_options("Abundance")
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
-      ("c,min-read-count", "minimum read count", cxxopts::value<double>()->default_value("0.001"))
+      ("c,min-read-count", "minimum read count and max difference needed to stop EM early", cxxopts::value<double>()->default_value("0.001"))
       ("y,ploidy", "sample ploidy (used for haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
       ("n,num-hap-its", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())

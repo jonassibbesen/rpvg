@@ -21,19 +21,15 @@ The number of threads can be given using `-t`.
 
 #### Inference models:
 The method currently contains three different inference models. Each model have been written with a particurlar path type and corresponding inference problem in mind:
-* `transcripts`: Uses Expectation Maximization (EM) to infer the abundances.
-* `strains`: Uses a combination of a weighted minimim path cover and EM. **Note that this algorithm is work in progress and have therefore not been properly evalauted yet**.
-* `haplotype-transcripts`: Uses a combination of a maximum likelihood haplotype/diplotype estimator and EM. The ploidy can be given using `-y`.
+* `transcripts`: Utilizes Expectation Maximization (EM) to infer the abundances.
+* `strains`: Utilizes a combination of a weighted minimim path cover and EM. **Note that this algorithm is work in progress and have therefore not been properly evalauted yet**.
+* `haplotype-transcripts`: Utilizes a combination of a maximum likelihood haplotype/diplotype estimator and EM. The algorithm requires a file (`--path-origin`) containing the transcript origin of each path (`--write-info` output from *vg rna*). The ploidy can be given using `-y`.
 
 #### Alignment types:
 * Use `-u` if the input alignment format is multipath (*.gamp*) from *vg mpmap*.
 * Use `-s` for single-end reads. Note that the fragment length distribtion will still be used for calculating the effective path length.
-* Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but without the effective path length.
+* Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but without using the effective path length.
 
 #### Fragment length distribution:
 Fragment length distribution mean and standard deviation can be given using `-m` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. 
-
-
-
-
 

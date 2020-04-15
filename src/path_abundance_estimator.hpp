@@ -64,5 +64,24 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         spp::sparse_hash_map<string, uint32_t> grouping;
 };
 
+namespace std {
+
+    template<> 
+    struct hash<vector<uint32_t> >
+    {
+        size_t operator()(vector<uint32_t> const & vec) const
+        {
+            size_t seed = 0;
+
+            for (auto & val: vec) {
+
+                spp::hash_combine(seed, val);
+            }
+
+            return seed;
+        }
+    };
+}
+
  
 #endif
