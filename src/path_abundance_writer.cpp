@@ -4,7 +4,7 @@
 #include <iomanip>
 
 
-PathAbundanceWriter::PathAbundanceWriter(const bool use_stdout_in, const string filename, const double precision) : use_stdout(use_stdout_in), precision_digits(ceil(-1 * log10(precision))) {
+PathAbundanceWriter::PathAbundanceWriter(const bool use_stdout_in, const string filename) : use_stdout(use_stdout_in) {
 
     streambuf * writer_buffer;
 
@@ -21,7 +21,6 @@ PathAbundanceWriter::PathAbundanceWriter(const bool use_stdout_in, const string 
     }
 
     writer_stream = new ostream(writer_buffer);
-    *writer_stream << fixed;
     *writer_stream << "Name\tGroupID\tLength\tEffectiveLength\tIsExpressedConfidence\tMeanGroupExpression\tMeanReadCount\tMeanTPM" << endl;
 }
 
@@ -75,9 +74,9 @@ void PathAbundanceWriter::writeThreadedPathClusterAbundances(const vector<vector
 
                 *writer_stream << path_abundances.paths.at(i).name;
                 *writer_stream << "\t" << group_id;
-                *writer_stream << "\t" << setprecision(3) << path_abundances.paths.at(i).length;
+                *writer_stream << "\t" << path_abundances.paths.at(i).length;
                 *writer_stream << "\t" << path_abundances.paths.at(i).effective_length;
-                *writer_stream << "\t" << setprecision(precision_digits) << path_abundances.abundances.confidence(0, i);
+                *writer_stream << "\t" << path_abundances.abundances.confidence(0, i);
                 *writer_stream << "\t" << path_abundances.abundances.expression(0, i);
                 *writer_stream << "\t" << path_abundances.abundances.expression(0, i) * path_abundances.abundances.read_count;
                 *writer_stream << "\t" << transcript_count / transcript_count_sum * pow(10, 6);

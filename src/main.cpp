@@ -33,7 +33,9 @@
 
 
 static const uint32_t read_path_cluster_probs_buffer_size = 100;
+
 static const double prob_out_precision = pow(10, -8);
+static const double abundance_out_precision = pow(10, -6);
 
 void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> * align_paths_index, vector<AlignmentPath> * align_paths, const double mean_fragment_length) {
 
@@ -126,10 +128,10 @@ int main(int argc, char* argv[]) {
       ;
 
     options.add_options("Abundance")
-      ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("100000"))
+      ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-read-count", "minimum read count", cxxopts::value<double>()->default_value("0.001"))
       ("y,ploidy", "sample ploidy (used for haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
-      ("n,num-hap-its", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("10"))
+      ("n,num-hap-its", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
@@ -530,7 +532,7 @@ int main(int argc, char* argv[]) {
     delete prob_matrix_writer;
     delete path_abundance_estimator;
 
-    PathAbundanceWriter path_abundance_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>(), option_results["min-read-count"].as<double>());
+    PathAbundanceWriter path_abundance_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>());
     path_abundance_writer.writeThreadedPathClusterAbundances(threaded_path_cluster_abundances);
 
     double time8 = gbwt::readTimer();

@@ -5,13 +5,15 @@
 #include "discrete_sampler.hpp"
 
 
+const uint32_t max_em_min_read_count = 10;
+
 PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in) : max_em_its(max_em_its_in), min_read_count(min_read_count_in) {}
 
 PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths) {
 
     if (!cluster_probs.empty()) {
 
-        PathAbundances path_abundances(cluster_paths, true);
+        PathAbundances path_abundances(cluster_paths, true, false);
 
         Eigen::ColMatrixXd read_path_probs(cluster_probs.size(), cluster_paths.size() + 1);
         Eigen::RowVectorXui read_counts(cluster_probs.size());
@@ -40,18 +42,15 @@ PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<p
     }
 }
 
-void PathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) {
+void PathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const {
 
     abundances->read_count = read_counts.sum();
     assert(abundances->read_count > 0);
 
     Eigen::RowVectorXd prev_read_counts = abundances->expression * abundances->read_count;
-
-    uint32_t num_it = 0;
+    uint32_t em_min_read_count = 0;
 
     for (size_t i = 0; i < max_em_its; ++i) {
-
-        num_it++;
 
         Eigen::ColMatrixXd posteriors = read_path_probs.array().rowwise() * abundances->expression.array();
         posteriors = posteriors.array().colwise() / posteriors.rowwise().sum().array();
@@ -60,16 +59,21 @@ void PathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abund
 
         if ((abundances->expression.array() - prev_read_counts.array()).abs().maxCoeff() < min_read_count) {
 
-            break;
+            em_min_read_count++;
+
+            if (em_min_read_count == max_em_min_read_count) {
+
+                break;
+            }
+        
+        } else {
+
+            em_min_read_count = 1;
         } 
 
         prev_read_counts = abundances->expression;
         abundances->expression /= abundances->read_count;   
     }
-
-    test_mutex.lock();
-    cerr << "EMSTATS\t" << num_it << "\t" << read_path_probs.rows() << "\t" << read_path_probs.cols() << "\t" << read_counts.cols() << "\t" << abundances->read_count << "\t" << min_read_count << endl;
-    test_mutex.unlock();
 
     abundances->expression = abundances->expression / abundances->expression.sum();
 
@@ -175,11 +179,11 @@ PathAbundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const v
         min_path_read_path_probs.col(min_path_read_path_probs.cols() - 1) = noise_probs;
 
         assert(min_path_read_path_probs.cols() > 1);
-        Abundances min_path_abundances(min_path_read_path_probs.cols());
+        Abundances min_path_abundances(min_path_read_path_probs.cols(), false);
         
         expectationMaximizationEstimator(&min_path_abundances, min_path_read_path_probs, read_counts);
 
-        PathAbundances path_abundances(cluster_paths, true);
+        PathAbundances path_abundances(cluster_paths, true, true);
         path_abundances.abundances.read_count = read_counts.sum();
 
         for (size_t j = 0; j < min_path_cover.size(); j++) {
@@ -322,7 +326,7 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
             }
         }
 
-        PathAbundances path_abundances(cluster_paths, true);
+        PathAbundances path_abundances(cluster_paths, true, true);
         path_abundances.abundances.read_count = read_counts.sum();
 
         vector<int32_t> ploidy_path_indices(path_groups.size() * ploidy, -1);
@@ -355,7 +359,7 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
             ploidy_read_path_probs.col(ploidy_read_path_probs.cols() - 1) = noise_probs;
 
             assert(ploidy_read_path_probs.cols() >= ploidy + 1);
-            Abundances ploidy_abundances(ploidy_read_path_probs.cols());
+            Abundances ploidy_abundances(ploidy_read_path_probs.cols(), false);
             
             expectationMaximizationEstimator(&ploidy_abundances, ploidy_read_path_probs, read_counts);
 

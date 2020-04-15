@@ -29,9 +29,7 @@ class PathAbundanceEstimator {
         const uint32_t max_em_its;
         const double min_read_count;
 
-        mutex test_mutex;
-
-        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts);
+        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
         void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;    
 };
 
