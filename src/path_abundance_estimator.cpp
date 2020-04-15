@@ -68,7 +68,7 @@ void PathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abund
     }
 
     test_mutex.lock();
-    cerr << "EMSTATS\t" << num_it << "\t" << read_path_probs.rows() << "\t" << read_path_probs.cols() << "\t" << read_counts.cols() << "\t" << abundances->read_count << endl;
+    cerr << "EMSTATS\t" << num_it << "\t" << read_path_probs.rows() << "\t" << read_path_probs.cols() << "\t" << read_counts.cols() << "\t" << abundances->read_count << "\t" << min_read_count << endl;
     test_mutex.unlock();
 
     abundances->expression = abundances->expression / abundances->expression.sum();
