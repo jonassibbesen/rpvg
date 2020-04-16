@@ -18,21 +18,19 @@ class ProbabilityMatrixWriter {
 
     public: 
     	
-    	ProbabilityMatrixWriter(const bool use_stdout_in, const string filename, const double precision_in);
+    	ProbabilityMatrixWriter(const bool use_stdout_in, const string filename, const double prob_precision_in);
     	~ProbabilityMatrixWriter();
 
     	void lockWriter();
     	void unlockWriter();
 
-        void writeReadPathProbabilityCluster(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths);
-
-        bool collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2) const;
+        void writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths);
 
     private:
 
     	const bool use_stdout;
-        const double precision;
-        const uint32_t precision_digits;
+        const double prob_precision;
+        const uint32_t prob_precision_digits;
 
 	    ofstream writer_file;
     	ostream * writer_stream;

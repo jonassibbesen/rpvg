@@ -4,7 +4,7 @@
 #include <iomanip>
 
 
-ProbabilityMatrixWriter::ProbabilityMatrixWriter(const bool use_stdout_in, const string filename, const double precision_in) : use_stdout(use_stdout_in), precision(precision_in), precision_digits(ceil(-1 * log10(precision))) {
+ProbabilityMatrixWriter::ProbabilityMatrixWriter(const bool use_stdout_in, const string filename, const double prob_precision_in) : use_stdout(use_stdout_in), prob_precision(prob_precision_in), prob_precision_digits(ceil(-1 * log10(prob_precision))) {
 
     streambuf * writer_buffer;
 
@@ -44,26 +44,6 @@ void ProbabilityMatrixWriter::unlockWriter() {
 	writer_mutex.unlock();
 }
 
-bool ProbabilityMatrixWriter::collapseReadPathProbabilities(const ReadPathProbabilities & cluster_probs_1, const ReadPathProbabilities & cluster_probs_2) const {
-
-    assert(cluster_probs_1.probabilities().size() == cluster_probs_2.probabilities().size());
-
-    if (abs(cluster_probs_1.noiseProbability() - cluster_probs_2.noiseProbability()) < precision) {
-
-        for (size_t i = 0; i < cluster_probs_1.probabilities().size(); ++i) {
-
-            if (abs(cluster_probs_1.probabilities().at(i) - cluster_probs_2.probabilities().at(i)) >= precision) {
-
-                return false;
-            }
-        }
-
-        return true;
-    } 
-
-    return false;
-}
-
 void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs, const bool write_zero) {
 
     for (auto & prob: collpased_probs) {
@@ -90,7 +70,7 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
     }
 }
 
-void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<ReadPathProbabilities, uint32_t> > & cluster_probs, const vector<Path> & cluster_paths) {
+void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
 
     assert(!cluster_paths.empty());
 
@@ -107,33 +87,16 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<pair<
 
     if (!cluster_probs.empty()) {
 
-        *writer_stream << setprecision(precision_digits);
+        *writer_stream << setprecision(prob_precision_digits);
 
-        assert(cluster_probs.front().first.probabilities().size() == cluster_paths.size());
+        for (auto & probs: cluster_probs) {
 
-        uint32_t read_count = cluster_probs.front().second;
-        uint32_t prev_unique_probs_idx = 0;
+            assert(probs.probabilities().size() == cluster_paths.size());
 
-        for (size_t i = 1; i < cluster_probs.size(); ++i) {
-
-            if (collapseReadPathProbabilities(cluster_probs.at(prev_unique_probs_idx).first, cluster_probs.at(i).first)) {
-
-                read_count += cluster_probs.at(i).second;
-            
-            } else {
-
-                *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noiseProbability() << " ";
-                writeCollapsedProbabilities(cluster_probs.at(prev_unique_probs_idx).first.collapsedProbabilities(precision), false);
-                *writer_stream << endl;
-
-                read_count = cluster_probs.at(i).second;
-                prev_unique_probs_idx = i;
-            }
+            *writer_stream << probs.readCount() << " " << probs.noiseProbability() << " ";
+            writeCollapsedProbabilities(probs.collapsedProbabilities(prob_precision), false);
+            *writer_stream << endl;
         }
-
-        *writer_stream << read_count << " " << cluster_probs.at(prev_unique_probs_idx).first.noiseProbability() << " ";
-        writeCollapsedProbabilities(cluster_probs.at(prev_unique_probs_idx).first.collapsedProbabilities(precision), false);
-        *writer_stream << endl;
     }
 }
 

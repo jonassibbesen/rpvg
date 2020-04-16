@@ -32,10 +32,8 @@
 #include "path_abundance_writer.hpp"
 
 
-static const uint32_t read_path_cluster_probs_buffer_size = 100;
-
-static const double prob_out_precision = pow(10, -8);
-static const double abundance_out_precision = pow(10, -6);
+const uint32_t read_path_cluster_probs_buffer_size = 100;
+const double prob_precision = pow(10, -8);
 
 void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> * align_paths_index, vector<AlignmentPath> * align_paths, const double mean_fragment_length) {
 
@@ -387,7 +385,7 @@ int main(int argc, char* argv[]) {
     double time7 = gbwt::readTimer();
     cerr << "Clustered alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    vector<vector<vector<pair<ReadPathProbabilities, uint32_t> > > > threaded_read_path_cluster_probs_buffer(num_threads);
+    vector<vector<vector<ReadPathProbabilities> > > threaded_read_path_cluster_probs_buffer(num_threads);
     vector<vector<PathAbundances> > threaded_path_cluster_abundances(num_threads);
 
     for (size_t i = 0; i < num_threads; ++i) {
@@ -401,7 +399,7 @@ int main(int argc, char* argv[]) {
    
     if (option_results.count("prob-output")) {
 
-        prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["prob-output"].as<string>(), prob_out_precision);
+        prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["prob-output"].as<string>(), prob_precision);
     }
 
     PathAbundanceEstimator * path_abundance_estimator;
@@ -440,9 +438,9 @@ int main(int argc, char* argv[]) {
 
             auto align_paths_cluster_idx = align_paths_clusters_indices.at(i);
 
-            vector<vector<pair<ReadPathProbabilities, uint32_t> > > * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
+            vector<vector<ReadPathProbabilities> > * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
-            read_path_cluster_probs_buffer->emplace_back(vector<pair<ReadPathProbabilities, uint32_t> >());            
+            read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>());            
             read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
@@ -478,12 +476,33 @@ int main(int argc, char* argv[]) {
 
             for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
-                read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(clustered_path_index.size(), score_log_base, fragment_length_dist), align_paths->second);
-                read_path_cluster_probs_buffer->back().back().first.calcReadPathProbabilities(align_paths->first, clustered_path_index, cluster_paths, is_single_end);
+                read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
+                read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, clustered_path_index, cluster_paths, is_single_end);
+            }
+
+            sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
+
+            if (!read_path_cluster_probs_buffer->back().empty()) {
+
+                uint32_t prev_unique_probs_idx = 0;
+
+                for (size_t i = 1; i < read_path_cluster_probs_buffer->back().size(); ++i) {
+
+                    if (!read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(read_path_cluster_probs_buffer->back().at(i), prob_precision)) {
+
+                        if (prev_unique_probs_idx + 1 < i) {
+
+                            read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx + 1) = move(read_path_cluster_probs_buffer->back().at(i));
+                        }
+
+                        prev_unique_probs_idx++;
+                    }
+                }
+
+                read_path_cluster_probs_buffer->back().resize(prev_unique_probs_idx + 1);
             }
 
             vector<PathAbundances> * path_cluster_abundances = &(threaded_path_cluster_abundances.at(omp_get_thread_num()));
-
             path_cluster_abundances->emplace_back(path_abundance_estimator->inferPathClusterAbundances(read_path_cluster_probs_buffer->back(), cluster_paths));
 
             if (prob_matrix_writer) {
