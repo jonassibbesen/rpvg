@@ -22,7 +22,9 @@ The number of threads can be given using `-t`.
 #### Inference models:
 The method currently contains three different inference models. Each model have been written with a particurlar path type and corresponding inference problem in mind:
 * `transcripts`: Utilizes Expectation Maximization (EM) to infer the abundances.
+
 * `strains`: Utilizes a combination of a weighted minimim path cover and EM. **Note that this algorithm is work in progress and have therefore not been properly evalauted yet**.
+
 * `haplotype-transcripts`: Utilizes a combination of a maximum likelihood haplotype/diplotype estimator and EM. The algorithm requires a file (`--path-origin`) containing the transcript origin of each path (`--write-info` output from *vg rna*). The ploidy can be given using `-y`.
 
 #### Alignment types:
