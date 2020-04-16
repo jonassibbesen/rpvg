@@ -8,6 +8,26 @@
 const uint32_t max_em_min_read_count = 10;
 const double prob_precision = pow(10, -8);
 
+bool probabilityCountRowsSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, const pair<Eigen::RowVectorXd, uint32_t> & rhs) { 
+
+    assert(lhs.first.cols() == rhs.first.cols());
+
+    for (size_t i = 0; i < lhs.first.cols(); ++i) {
+
+        if (!doubleCompare(lhs.first(i), rhs.first(i))) {
+
+            return (lhs.first(i) < rhs.first(i));    
+        }         
+    }   
+
+    if (lhs.second != rhs.second) {
+
+        return (lhs.second < rhs.second);
+    }
+
+    return false;
+}
+
 PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in) : max_em_its(max_em_its_in), min_read_count(min_read_count_in) {}
 
 PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
@@ -68,6 +88,28 @@ void PathAbundanceEstimator::addNoiseToProbabilityMatrix(Eigen::ColMatrixXd * re
     read_path_probs->col(read_path_probs->cols() - 1) = noise_probs;
 }
 
+void PathAbundanceEstimator::sortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) const {
+
+    assert(read_path_probs->rows() > 0);
+    assert(read_path_probs->rows() == read_counts->cols());
+
+    vector<pair<Eigen::RowVectorXd, uint32_t> > read_path_prob_rows;
+    read_path_prob_rows.reserve(read_path_probs->rows());
+
+    for (size_t i = 0; i < read_path_probs->rows(); ++i) {
+
+        read_path_prob_rows.emplace_back(read_path_probs->row(i), (*read_counts)(i));
+    }
+
+    sort(read_path_prob_rows.begin(), read_path_prob_rows.end(), probabilityCountRowsSorter);
+
+    for (size_t i = 0; i < read_path_probs->rows(); ++i) {
+    
+        read_path_probs->row(i) = read_path_prob_rows.at(i).first;
+        (*read_counts)(i) = read_path_prob_rows.at(i).second;
+    }    
+}
+
 void PathAbundanceEstimator::collapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) const {
 
     assert(read_path_probs->rows() > 0);
@@ -102,11 +144,6 @@ void PathAbundanceEstimator::collapseProbabilityMatrix(Eigen::ColMatrixXd * read
 
             prev_unique_probs_row++;
         }
-    }
-
-    if (prev_unique_probs_row + 1 != read_path_probs->rows()) {
-
-        cerr << read_path_probs->rows() << " " << prev_unique_probs_row + 1 << endl;
     }
 
     read_path_probs->conservativeResize(prev_unique_probs_row + 1, read_path_probs->cols());
@@ -243,6 +280,8 @@ PathAbundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const v
         }
         
         addNoiseToProbabilityMatrix(&min_path_read_path_probs, noise_probs);
+
+        // sortProbabilityMatrix(&min_path_read_path_probs, &read_counts);
         collapseProbabilityMatrix(&min_path_read_path_probs, &read_counts);
 
         assert(min_path_read_path_probs.cols() > 1);
@@ -418,14 +457,15 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
 
             addNoiseToProbabilityMatrix(&ploidy_read_path_probs, noise_probs);
 
-            // auto ploidy_read_counts = read_counts;
-            // collapseProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
-            // assert(ploidy_read_counts.sum() == read_counts.sum());
+            auto ploidy_read_counts = read_counts;
+            // sortProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
+            collapseProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
+            assert(ploidy_read_counts.sum() == read_counts.sum());
 
             assert(ploidy_read_path_probs.cols() >= ploidy + 1);
             Abundances ploidy_abundances(ploidy_read_path_probs.cols(), false);
             
-            expectationMaximizationEstimator(&ploidy_abundances, ploidy_read_path_probs, read_counts);
+            expectationMaximizationEstimator(&ploidy_abundances, ploidy_read_path_probs, ploidy_read_counts);
 
             for (size_t i = 0; i < path_indices_sample.first.size(); i += 2) {
 
