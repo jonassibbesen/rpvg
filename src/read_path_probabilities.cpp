@@ -129,30 +129,31 @@ bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathPr
 
 vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbabilities(const double precision) const {
 
-    vector<pair<double, vector<uint32_t> > > collpased_probs;
+    vector<pair<double, vector<uint32_t> > > collapsed_probs;
 
     for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
-        auto collpased_probs_it = collpased_probs.begin();
+        auto collapsed_probs_it = collapsed_probs.begin();
 
-        while (collpased_probs_it != collpased_probs.end()) {
+        while (collapsed_probs_it != collapsed_probs.end()) {
 
-            if (abs(collpased_probs_it->first - read_path_probs.at(i)) < precision) {
+            if (abs(collapsed_probs_it->first - read_path_probs.at(i)) < precision) {
 
-                collpased_probs_it->second.emplace_back(i);
+                collapsed_probs_it->second.emplace_back(i);
                 break;
             }
             
-            ++collpased_probs_it;
+            ++collapsed_probs_it;
         }
 
-        if (collpased_probs_it == collpased_probs.end()) {
+        if (collapsed_probs_it == collapsed_probs.end()) {
 
-            collpased_probs.emplace_back(read_path_probs.at(i), vector<uint32_t>(1, i));
+            collapsed_probs.emplace_back(read_path_probs.at(i), vector<uint32_t>(1, i));
         }
     }
 
-    return collpased_probs;
+    sort(collapsed_probs.begin(), collapsed_probs.end());
+    return collapsed_probs;
 }
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 

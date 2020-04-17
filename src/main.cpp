@@ -406,15 +406,15 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "transcripts") {
 
-        path_abundance_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>());
+        path_abundance_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
 
     } else if (inference_model == "strains") {
 
-        path_abundance_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>());
+        path_abundance_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>());
+        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
      
         path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 

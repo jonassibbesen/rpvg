@@ -6,7 +6,6 @@
 
 
 const uint32_t max_em_min_read_count = 10;
-const double prob_precision = pow(10, -8);
 
 bool probabilityCountRowsSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, const pair<Eigen::RowVectorXd, uint32_t> & rhs) { 
 
@@ -28,7 +27,7 @@ bool probabilityCountRowsSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, 
     return false;
 }
 
-PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in) : max_em_its(max_em_its_in), min_read_count(min_read_count_in) {}
+PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in, const double prob_precision_in) : max_em_its(max_em_its_in), min_read_count(min_read_count_in), prob_precision(prob_precision_in) {}
 
 PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
 
@@ -40,6 +39,9 @@ PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<R
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs);
         addNoiseToProbabilityMatrix(&read_path_probs, noise_probs);
+
+        sortProbabilityMatrix(&read_path_probs, &read_counts);
+        collapseProbabilityMatrix(&read_path_probs, &read_counts);
 
         PathAbundances path_abundances(cluster_paths, true, false);
 
@@ -216,7 +218,7 @@ void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(Abundances * ab
     abundances->read_count -= noise_read_count;
 }
 
-MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count) : PathAbundanceEstimator(max_em_its, min_read_count) {}
+MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count, const double prob_precision) : PathAbundanceEstimator(max_em_its, min_read_count, prob_precision) {}
 
 PathAbundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
 
@@ -281,7 +283,7 @@ PathAbundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const v
         
         addNoiseToProbabilityMatrix(&min_path_read_path_probs, noise_probs);
 
-        // sortProbabilityMatrix(&min_path_read_path_probs, &read_counts);
+        sortProbabilityMatrix(&min_path_read_path_probs, &read_counts);
         collapseProbabilityMatrix(&min_path_read_path_probs, &read_counts);
 
         assert(min_path_read_path_probs.cols() > 1);
@@ -354,7 +356,7 @@ vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const E
     return min_path_cover;
 }
 
-NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count) : num_nested_its(num_nested_its_in), ploidy(ploidy_in), PathAbundanceEstimator(max_em_its, min_read_count) {
+NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count, const double prob_precision) : num_nested_its(num_nested_its_in), ploidy(ploidy_in), PathAbundanceEstimator(max_em_its, min_read_count, prob_precision) {
 
     assert(ploidy >= 1 && ploidy <= 2);
     mt_rng = mt19937(rng_seed);
@@ -458,7 +460,7 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
             addNoiseToProbabilityMatrix(&ploidy_read_path_probs, noise_probs);
 
             auto ploidy_read_counts = read_counts;
-            // sortProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
+            sortProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
             collapseProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
             assert(ploidy_read_counts.sum() == read_counts.sum());
 

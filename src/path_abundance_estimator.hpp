@@ -19,7 +19,7 @@ class PathAbundanceEstimator {
 
     public:
 
-        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in);
+        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in, const double prob_precision_in);
         virtual ~PathAbundanceEstimator() {};
 
         virtual PathAbundances inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths);
@@ -28,6 +28,7 @@ class PathAbundanceEstimator {
 
         const uint32_t max_em_its;
         const double min_read_count;
+        const double prob_precision;
 
         void constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs) const;
         void addNoiseToProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, const Eigen::ColVectorXd & noise_probs) const;
@@ -43,7 +44,7 @@ class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count);
+        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count, const double prob_precision);
         ~MinimumPathAbundanceEstimator() {};
 
         PathAbundances inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths);
@@ -55,7 +56,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count);
+        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count, const double prob_precision);
         ~NestedPathAbundanceEstimator() {};
 
         PathAbundances inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths);
