@@ -218,12 +218,9 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
 }
 
 inline string pb2json(const google::protobuf::Message &msg) {
-    // Set options to preserve field names and not camel case them
-    google::protobuf::util::JsonPrintOptions opts;
-    opts.preserve_proto_field_names = true;
 
 	string buffer;
-    auto status = google::protobuf::util::MessageToJsonString(msg, &buffer, opts);
+    auto status = google::protobuf::util::MessageToJsonString(msg, &buffer);
     
     if (!status.ok()) {
         throw runtime_error("Could not serialize " + msg.GetTypeName() + ": " + status.ToString());

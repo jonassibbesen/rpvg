@@ -212,7 +212,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
 
         auto & cur_align_search_path = align_search_paths_queue.front();
 
-        const vg::Subpath & subpath = subpaths[cur_align_search_path.second];
+        const vg::Subpath & subpath = subpaths.Get(cur_align_search_path.second);
 
         cur_align_search_path.first.scores.back() += subpath.score();
         extendAlignmentPath(&cur_align_search_path.first, subpath.path());
