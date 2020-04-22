@@ -3,7 +3,7 @@ Method for inferring path likelihoods and abundances from variation graph read a
 
 
 ### Compilation
-*rpvg* requires that [protobuf](https://github.com/protocolbuffers/protobuf), [htslib](https://github.com/samtools/htslib) and OpenMP are installed before compilation. 
+*rpvg* requires that [protobuf 3.9.1](https://github.com/protocolbuffers/protobuf), [htslib](https://github.com/samtools/htslib) and OpenMP are installed before compilation. 
 
 1. `git clone --recursive https://github.com/jonassibbesen/rpvg.git`
 2. `cd rpvg`
