@@ -4,11 +4,13 @@ MAINTAINER jsibbese@ucsc.edu
 
 WORKDIR /home
 
+
 ### Install essential tools (including protobuf)
 
 RUN apt-get update && \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wget git autoconf automake make cmake gcc g++ pkg-config protobuf-compiler libprotoc-dev libprotobuf-dev && \
     rm -rf /var/lib/apt/lists/*
+
 
 ### Install htslib 
 
@@ -24,6 +26,7 @@ RUN wget --no-check-certificate https://github.com/samtools/htslib/releases/down
 	make install && \
  	cd .. && \
  	rm -r htslib-1.9*
+
 
 ### Compile rpvg 
 
