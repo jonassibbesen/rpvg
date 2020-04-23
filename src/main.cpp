@@ -202,7 +202,9 @@ int main(int argc, char* argv[]) {
         rng_seed = time(nullptr);
     }
 
-    cerr << "Random number generator seed set to: " << rng_seed << "" << endl;
+
+    cerr << "Running rpvg (commit: " << GIT_COMMIT << ")" << endl;
+    cerr << "Random number generator seed: " << rng_seed << endl;
 
     bool is_single_end = option_results.count("single-end");
     bool is_long_reads = option_results.count("long-reads");
