@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
     options.add_options("General")
       ("o,output", "output filename", cxxopts::value<string>()->default_value("stdout"))    
       ("t,threads", "number of compute threads", cxxopts::value<uint32_t>()->default_value("1"))
-      ("r,rng-seed", "seed for random number generator (default: unix time)", cxxopts::value<int64_t>())
+      ("r,rng-seed", "seed for random number generator (default: unix time)", cxxopts::value<uint64_t>())
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
