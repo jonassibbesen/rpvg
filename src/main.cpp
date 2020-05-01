@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
     options.add_options("General")
       ("o,output", "output filename", cxxopts::value<string>()->default_value("stdout"))    
       ("t,threads", "number of compute threads", cxxopts::value<uint32_t>()->default_value("1"))
-      ("r,rng-seed", "seed for random number generator (default: unix time)", cxxopts::value<int64_t>())
+      ("r,rng-seed", "seed for random number generator (default: unix time)", cxxopts::value<uint64_t>())
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
@@ -373,12 +373,18 @@ int main(int argc, char* argv[]) {
  
     vector<vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t>::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
 
+    cerr << endl;
+    cerr << path_clusters.path_to_cluster_index.size() << endl;
+    cerr << path_clusters.cluster_to_path_index.size() << endl;
+    cerr << endl;
+
     for (size_t i = 0; i < threaded_align_paths_index.size(); ++i) {
 
         auto align_paths_index_it = threaded_align_paths_index.at(i).begin();
 
         while (align_paths_index_it != threaded_align_paths_index.at(i).end()) {
 
+            cerr << align_paths_index_it->first.front().ids.front() << endl;
             align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->first.front().ids.front())).emplace_back(align_paths_index_it);
             ++align_paths_index_it;
         }
