@@ -366,9 +366,12 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    cerr << endl;
     cerr << paths_index.index().metadata.paths() << endl;
     cerr << paths_index.index().metadata.samples() << endl;
     cerr << paths_index.index().metadata.haplotypes() << endl;
+    cerr << paths_index.index().metadata.contigs() << endl;
+    cerr << paths_index.index().sequences() << endl;
 
     auto path_clusters = PathClusters(connected_align_paths, paths_index.index().metadata.paths());
 
@@ -388,7 +391,6 @@ int main(int argc, char* argv[]) {
 
         while (align_paths_index_it != threaded_align_paths_index.at(i).end()) {
 
-            cerr << align_paths_index_it->first.front().ids.front() << endl;
             align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->first.front().ids.front())).emplace_back(align_paths_index_it);
             ++align_paths_index_it;
         }
