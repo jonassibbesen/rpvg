@@ -366,6 +366,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    cerr << paths_index.index().metadata.paths() << endl;
+    cerr << paths_index.index().metadata.samples() << endl;
+    cerr << paths_index.index().metadata.haplotypes() << endl;
+
     auto path_clusters = PathClusters(connected_align_paths, paths_index.index().metadata.paths());
 
     double time6 = gbwt::readTimer();
