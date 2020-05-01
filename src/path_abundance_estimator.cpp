@@ -29,7 +29,7 @@ bool probabilityCountRowsSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, 
 
 PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in, const double prob_precision_in) : max_em_its(max_em_its_in), min_read_count(min_read_count_in), prob_precision(prob_precision_in) {}
 
-PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
+PathAbundances PathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
 
     if (!cluster_probs.empty()) {
 
@@ -220,7 +220,7 @@ void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(Abundances * ab
 
 MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count, const double prob_precision) : PathAbundanceEstimator(max_em_its, min_read_count, prob_precision) {}
 
-PathAbundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
+PathAbundances MinimumPathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
 
     if (!cluster_probs.empty()) {
 
@@ -362,7 +362,7 @@ NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t num_ne
     mt_rng = mt19937(rng_seed);
 }
 
-PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
+PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
 
     if (!cluster_probs.empty()) {
 
@@ -414,10 +414,13 @@ PathAbundances NestedPathAbundanceEstimator::inferPathClusterAbundances(const ve
 
                 for (size_t i = 0; i < group.second.size(); ++i) {
 
-                    for (size_t j = i; j < group.second.size(); ++j) {
+                    group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i), group.second.at(i)}));
+                    group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * (read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(i)) + noise_probs).array().log().matrix());
+
+                    for (size_t j = i + 1; j < group.second.size(); ++j) {
 
                         group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i), group.second.at(j)}));
-                        group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * (read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(j)) + noise_probs).array().log().matrix());
+                        group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * ((read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(j)) + noise_probs).array() * 2).log().matrix());
                     }
                 }
             }

@@ -70,7 +70,7 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
     }
 }
 
-void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
+void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
 
     assert(!cluster_paths.empty());
 

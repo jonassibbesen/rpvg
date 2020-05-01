@@ -6,7 +6,7 @@
 
 #include <Eigen/Dense>
 
-#include "path.hpp"
+#include "path_info.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -39,10 +39,10 @@ struct Abundances {
 
 struct PathAbundances {
         
-    vector<Path> paths;
+    vector<PathInfo> paths;
     Abundances abundances;
 
-    PathAbundances(const vector<Path> & paths_in, const bool add_noise, const bool init_zero) : paths(paths_in){
+    PathAbundances(const vector<PathInfo> & paths_in, const bool add_noise, const bool init_zero) : paths(paths_in) {
 
         abundances = Abundances(paths.size() + static_cast<uint32_t>(add_noise), init_zero);
     }

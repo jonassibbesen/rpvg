@@ -447,13 +447,13 @@ int main(int argc, char* argv[]) {
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
 
-            vector<Path> cluster_paths;
+            vector<PathInfo> cluster_paths;
             cluster_paths.reserve(path_clusters.cluster_to_path_index.at(align_paths_cluster_idx).size());
             
             for (auto & path_id: path_clusters.cluster_to_path_index.at(align_paths_cluster_idx)) {
 
                 assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
-                cluster_paths.emplace_back(Path());
+                cluster_paths.emplace_back(PathInfo());
 
                 cluster_paths.back().name = paths_index.pathName(path_id);
 
