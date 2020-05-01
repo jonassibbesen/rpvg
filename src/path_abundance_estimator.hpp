@@ -4,7 +4,6 @@
 
 #include <vector>
 #include <random>
-#include <mutex>
 
 #include <Eigen/Dense>
 
@@ -29,12 +28,6 @@ class PathAbundanceEstimator {
         const uint32_t max_em_its;
         const double min_read_count;
         const double prob_precision;
-
-        void constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs) const;
-        void addNoiseToProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, const Eigen::ColVectorXd & noise_probs) const;
-
-        void sortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) const;
-        void collapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) const;
 
         void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
         void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;    
@@ -70,25 +63,6 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
         spp::sparse_hash_map<string, uint32_t> grouping;
 };
-
-namespace std {
-
-    template<> 
-    struct hash<vector<uint32_t> >
-    {
-        size_t operator()(vector<uint32_t> const & vec) const
-        {
-            size_t seed = 0;
-
-            for (auto & val: vec) {
-
-                spp::hash_combine(seed, val);
-            }
-
-            return seed;
-        }
-    };
-}
 
  
 #endif

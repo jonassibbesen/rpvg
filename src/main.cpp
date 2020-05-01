@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
       ("g,graph", "xg graph filename", cxxopts::value<string>())
       ("p,paths", "GBWT index filename", cxxopts::value<string>())
       ("a,alignments", "gam(p) alignment filename", cxxopts::value<string>())
-      ("i,inference-model", "inference model to use (transcripts, strains or haplotype-transcripts)", cxxopts::value<string>())
+      ("i,inference-model", "inference model to use (haplotypes, transcripts, strains or haplotype-transcripts)", cxxopts::value<string>())
       ;
 
     options.add_options("General")
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Abundance")
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-read-count", "minimum read count and max difference needed to stop EM early", cxxopts::value<double>()->default_value("0.001"))
-      ("y,ploidy", "sample ploidy (used for haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
+      ("y,ploidy", "sample ploidy (used for haplotype and haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
       ("n,num-hap-its", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
@@ -167,19 +167,27 @@ int main(int argc, char* argv[]) {
 
     if (!option_results.count("inference-model")) {
 
-        cerr << "ERROR: Inference model required (--inference-model). Options: transcripts, strains or haplotype-transcripts." << endl;
+        cerr << "ERROR: Inference model required (--inference-model). Options: haplotypes, transcripts, strains or haplotype-transcripts." << endl;
         return 1;
     }
 
     const string inference_model = option_results["inference-model"].as<string>();
 
-    if (inference_model != "transcripts" && inference_model != "strains" && inference_model != "haplotype-transcripts") {
+    if (inference_model != "haplotypes" && inference_model != "transcripts" && inference_model != "strains" && inference_model != "haplotype-transcripts") {
 
-        cerr << "ERROR: Inference model provided (--inference-model) not supported. Options: transcripts, strains or haplotype-transcripts." << endl;
+        cerr << "ERROR: Inference model provided (--inference-model) not supported. Options: haplotypes, transcripts, strains or haplotype-transcripts." << endl;
         return 1;
     }
+    
+    const uint32_t ploidy = option_results["ploidy"].as<uint32_t>();
 
-    if (option_results["ploidy"].as<uint32_t>() > 2) {
+    if (ploidy == 0) {
+
+        cerr << "ERROR: Ploidy (--ploidy) can not be 0." << endl;
+        return 1;        
+    }
+
+    if (ploidy > 2) {
 
         cerr << "ERROR: Maximum support ploidy (--ploidy) is currently 2." << endl;
         return 1;        
@@ -271,8 +279,13 @@ int main(int argc, char* argv[]) {
     unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
     PathsIndex paths_index(*gbwt_index, *graph);
-
     graph.reset(nullptr);
+
+    if (paths_index.index().metadata.paths() == 0) {
+
+        cerr << "ERROR: The GBWT index does not contain any paths." << endl;
+        return 1;        
+    }
 
     double time2 = gbwt::readTimer();
     cerr << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
@@ -416,7 +429,7 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), option_results["ploidy"].as<uint32_t>(), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
+        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
      
         path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 

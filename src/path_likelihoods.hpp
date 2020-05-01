@@ -1,6 +1,6 @@
 
-#ifndef RPVG_SRC_PATHABUNDANCES_HPP
-#define RPVG_SRC_PATHABUNDANCES_HPP
+#ifndef RPVG_SRC_PATHLIKELIHOODS_HPP
+#define RPVG_SRC_PATHLIKELIHOODS_HPP
 
 #include <vector>
 #include <limits>
@@ -16,9 +16,10 @@ using namespace std;
 struct Likelihoods {
         
     Eigen::RowVectorXd likelihoods;
+    bool is_log; 
     	
    	Likelihoods() {}
-    Likelihoods(const uint32_t num_components, const bool init_log) {
+    Likelihoods(const uint32_t num_components, const bool init_log) : is_log(init_log) {
 
         if (init_log) {
 
@@ -31,34 +32,29 @@ struct Likelihoods {
     }
 };
 
-struct PathLikelihoods {
+struct PathLikelihoods : Likelihoods {
         
     vector<PathInfo> paths;
-    Likelihoods likelihoods;
 
-    PathAbundances(const vector<PathInfo> & paths_in, const bool add_noise, const bool init_log) : paths(paths_in) {
-
-        abundances = Abundances(paths.size() + static_cast<uint32_t>(add_noise), init_log);
+    PathLikelihoods(const vector<PathInfo> & paths_in, const bool init_log) : Likelihoods(paths_in.size(), init_log), paths(paths_in) {
     }
 };
 
-struct PloidyPathLikelihoods {
-        
-    vector<PathInfo> paths;
-    vector<vector<uint32_t> > path_combo;
+struct PathComboLikelihoods : Likelihoods {
+   
+    vector<PathInfo> paths;     
+    vector<vector<uint32_t> > path_combos;
 
-    Likelihoods likelihoods;
+    PathComboLikelihoods(const vector<PathInfo> & paths_in, const uint32_t combo_size, const bool init_log) : Likelihoods((paths_in.size() * (paths_in.size() - 1) / 2) * (combo_size - 1) + paths_in.size(), init_log), paths(paths_in) {
 
-    PathAbundances(const vector<PathInfo> & paths_in, const uint32_t ploidy, const bool init_log) : paths(paths_in) {
+        assert(combo_size == 2);
+        path_combos.reserve((paths.size() * (paths.size() - 1) / 2) * (combo_size - 1) + paths.size());
 
-        assert(ploidy >= 1 && ploidy <= 2);
-        path_combo.reserve(paths.size() * (paths.size() - 1) / 2 + paths.size());
-
-        if (ploidy == 1) {
+        if (combo_size == 1) {
             
             for (uint32_t i = 0; i < paths.size(); ++i) {
 
-                path_combo.emplace_back(vector<uint32_t>({i}));
+                path_combos.emplace_back(vector<uint32_t>({i}));
             }
 
         } else {
@@ -66,13 +62,11 @@ struct PloidyPathLikelihoods {
             for (uint32_t i = 0; i < paths.size(); ++i) {
 
                 for (uint32_t j = i; j < paths.size(); ++j) {
-        
-                    path_combo.emplace_back(vector<uint32_t>({i, j}));
+
+                    path_combos.emplace_back(vector<uint32_t>({i, j}));
                 }
             }
         }
-
-        likelihoods = Likelihoods(path_combo.size(), init_log);
     }
 };
 

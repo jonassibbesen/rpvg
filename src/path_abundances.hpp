@@ -37,15 +37,11 @@ struct Abundances {
     }
 };
 
-struct PathAbundances {
+struct PathAbundances : public Abundances {
         
     vector<PathInfo> paths;
-    Abundances abundances;
 
-    PathAbundances(const vector<PathInfo> & paths_in, const bool add_noise, const bool init_zero) : paths(paths_in) {
-
-        abundances = Abundances(paths.size() + static_cast<uint32_t>(add_noise), init_zero);
-    }
+    PathAbundances(const vector<PathInfo> & paths_in, const bool add_noise, const bool init_zero) : Abundances(paths_in.size() + static_cast<uint32_t>(add_noise), init_zero), paths(paths_in) {}
 };
 
 
