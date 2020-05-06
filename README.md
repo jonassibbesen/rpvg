@@ -11,7 +11,7 @@ Method for inferring path likelihoods and abundances from variation graph read a
 4. `cmake ..`
 5. `make -j <threads>`
 
-#### Docker container
+### Docker container
 A docker container of the latest commit to master is available on [Docker Hub](https://hub.docker.com/repository/docker/jsibbesen/rpvg).
 
 ### Running rpvg
