@@ -8,7 +8,7 @@
 #include <string>
 
 #include "read_path_probabilities.hpp"
-#include "path.hpp"
+#include "path_cluster_estimates.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -24,7 +24,7 @@ class ProbabilityMatrixWriter {
     	void lockWriter();
     	void unlockWriter();
 
-        void writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths);
+        void writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths);
 
     private:
 

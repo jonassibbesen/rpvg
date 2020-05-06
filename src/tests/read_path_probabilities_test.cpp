@@ -16,7 +16,7 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 	unordered_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<Path> paths(2);
+	vector<PathInfo> paths(2);
 	paths.front().effective_length = 3;
 	paths.back().effective_length = 3;
 
@@ -46,10 +46,10 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 		clustered_path_index.emplace(10, 2);
 		clustered_path_index.emplace(50, 3);
 
-		paths.emplace_back(Path());
+		paths.emplace_back(PathInfo());
 		paths.back().effective_length = 3;
 
-		paths.emplace_back(Path());
+		paths.emplace_back(PathInfo());
 		paths.back().effective_length = 3;
 
 		ReadPathProbabilities read_path_probs_3(1, 4, score_log_base, fragment_length_dist);
@@ -86,7 +86,7 @@ TEST_CASE("Identical read path probabilities can be merged") {
 	unordered_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<Path> paths(2);
+	vector<PathInfo> paths(2);
 	paths.front().effective_length = 3;
 	paths.back().effective_length = 3;
 
@@ -103,7 +103,7 @@ TEST_CASE("Identical read path probabilities can be merged") {
 
 	SECTION("Probability precision affect merge") {
 
-		vector<Path> paths(2);
+		vector<PathInfo> paths(2);
 		paths.front().effective_length = 2;
 		paths.back().effective_length = 3;
 
@@ -126,7 +126,7 @@ TEST_CASE("Read path probabilities can be collapsed") {
 	unordered_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}, {10, 2}, {50, 3}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<Path> paths(4);
+	vector<PathInfo> paths(4);
 	paths.at(0).effective_length = 3;
 	paths.at(1).effective_length = 3;
 	paths.at(2).effective_length = 3;

@@ -40,7 +40,7 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<Path> & cluster_paths, const bool is_single_end) {
+void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end) {
 
     assert(!align_paths.empty());
     assert(clustered_path_index.size() == read_path_probs.size());
@@ -106,21 +106,21 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
     }
 }
 
-bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & cluster_probs_2, const double prob_precision) {
+bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & probs_2, const double prob_precision) {
 
-    assert(probabilities().size() == cluster_probs_2.probabilities().size());
+    assert(probabilities().size() == probs_2.probabilities().size());
 
-    if (abs(noiseProbability() - cluster_probs_2.noiseProbability()) < prob_precision) {
+    if (abs(noiseProbability() - probs_2.noiseProbability()) < prob_precision) {
 
         for (size_t i = 0; i < probabilities().size(); ++i) {
 
-            if (abs(probabilities().at(i) - cluster_probs_2.probabilities().at(i)) >= prob_precision) {
+            if (abs(probabilities().at(i) - probs_2.probabilities().at(i)) >= prob_precision) {
 
                 return false;
             }
         }
 
-        addReadCount(cluster_probs_2.readCount());
+        addReadCount(probs_2.readCount());
         return true;
     } 
 

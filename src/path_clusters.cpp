@@ -10,7 +10,7 @@ PathClusters::PathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash
 
     path_to_cluster_index = vector<uint32_t>(num_paths, -1);
 
-    for (size_t i = 0; i < num_paths; ++i) {
+    for (uint32_t i = 0; i < num_paths; ++i) {
 
         if (path_to_cluster_index.at(i) == -1) {
 
