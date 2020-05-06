@@ -19,6 +19,7 @@
 #include "io/register_libvg_io.hpp"
 #include "handlegraph/handle_graph.hpp"
 #include "gssw.h"
+
 #include "utils.hpp"
 #include "fragment_length_dist.hpp"
 #include "paths_index.hpp"
@@ -27,9 +28,11 @@
 #include "path_clusters.hpp"
 #include "read_path_probabilities.hpp"
 #include "probability_matrix_writer.hpp"
-#include "path_abundances.hpp"
+#include "path_estimator.hpp"
+#include "path_likelihood_estimator.hpp"
 #include "path_abundance_estimator.hpp"
-#include "path_abundance_writer.hpp"
+#include "path_cluster_estimates.hpp"
+#include "path_estimates_writer.hpp"
 
 
 const uint32_t read_path_cluster_probs_buffer_size = 100;
@@ -401,11 +404,11 @@ int main(int argc, char* argv[]) {
     cerr << "Clustered alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
     vector<vector<vector<ReadPathProbabilities> > > threaded_read_path_cluster_probs_buffer(num_threads);
-    vector<vector<PathAbundances> > threaded_path_cluster_abundances(num_threads);
+    vector<vector<PathClusterEstimates> > threaded_path_cluster_estimates(num_threads);
 
     for (size_t i = 0; i < num_threads; ++i) {
 
-        threaded_path_cluster_abundances.at(i).reserve(ceil(align_paths_clusters.size()) / static_cast<float>(num_threads));
+        threaded_path_cluster_estimates.at(i).reserve(ceil(align_paths_clusters.size()) / static_cast<float>(num_threads));
     }
 
     ProbabilityMatrixWriter * prob_matrix_writer = nullptr;
@@ -417,19 +420,23 @@ int main(int argc, char* argv[]) {
         prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["prob-output"].as<string>(), prob_precision);
     }
 
-    PathAbundanceEstimator * path_abundance_estimator;
+    PathEstimator * path_estimator;
 
-    if (inference_model == "transcripts") {
+    if (inference_model == "haplotypes") {
 
-        path_abundance_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
+        path_estimator = new PathGroupLikelihoodEstimator(ploidy, true, prob_precision);
+
+    } else if (inference_model == "transcripts") {
+
+        path_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
 
     } else if (inference_model == "strains") {
 
-        path_abundance_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
+        path_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_abundance_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
      
         path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 
@@ -460,39 +467,41 @@ int main(int argc, char* argv[]) {
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
 
-            vector<PathInfo> cluster_paths;
-            cluster_paths.reserve(path_clusters.cluster_to_path_index.at(align_paths_cluster_idx).size());
+            vector<PathClusterEstimates> * path_cluster_estimates = &(threaded_path_cluster_estimates.at(omp_get_thread_num()));
+            path_cluster_estimates->emplace_back(PathClusterEstimates());
+
+            path_cluster_estimates->back().paths.reserve(path_clusters.cluster_to_path_index.at(align_paths_cluster_idx).size());
             
             for (auto & path_id: path_clusters.cluster_to_path_index.at(align_paths_cluster_idx)) {
 
                 assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
-                cluster_paths.emplace_back(PathInfo());
+                path_cluster_estimates->back().paths.emplace_back(PathInfo());
 
-                cluster_paths.back().name = paths_index.pathName(path_id);
+                path_cluster_estimates->back().paths.back().name = paths_index.pathName(path_id);
 
-                auto path_transcript_origin_it = path_transcript_origin.find(cluster_paths.back().name);
+                auto path_transcript_origin_it = path_transcript_origin.find(path_cluster_estimates->back().paths.back().name);
 
                 if (path_transcript_origin_it != path_transcript_origin.end()) {
 
-                    cluster_paths.back().origin = path_transcript_origin_it->second;
+                    path_cluster_estimates->back().paths.back().origin = path_transcript_origin_it->second;
                 }
 
-                cluster_paths.back().length = paths_index.pathLength(path_id); 
+                path_cluster_estimates->back().paths.back().length = paths_index.pathLength(path_id); 
 
                 if (is_long_reads) {
 
-                    cluster_paths.back().effective_length = paths_index.pathLength(path_id); 
+                    path_cluster_estimates->back().paths.back().effective_length = paths_index.pathLength(path_id); 
 
                 } else {
 
-                    cluster_paths.back().effective_length = paths_index.effectivePathLength(path_id, fragment_length_dist); 
+                    path_cluster_estimates->back().paths.back().effective_length = paths_index.effectivePathLength(path_id, fragment_length_dist); 
                 }
             }
 
             for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
                 read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
-                read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, clustered_path_index, cluster_paths, is_single_end);
+                read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
             }
 
             sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
@@ -517,24 +526,23 @@ int main(int argc, char* argv[]) {
                 read_path_cluster_probs_buffer->back().resize(prev_unique_probs_idx + 1);
             }
 
-            vector<PathAbundances> * path_cluster_abundances = &(threaded_path_cluster_abundances.at(omp_get_thread_num()));
-            path_cluster_abundances->emplace_back(path_abundance_estimator->inferPathClusterAbundances(read_path_cluster_probs_buffer->back(), cluster_paths));
+            path_estimator->estimate(&(path_cluster_estimates->back()),read_path_cluster_probs_buffer->back());
 
             if (prob_matrix_writer) {
 
                 if (read_path_cluster_probs_buffer->size() == read_path_cluster_probs_buffer_size) {
 
-                    assert(path_cluster_abundances->size() % read_path_cluster_probs_buffer_size == 0);
+                    assert(path_cluster_estimates->size() % read_path_cluster_probs_buffer_size == 0);
 
-                    assert(path_cluster_abundances->size() >= read_path_cluster_probs_buffer->size());
-                    size_t path_cluster_abundances_idx = path_cluster_abundances->size() - read_path_cluster_probs_buffer->size();
+                    assert(path_cluster_estimates->size() >= read_path_cluster_probs_buffer->size());
+                    size_t path_cluster_estimates_idx = path_cluster_estimates->size() - read_path_cluster_probs_buffer->size();
 
                     prob_matrix_writer->lockWriter();
 
                     for (size_t j = 0; j < read_path_cluster_probs_buffer->size(); ++j) {
 
-                        prob_matrix_writer->writeReadPathProbabilityCluster(read_path_cluster_probs_buffer->at(j), path_cluster_abundances->at(path_cluster_abundances_idx).paths);
-                        ++path_cluster_abundances_idx;
+                        prob_matrix_writer->writeReadPathProbabilityCluster(read_path_cluster_probs_buffer->at(j), path_cluster_estimates->at(path_cluster_estimates_idx).paths);
+                        ++path_cluster_estimates_idx;
                     }
 
                     prob_matrix_writer->unlockWriter();
@@ -552,25 +560,33 @@ int main(int argc, char* argv[]) {
 
         for (size_t i = 0; i < num_threads; ++i) {
 
-            assert(threaded_path_cluster_abundances.at(i).size() >= threaded_read_path_cluster_probs_buffer.at(i).size());
-            size_t path_cluster_abundances_idx = threaded_path_cluster_abundances.at(i).size() - threaded_read_path_cluster_probs_buffer.at(i).size();
+            assert(threaded_path_cluster_estimates.at(i).size() >= threaded_read_path_cluster_probs_buffer.at(i).size());
+            size_t path_cluster_estimates_idx = threaded_path_cluster_estimates.at(i).size() - threaded_read_path_cluster_probs_buffer.at(i).size();
 
             for (size_t j = 0; j < threaded_read_path_cluster_probs_buffer.at(i).size(); ++j) {
 
-                prob_matrix_writer->writeReadPathProbabilityCluster(threaded_read_path_cluster_probs_buffer.at(i).at(j), threaded_path_cluster_abundances.at(i).at(path_cluster_abundances_idx).paths);
-                ++path_cluster_abundances_idx;
+                prob_matrix_writer->writeReadPathProbabilityCluster(threaded_read_path_cluster_probs_buffer.at(i).at(j), threaded_path_cluster_estimates.at(i).at(path_cluster_estimates_idx).paths);
+                ++path_cluster_estimates_idx;
             }
         }
     } 
 
     delete prob_matrix_writer;
-    delete path_abundance_estimator;
+    delete path_estimator;
 
-    PathAbundanceWriter path_abundance_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>());
-    path_abundance_writer.writeThreadedPathClusterAbundances(threaded_path_cluster_abundances);
+    PathEstimatesWriter path_estimates_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>());
+
+    if (inference_model == "haplotypes") {
+
+        path_estimates_writer.writeThreadedPathClusterLikelihoods(threaded_path_cluster_estimates, ploidy); 
+
+    } else {
+
+        path_estimates_writer.writeThreadedPathClusterAbundances(threaded_path_cluster_estimates);    
+    }
 
     double time8 = gbwt::readTimer();
-    cerr << "Inferred path probabilities and abundances " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Inferred path likelihoods and/or abundances " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
 	return 0;
 }

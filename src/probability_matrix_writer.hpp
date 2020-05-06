@@ -8,7 +8,7 @@
 #include <string>
 
 #include "read_path_probabilities.hpp"
-#include "path_info.hpp"
+#include "path_cluster_estimates.hpp"
 #include "utils.hpp"
 
 using namespace std;

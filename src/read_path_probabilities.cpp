@@ -106,21 +106,21 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
     }
 }
 
-bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & cluster_probs_2, const double prob_precision) {
+bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & probs_2, const double prob_precision) {
 
-    assert(probabilities().size() == cluster_probs_2.probabilities().size());
+    assert(probabilities().size() == probs_2.probabilities().size());
 
-    if (abs(noiseProbability() - cluster_probs_2.noiseProbability()) < prob_precision) {
+    if (abs(noiseProbability() - probs_2.noiseProbability()) < prob_precision) {
 
         for (size_t i = 0; i < probabilities().size(); ++i) {
 
-            if (abs(probabilities().at(i) - cluster_probs_2.probabilities().at(i)) >= prob_precision) {
+            if (abs(probabilities().at(i) - probs_2.probabilities().at(i)) >= prob_precision) {
 
                 return false;
             }
         }
 
-        addReadCount(cluster_probs_2.readCount());
+        addReadCount(probs_2.readCount());
         return true;
     } 
 
