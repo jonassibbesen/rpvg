@@ -99,7 +99,12 @@ string PathsIndex::pathName(const uint32_t path_id) const {
     return sstream.str();
 }
 
-uint32_t PathsIndex::pathLength(const uint32_t path_id) const {
+uint32_t PathsIndex::pathLength(uint32_t path_id) const {
+
+    if (index_.bidirectional()) {
+
+        path_id = gbwt::Path::encode(path_id, false);
+    }
 
     uint32_t path_length = 0;
     
