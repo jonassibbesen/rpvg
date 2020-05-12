@@ -586,7 +586,7 @@ int main(int argc, char* argv[]) {
     }
 
     double time8 = gbwt::readTimer();
-    cerr << "Inferred path likelihoods and/or abundances " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Inferred path likelihoods or abundances " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
 	return 0;
 }
