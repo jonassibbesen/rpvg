@@ -26,7 +26,7 @@ class PathsIndex {
         uint32_t nodeLength(const uint32_t node_id) const;
 
         string pathName(const uint32_t path_id) const;
-        uint32_t pathLength(const uint32_t path_id) const;
+        uint32_t pathLength(uint32_t path_id) const;
         double effectivePathLength(const uint32_t path_id, const FragmentLengthDist & fragment_length_dist) const;
 
     private:
