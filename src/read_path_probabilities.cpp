@@ -8,13 +8,7 @@
 #include <sstream>
 
 
-ReadPathProbabilities::ReadPathProbabilities() : score_log_base(1), fragment_length_dist(FragmentLengthDist()) {
-
-    read_count = 1;
-    noise_prob = 1;     
-}
-
-ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const FragmentLengthDist & fragment_length_dist_in) : read_count(read_count_in), score_log_base(score_log_base_in), fragment_length_dist(fragment_length_dist_in) {
+ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const PathsIndex & paths_index_in, const FragmentLengthDist & fragment_length_dist_in) : read_count(read_count_in), score_log_base(score_log_base_in), paths_index(paths_index_in), fragment_length_dist(fragment_length_dist_in) {
 
     noise_prob = 1;
     read_path_probs = vector<double>(num_paths, 0);
@@ -77,7 +71,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
-            for (auto & path: align_paths.at(i).ids) {
+            for (auto & path: paths_index.locatePathIds(align_paths.at(i).search)) {
 
                 uint32_t path_idx = clustered_path_index.at(path);
 
@@ -92,7 +86,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
                     read_path_probs.at(path_idx) /= cluster_paths.at(path_idx).effective_length;
                 }
 
-                read_path_probs_sum += read_path_probs.at(clustered_path_index.at(path));
+                read_path_probs_sum += read_path_probs.at(path_idx);
             }
         }
 

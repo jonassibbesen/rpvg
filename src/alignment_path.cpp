@@ -4,11 +4,9 @@
 #include <algorithm>
 #include <numeric>
 
-AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const vector<gbwt::size_type> & ids_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), score_sum(score_sum_in), ids(ids_in) {}
+AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_search_path) : seq_length(align_search_path.seq_length), mapq_comb(align_search_path.mapqComb()), score_sum(align_search_path.scoreSum()), search(align_search_path.search) {}
 
-AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const vector<gbwt::size_type> & ids_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), ids(ids_in) {}
-
-vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const PathsIndex & paths_index) {
+vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths) {
 
     vector<AlignmentPath> align_paths;
     align_paths.reserve(align_search_paths.size());
@@ -17,53 +15,18 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
         if (align_search_path.complete()) {
 
-            auto align_search_path_ids = paths_index.index().locate(align_search_path.search);
-
-            if (paths_index.index().bidirectional()) {
-
-                for (auto & id: align_search_path_ids) {
-
-                    id = gbwt::Path::id(id);
-                }
-            }
-
-            auto align_paths_it = align_paths.begin();
-
-            while (align_paths_it != align_paths.end()) {
-
-                if (align_paths_it->seq_length == align_search_path.seq_length && align_paths_it->score_sum == align_search_path.scoreSum()) {
-
-                    assert(align_paths_it->mapq_comb == align_search_path.mapqComb());
-                    break;
-                }
-
-                ++align_paths_it;
-            }
-
-            if (align_paths_it == align_paths.end()) {
-
-                align_paths.emplace_back(align_search_path, align_search_path_ids);
-
-            } else {
-
-                align_paths_it->ids.insert(align_paths_it->ids.end(), align_search_path_ids.begin(), align_search_path_ids.end());
-            }
+            align_paths.emplace_back(align_search_path);
         }
     }
 
     align_paths.shrink_to_fit();
-
-    for (auto & align_path: align_paths) {
-
-        sort(align_path.ids.begin(), align_path.ids.end());
-    }
 
     return align_paths;
 }
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.ids == rhs.ids);
+    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.search == rhs.search);
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -88,18 +51,20 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
         return (lhs.score_sum < rhs.score_sum);    
     } 
 
-    if (lhs.ids.size() != rhs.ids.size()) {
+    if (lhs.search.node != rhs.search.node) {
 
-        return (lhs.ids.size() < rhs.ids.size());    
+        return (lhs.search.node < rhs.search.node);    
     } 
 
-    for (size_t i = 0; i < lhs.ids.size(); ++i) {
+    if (lhs.search.range.first != rhs.search.range.first) {
 
-        if (lhs.ids.at(i) != rhs.ids.at(i)) {
+        return (lhs.search.range.first < rhs.search.range.first);    
+    } 
 
-            return (lhs.ids.at(i) < rhs.ids.at(i));    
-        }         
-    }   
+    if (lhs.search.range.second != rhs.search.range.second) {
+
+        return (lhs.search.range.second < rhs.search.range.second);    
+    }
 
     return false;
 }
@@ -109,7 +74,7 @@ ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
     os << align_path.seq_length;
     os << " | " << align_path.mapq_comb;
     os << " | " << align_path.score_sum;
-    os << " | (" << align_path.ids << ")";
+    os << " | (" << align_path.search << ")";
 
     return os;
 }

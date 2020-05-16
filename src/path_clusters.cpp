@@ -8,6 +8,31 @@
 
 PathClusters::PathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths) {
 
+    findPathClusters(connected_paths, num_paths);
+}
+
+PathClusters::PathClusters(const vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > & connected_paths, const uint32_t num_paths) {
+
+    auto merged_connected_paths = connected_paths.front();
+
+    for (size_t i = 1; i < connected_paths.size(); ++i) {
+
+        for (auto & path_component: connected_paths.at(i)) {
+
+            auto merged_connected_paths_it = merged_connected_paths.emplace(path_component.first, spp::sparse_hash_set<uint32_t>());
+
+            for (auto & path_id: path_component.second) {
+
+                merged_connected_paths_it.first->second.emplace(path_id);
+            }
+        }
+    }
+
+    findPathClusters(merged_connected_paths, num_paths);
+}
+
+void PathClusters::findPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths) {
+
     path_to_cluster_index = vector<uint32_t>(num_paths, -1);
 
     for (uint32_t i = 0; i < num_paths; ++i) {

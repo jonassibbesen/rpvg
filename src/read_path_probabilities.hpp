@@ -18,8 +18,7 @@ class ReadPathProbabilities {
 
     public: 
     	
-    	ReadPathProbabilities();
-    	ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const FragmentLengthDist & fragment_length_dist_in);
+    	ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const PathsIndex & paths_index_in, const FragmentLengthDist & fragment_length_dist_in);
 
         uint32_t readCount() const;        
         double noiseProbability() const;
@@ -37,8 +36,10 @@ class ReadPathProbabilities {
         double noise_prob;
         vector<double> read_path_probs;
         
-        double score_log_base;
-        FragmentLengthDist fragment_length_dist;
+        const double score_log_base;
+
+        const PathsIndex & paths_index;
+        const FragmentLengthDist & fragment_length_dist;
 };
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs);

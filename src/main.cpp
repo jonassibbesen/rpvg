@@ -38,7 +38,9 @@
 const uint32_t read_path_cluster_probs_buffer_size = 100;
 const double prob_precision = pow(10, -8);
 
-void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> * align_paths_index, vector<AlignmentPath> * align_paths, const double mean_fragment_length) {
+typedef spp::sparse_hash_map<vector<AlignmentPath>, pair<uint32_t, uint32_t> > align_paths_index_t;
+
+void addAlignmentPathsToIndex(align_paths_index_t * align_paths_index, vector<AlignmentPath> * align_paths, const double mean_fragment_length) {
 
     if (!align_paths->empty()) {
 
@@ -50,8 +52,8 @@ void addAlignmentPathsToIndex(spp::sparse_hash_map<vector<AlignmentPath>, uint32
 
         sort(align_paths->begin(), align_paths->end());
 
-        auto threaded_align_paths_index_it = align_paths_index->emplace(*align_paths, 0);
-        threaded_align_paths_index_it.first->second++;
+        auto threaded_align_paths_index_it = align_paths_index->emplace(*align_paths, make_pair(0, numeric_limits<uint32_t>::max()));
+        threaded_align_paths_index_it.first->second.first++;
     }    
 }
 
@@ -296,7 +298,7 @@ int main(int argc, char* argv[]) {
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
-    vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> > threaded_align_paths_index(num_threads);
+    vector<align_paths_index_t> threaded_align_paths_index(num_threads);
 
     if (is_multipath) {
 
@@ -355,39 +357,60 @@ int main(int argc, char* argv[]) {
 
     alignments_istream.close();
 
-    double time5 = gbwt::readTimer();
-    cerr << "Found alignment paths " << time5 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
-
-    spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths(num_threads);
-
     for (auto & align_paths_index: threaded_align_paths_index) {
 
         cerr << align_paths_index.size() << endl;
+    }
 
-        for (auto & align_paths: align_paths_index) {
+    double time3 = gbwt::readTimer();
+    cerr << "Found alignment paths " << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-            auto anchor_path_id = align_paths.first.front().ids.front();
+    vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > threaded_connected_align_paths(num_threads);
 
-            for (auto & align_path: align_paths.first) {
+    #pragma omp parallel
+    {  
+        #pragma omp for
 
-                for (auto & path_id: align_path.ids) {
+        for (size_t i = 0; i < threaded_align_paths_index.size(); ++i) {
 
-                    if (anchor_path_id != path_id) {
+            auto * connected_align_paths = &(threaded_connected_align_paths.at(i));
 
-                        connected_align_paths[anchor_path_id].emplace(path_id);
-                        connected_align_paths[path_id].emplace(anchor_path_id);
+            for (auto & align_paths: threaded_align_paths_index.at(i)) {
+
+                for (auto & align_path: align_paths.first) {
+    
+                    auto path_ids = paths_index.locatePathIds(align_path.search);
+
+                    if (align_paths.second.second == numeric_limits<uint32_t>::max()) {
+
+                        align_paths.second.second = path_ids.front();
+                    }
+
+                    for (auto & path_id: path_ids) {
+
+                        if (align_paths.second.second != path_id) {
+
+                            auto connected_align_paths_it = connected_align_paths->emplace(align_paths.second.second, spp::sparse_hash_set<uint32_t>());
+                            connected_align_paths_it.first->second.emplace(path_id);
+
+                            connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
+                            connected_align_paths_it.first->second.emplace(align_paths.second.second);
+                        }
                     }
                 }
             }
         }
     }
 
-    auto path_clusters = PathClusters(connected_align_paths, paths_index.index().metadata.paths());
+    double time5 = gbwt::readTimer();
+    cerr << "Found connected alignment paths " << time5 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+
+    auto path_clusters = PathClusters(threaded_connected_align_paths, paths_index.index().metadata.paths());
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path cluster index " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
  
-    vector<vector<spp::sparse_hash_map<vector<AlignmentPath>, uint32_t>::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
+    vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
 
     for (size_t i = 0; i < threaded_align_paths_index.size(); ++i) {
 
@@ -395,7 +418,7 @@ int main(int argc, char* argv[]) {
 
         while (align_paths_index_it != threaded_align_paths_index.at(i).end()) {
 
-            align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->first.front().ids.front())).emplace_back(align_paths_index_it);
+            align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->second.second)).emplace_back(align_paths_index_it);
             ++align_paths_index_it;
         }
     }
@@ -460,14 +483,14 @@ int main(int argc, char* argv[]) {
 
             auto align_paths_cluster_idx = align_paths_clusters_indices.at(i);
 
-            vector<vector<ReadPathProbabilities> > * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
+            auto * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
             read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>());            
             read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
 
             unordered_map<uint32_t, uint32_t> clustered_path_index;
 
-            vector<PathClusterEstimates> * path_cluster_estimates = &(threaded_path_cluster_estimates.at(omp_get_thread_num()));
+            auto * path_cluster_estimates = &(threaded_path_cluster_estimates.at(omp_get_thread_num()));
             path_cluster_estimates->emplace_back(PathClusterEstimates());
 
             path_cluster_estimates->back().paths.reserve(path_clusters.cluster_to_path_index.at(align_paths_cluster_idx).size());
@@ -500,30 +523,8 @@ int main(int argc, char* argv[]) {
 
             for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
-                read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
+                read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second.first, clustered_path_index.size(), score_log_base, paths_index, fragment_length_dist));
                 read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
-            }
-
-            sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
-
-            if (!read_path_cluster_probs_buffer->back().empty()) {
-
-                uint32_t prev_unique_probs_idx = 0;
-
-                for (size_t i = 1; i < read_path_cluster_probs_buffer->back().size(); ++i) {
-
-                    if (!read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(read_path_cluster_probs_buffer->back().at(i), prob_precision)) {
-
-                        if (prev_unique_probs_idx + 1 < i) {
-
-                            read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx + 1) = move(read_path_cluster_probs_buffer->back().at(i));
-                        }
-
-                        prev_unique_probs_idx++;
-                    }
-                }
-
-                read_path_cluster_probs_buffer->back().resize(prev_unique_probs_idx + 1);
             }
 
             path_estimator->estimate(&(path_cluster_estimates->back()),read_path_cluster_probs_buffer->back());
