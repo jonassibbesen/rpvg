@@ -18,9 +18,9 @@ class ReadPathProbabilities {
 
     public: 
     	
-    	ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const PathsIndex & paths_index_in, const FragmentLengthDist & fragment_length_dist_in);
+    	ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const FragmentLengthDist & fragment_length_dist_in);
 
-        uint32_t readCount() const;        
+        uint32_t readCount() const;
         double noiseProbability() const;
         const vector<double> & probabilities() const;
 
@@ -37,8 +37,6 @@ class ReadPathProbabilities {
         vector<double> read_path_probs;
         
         const double score_log_base;
-
-        const PathsIndex & paths_index;
         const FragmentLengthDist & fragment_length_dist;
 };
 
