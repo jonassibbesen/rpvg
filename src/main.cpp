@@ -34,13 +34,31 @@
 #include "path_cluster_estimates.hpp"
 #include "path_estimates_writer.hpp"
 
-
+const uint32_t align_paths_buffer_size = 1000;
 const uint32_t read_path_cluster_probs_buffer_size = 100;
 const double prob_precision = pow(10, -8);
 
+mutex align_paths_index_mutex;
+
 typedef spp::sparse_hash_map<vector<AlignmentPath>, pair<uint32_t, uint32_t> > align_paths_index_t;
 
-void addAlignmentPathsToIndex(align_paths_index_t * align_paths_index, vector<AlignmentPath> * align_paths, const double mean_fragment_length) {
+void addAlignmentPathsToIndex(vector<vector<AlignmentPath> > * align_paths_buffer, align_paths_index_t * align_paths_index, const double mean_fragment_length) {
+
+    align_paths_index_mutex.lock();
+
+    for (auto & align_paths: *align_paths_buffer) {
+
+        if (!align_paths.empty()) {
+
+            auto threaded_align_paths_index_it = align_paths_index->emplace(align_paths, make_pair(0, numeric_limits<uint32_t>::max()));
+            threaded_align_paths_index_it.first->second.first++;
+        }   
+    } 
+
+    align_paths_index_mutex.unlock();
+}
+
+void addAlignmentPathsToBuffer(vector<AlignmentPath> * align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, align_paths_index_t * align_paths_index, const double mean_fragment_length) {
 
     if (!align_paths->empty()) {
 
@@ -51,10 +69,14 @@ void addAlignmentPathsToIndex(align_paths_index_t * align_paths_index, vector<Al
         } 
 
         sort(align_paths->begin(), align_paths->end());
+        align_paths_buffer->emplace_back(*align_paths);
+    }         
 
-        auto threaded_align_paths_index_it = align_paths_index->emplace(*align_paths, make_pair(0, numeric_limits<uint32_t>::max()));
-        threaded_align_paths_index_it.first->second.first++;
-    }    
+    if (align_paths_buffer->size() == align_paths_buffer_size) {
+
+        addAlignmentPathsToIndex(align_paths_buffer, align_paths_index, mean_fragment_length);
+        align_paths_buffer->clear();
+    }
 }
 
 spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & filename) {
@@ -298,7 +320,8 @@ int main(int argc, char* argv[]) {
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
-    vector<align_paths_index_t> threaded_align_paths_index(num_threads);
+    align_paths_index_t align_paths_index;
+    vector<vector<vector<AlignmentPath> > > threaded_align_paths_buffer(num_threads);
 
     if (is_multipath) {
 
@@ -311,7 +334,7 @@ int main(int argc, char* argv[]) {
                 if (alignment.subpath_size() > 0) {
 
                     auto align_paths = alignment_path_finder.findAlignmentPaths(alignment);
-                    addAlignmentPathsToIndex(&(threaded_align_paths_index.at(omp_get_thread_num())), &align_paths, fragment_length_dist.mean());
+                    addAlignmentPathsToBuffer(&align_paths, &(threaded_align_paths_buffer.at(omp_get_thread_num())), &align_paths_index, fragment_length_dist.mean());
                 }
             });           
 
@@ -322,7 +345,7 @@ int main(int argc, char* argv[]) {
                 if (alignment_1.subpath_size() > 0 && alignment_2.subpath_size() > 0) {
 
                     auto paired_align_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
-                    addAlignmentPathsToIndex(&(threaded_align_paths_index.at(omp_get_thread_num())), &paired_align_paths, fragment_length_dist.mean());
+                    addAlignmentPathsToBuffer(&paired_align_paths, &(threaded_align_paths_buffer.at(omp_get_thread_num())), &align_paths_index, fragment_length_dist.mean());
                 }
             });
         }
@@ -338,7 +361,7 @@ int main(int argc, char* argv[]) {
                 if (alignment.has_path()) {
 
                     auto align_paths = alignment_path_finder.findAlignmentPaths(alignment);
-                    addAlignmentPathsToIndex(&(threaded_align_paths_index.at(omp_get_thread_num())), &align_paths, fragment_length_dist.mean());
+                    addAlignmentPathsToBuffer(&align_paths, &(threaded_align_paths_buffer.at(omp_get_thread_num())), &align_paths_index, fragment_length_dist.mean());
                 }
             });           
 
@@ -349,7 +372,7 @@ int main(int argc, char* argv[]) {
                 if (alignment_1.has_path() && alignment_2.has_path()) {
 
                     auto paired_align_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
-                    addAlignmentPathsToIndex(&(threaded_align_paths_index.at(omp_get_thread_num())), &paired_align_paths, fragment_length_dist.mean());
+                    addAlignmentPathsToBuffer(&paired_align_paths, &(threaded_align_paths_buffer.at(omp_get_thread_num())), &align_paths_index, fragment_length_dist.mean());
                 }
             });
         }
@@ -357,42 +380,33 @@ int main(int argc, char* argv[]) {
 
     alignments_istream.close();
 
-    for (auto & align_paths_index: threaded_align_paths_index) {
-
-        cerr << align_paths_index.size() << endl;
-    }
+    cerr << align_paths_index.size() << endl;
 
     double time3 = gbwt::readTimer();
     cerr << "Found alignment paths " << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > threaded_connected_align_paths(num_threads);
+    spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths(num_threads);
 
-    #pragma omp parallel for
-    for (size_t i = 0; i < threaded_align_paths_index.size(); ++i) {
+    for (auto & align_paths: align_paths_index) {
 
-        auto * connected_align_paths = &(threaded_connected_align_paths.at(i));
+        for (auto & align_path: align_paths.first) {
 
-        for (auto & align_paths: threaded_align_paths_index.at(i)) {
+            auto path_ids = paths_index.locatePathIds(align_path.search);
 
-            for (auto & align_path: align_paths.first) {
+            if (align_paths.second.second == numeric_limits<uint32_t>::max()) {
 
-                auto path_ids = paths_index.locatePathIds(align_path.search);
+                align_paths.second.second = path_ids.front();
+            }
 
-                if (align_paths.second.second == numeric_limits<uint32_t>::max()) {
+            for (auto & path_id: path_ids) {
 
-                    align_paths.second.second = path_ids.front();
-                }
+                if (align_paths.second.second != path_id) {
 
-                for (auto & path_id: path_ids) {
+                    auto connected_align_paths_it = connected_align_paths.emplace(align_paths.second.second, spp::sparse_hash_set<uint32_t>());
+                    connected_align_paths_it.first->second.emplace(path_id);
 
-                    if (align_paths.second.second != path_id) {
-
-                        auto connected_align_paths_it = connected_align_paths->emplace(align_paths.second.second, spp::sparse_hash_set<uint32_t>());
-                        connected_align_paths_it.first->second.emplace(path_id);
-
-                        connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
-                        connected_align_paths_it.first->second.emplace(align_paths.second.second);
-                    }
+                    connected_align_paths_it = connected_align_paths.emplace(path_id, spp::sparse_hash_set<uint32_t>());
+                    connected_align_paths_it.first->second.emplace(align_paths.second.second);
                 }
             }
         }
@@ -401,22 +415,19 @@ int main(int argc, char* argv[]) {
     double time5 = gbwt::readTimer();
     cerr << "Found connected alignment paths " << time5 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
 
-    auto path_clusters = PathClusters(threaded_connected_align_paths, paths_index.index().metadata.paths());
+    auto path_clusters = PathClusters(connected_align_paths, paths_index.index().metadata.paths());
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path cluster index " << time6 - time5 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
  
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
 
-    for (size_t i = 0; i < threaded_align_paths_index.size(); ++i) {
+    auto align_paths_index_it = align_paths_index.begin();
 
-        auto align_paths_index_it = threaded_align_paths_index.at(i).begin();
+    while (align_paths_index_it != align_paths_index.end()) {
 
-        while (align_paths_index_it != threaded_align_paths_index.at(i).end()) {
-
-            align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->second.second)).emplace_back(align_paths_index_it);
-            ++align_paths_index_it;
-        }
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->second.second)).emplace_back(align_paths_index_it);
+        ++align_paths_index_it;
     }
 
     double time7 = gbwt::readTimer();

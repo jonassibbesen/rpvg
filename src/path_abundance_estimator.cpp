@@ -297,13 +297,13 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
                 for (size_t i = 0; i < group.second.size(); ++i) {
 
-                    group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i), group.second.at(i)}));
+                    group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i)}));
                     group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * (read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(i)) + noise_probs).array().log().matrix());
 
                     for (size_t j = i + 1; j < group.second.size(); ++j) {
 
                         group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i), group.second.at(j)}));
-                        group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * ((read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(j)) + noise_probs).array() * 2).log().matrix());
+                        group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * ((read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(j)) + noise_probs).array()).log().matrix() + log(2));
                     }
                 }
             }
@@ -319,7 +319,9 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             for (size_t j = 0; j < group_ploidy_path_indices.size(); ++j) {
 
                 auto sampled_path_indices = group_ploidy_path_indices.at(j).at(group_ploidy_log_samplers.at(j).sample(&mt_rng));
-                assert(sampled_path_indices.size() == ploidy);
+                
+                assert(!sampled_path_indices.empty());
+                assert(sampled_path_indices.size() <= ploidy);
 
                 ploidy_path_indices.insert(ploidy_path_indices.end(), sampled_path_indices.begin(), sampled_path_indices.end());
             }
@@ -333,9 +335,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
         for (auto & path_indices_sample: ploidy_path_indices_samples) {
 
-            assert(path_indices_sample.first.size() == path_groups.size() * ploidy);
             assert(path_indices_sample.second > 0);
-
             Eigen::ColMatrixXd ploidy_read_path_probs(read_path_probs.rows(), path_indices_sample.first.size());
 
             for (size_t i = 0; i < path_indices_sample.first.size(); ++i) {
@@ -350,7 +350,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             collapseProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
             assert(ploidy_read_counts.sum() == read_counts.sum());
 
-            assert(ploidy_read_path_probs.cols() >= ploidy + 1);
+            assert(ploidy_read_path_probs.cols() >= 2);
             Abundances ploidy_abundances(ploidy_read_path_probs.cols(), false);
             
             expectationMaximizationEstimator(&ploidy_abundances, ploidy_read_path_probs, ploidy_read_counts);
