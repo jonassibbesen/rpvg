@@ -42,20 +42,20 @@ void PathClusters::findPathClusters(const spp::sparse_hash_map<uint32_t, spp::sp
             queue<uint32_t> search_queue;
             search_queue.push(i);
 
-            cluster_to_path_index.emplace_back(vector<uint32_t>());
+            cluster_to_paths_index.emplace_back(vector<uint32_t>());
 
             while (!search_queue.empty()) {
 
                 auto cur_path = search_queue.front();
 
                 bool is_first_visit = (path_to_cluster_index.at(cur_path) == -1);
-                assert(is_first_visit || path_to_cluster_index.at(cur_path) == cluster_to_path_index.size() - 1);
+                assert(is_first_visit || path_to_cluster_index.at(cur_path) == cluster_to_paths_index.size() - 1);
 
-                path_to_cluster_index.at(cur_path) = cluster_to_path_index.size() - 1;
+                path_to_cluster_index.at(cur_path) = cluster_to_paths_index.size() - 1;
                 
                 if (is_first_visit) {
 
-                    cluster_to_path_index.back().emplace_back(cur_path);
+                    cluster_to_paths_index.back().emplace_back(cur_path);
                     auto connected_paths_it = connected_paths.find(cur_path);
 
                     if (connected_paths_it != connected_paths.end()) {
@@ -73,7 +73,7 @@ void PathClusters::findPathClusters(const spp::sparse_hash_map<uint32_t, spp::sp
                 search_queue.pop();
             }
 
-            sort(cluster_to_path_index.back().begin(), cluster_to_path_index.back().end());
+            sort(cluster_to_paths_index.back().begin(), cluster_to_paths_index.back().end());
         }
     }
 }

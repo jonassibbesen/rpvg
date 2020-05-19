@@ -21,7 +21,7 @@ class PathClusters {
     	void findPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths);
     	
     	vector<uint32_t> path_to_cluster_index;
-    	vector<vector<uint32_t> > cluster_to_path_index;
+    	vector<vector<uint32_t> > cluster_to_paths_index;
 };
 
 

@@ -34,7 +34,7 @@
 #include "path_cluster_estimates.hpp"
 #include "path_estimates_writer.hpp"
 
-const uint32_t align_paths_buffer_size = 1000;
+const uint32_t align_paths_buffer_size = 10000;
 const uint32_t read_path_cluster_probs_buffer_size = 100;
 const double prob_precision = pow(10, -8);
 
@@ -428,7 +428,7 @@ int main(int argc, char* argv[]) {
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters " << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
  
-    vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_path_index.size());
+    vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 
     auto align_paths_index_it = align_paths_index.begin();
 
@@ -485,22 +485,34 @@ int main(int argc, char* argv[]) {
 
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
-    #pragma omp parallel for
+    auto align_paths_clusters_indices = vector<pair<uint32_t, uint32_t> >();
+    align_paths_clusters_indices.reserve(align_paths_clusters.size());
+
     for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
+
+        align_paths_clusters_indices.emplace_back(path_clusters.cluster_to_paths_index.at(i).size(), i);
+    }
+
+    sort(align_paths_clusters_indices.rbegin(), align_paths_clusters_indices.rend());
+
+    #pragma omp parallel for schedule(dynamic)
+    for (size_t i = 0; i < align_paths_clusters_indices.size(); ++i) {
+
+        auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
 
         auto * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
         read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>());            
-        read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(i).size());
+        read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
 
         unordered_map<uint32_t, uint32_t> clustered_path_index;
 
         auto * path_cluster_estimates = &(threaded_path_cluster_estimates.at(omp_get_thread_num()));
         path_cluster_estimates->emplace_back(PathClusterEstimates());
 
-        path_cluster_estimates->back().paths.reserve(path_clusters.cluster_to_path_index.at(i).size());
+        path_cluster_estimates->back().paths.reserve(path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size());
         
-        for (auto & path_id: path_clusters.cluster_to_path_index.at(i)) {
+        for (auto & path_id: path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx)) {
 
             assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
             path_cluster_estimates->back().paths.emplace_back(PathInfo());
@@ -526,7 +538,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        for (auto & align_paths: align_paths_clusters.at(i)) {
+        for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
             read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
             read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
