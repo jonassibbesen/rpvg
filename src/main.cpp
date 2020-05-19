@@ -458,6 +458,8 @@ int main(int argc, char* argv[]) {
         #pragma omp for
         for (size_t i = 0; i < align_paths_clusters_indices.size(); ++i) {
 
+            cerr << i << endl;
+
             auto align_paths_cluster_idx = align_paths_clusters_indices.at(i);
 
             vector<vector<ReadPathProbabilities> > * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
@@ -510,13 +512,13 @@ int main(int argc, char* argv[]) {
 
                 uint32_t prev_unique_probs_idx = 0;
 
-                for (size_t i = 1; i < read_path_cluster_probs_buffer->back().size(); ++i) {
+                for (size_t j = 1; j < read_path_cluster_probs_buffer->back().size(); ++j) {
 
-                    if (!read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(read_path_cluster_probs_buffer->back().at(i), prob_precision)) {
+                    if (!read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(read_path_cluster_probs_buffer->back().at(j), prob_precision)) {
 
-                        if (prev_unique_probs_idx + 1 < i) {
+                        if (prev_unique_probs_idx + 1 < j) {
 
-                            read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx + 1) = move(read_path_cluster_probs_buffer->back().at(i));
+                            read_path_cluster_probs_buffer->back().at(prev_unique_probs_idx + 1) = move(read_path_cluster_probs_buffer->back().at(j));
                         }
 
                         prev_unique_probs_idx++;
