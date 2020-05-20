@@ -50,25 +50,33 @@ typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buff
 
 
 template<class AlignmentType> 
-void parseAlignments(ifstream & alignments_istream, ProducerConsumerQueue<vector<AlignmentType> *> * alignment_buffer_queue) {
+void parseAlignments(ifstream & alignments_istream, ProducerConsumerQueue<vector<AlignmentType> *> * alignment_buffer_queue, const uint32_t num_threads) {
 
-    auto alignment_buffer = new vector<AlignmentType>();
-    alignment_buffer->reserve(alignment_buffer_size);
+    auto threaded_alignment_buffer = vector<vector<AlignmentType> *>(num_threads);
+
+    for (auto & alignment_buffer: threaded_alignment_buffer) {
+
+        alignment_buffer = new vector<AlignmentType>();
+        alignment_buffer->reserve(alignment_buffer_size);
+    }
   
-    vg::io::for_each<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
+    vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
-        alignment_buffer->emplace_back(alignment);
+        threaded_alignment_buffer.at(omp_get_thread_num())->emplace_back(alignment);
 
-        if (alignment_buffer->size() == alignment_buffer_size) {
+        if (threaded_alignment_buffer.at(omp_get_thread_num())->size() == alignment_buffer_size) {
 
-            alignment_buffer_queue->push(alignment_buffer);   
+            alignment_buffer_queue->push(threaded_alignment_buffer.at(omp_get_thread_num()));   
             
-            alignment_buffer = new vector<AlignmentType>();
-            alignment_buffer->reserve(alignment_buffer_size);
+            threaded_alignment_buffer.at(omp_get_thread_num()) = new vector<AlignmentType>();
+            threaded_alignment_buffer.at(omp_get_thread_num())->reserve(alignment_buffer_size);
         }
     });
 
-    alignment_buffer_queue->push(alignment_buffer);   
+    for (auto & alignment_buffer: threaded_alignment_buffer) {
+
+        alignment_buffer_queue->push(alignment_buffer); 
+    }
 }
 
 void addAlignmentPathsToBuffer(vector<vector<AlignmentPath> > * align_paths_buffer, align_paths_buffer_queue_t * align_paths_buffer_queue, const double mean_fragment_length) {
@@ -155,12 +163,6 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
                 auto threaded_align_paths_index_it = align_paths_index->emplace(align_paths, 0);
                 threaded_align_paths_index_it.first->second++;
-            }   
-        } 
-
-        for (auto & align_paths: *align_paths_buffer) {
-
-            if (!align_paths.empty()) {
 
                 auto anchor_path_id = align_paths.front().ids.front();
 
@@ -467,11 +469,11 @@ int main(int argc, char* argv[]) {
 
     if (is_multipath) {
 
-        parseAlignments<vg::MultipathAlignment>(alignments_istream, mp_alignment_buffer_queue);
+        parseAlignments<vg::MultipathAlignment>(alignments_istream, mp_alignment_buffer_queue, num_threads);
 
     } else {
 
-        parseAlignments<vg::Alignment>(alignments_istream, alignment_buffer_queue);
+        parseAlignments<vg::Alignment>(alignments_istream, alignment_buffer_queue, num_threads);
     }
 
     alignments_istream.close();
