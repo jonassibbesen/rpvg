@@ -12,7 +12,6 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 project(rpvg)
 
 find_package(OpenMP REQUIRED)
-set(OMP_NESTED TRUE)
 
 ExternalProject_Add(sdsl-lite-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/sdsl-lite"
