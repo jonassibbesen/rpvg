@@ -408,3 +408,180 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
     }
 }
 
+AdaptiveNestedPathAbundanceEstimator::AdaptiveNestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count, const double prob_precision) : num_burn_in_its(10), min_abundance(pow(10, -8)), num_nested_its(num_nested_its_in), ploidy(ploidy_in), PathAbundanceEstimator(max_em_its, min_read_count, prob_precision) {
+
+    assert(ploidy >= 1 && ploidy <= 2);
+    mt_rng = mt19937(rng_seed);
+}
+
+void AdaptiveNestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs) {
+
+    if (!cluster_probs.empty()) {
+
+        Eigen::ColMatrixXd read_path_probs;
+        Eigen::ColVectorXd noise_probs;
+        Eigen::RowVectorXui read_counts;
+
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, false);
+
+        unordered_map<string, vector<uint32_t> > path_groups;
+
+        for (size_t i = 0; i < path_cluster_estimates->paths.size(); ++i) {
+
+            assert(path_cluster_estimates->paths.at(i).origin != "");
+
+            auto path_groups_it = path_groups.emplace(path_cluster_estimates->paths.at(i).origin, vector<uint32_t>());
+            path_groups_it.first->second.emplace_back(i);
+        }
+
+        vector<vector<vector<uint32_t> > > group_ploidy_path_indices;
+        group_ploidy_path_indices.reserve(path_groups.size());
+
+        vector<LogDiscreteSampler> group_ploidy_log_samplers;
+        group_ploidy_log_samplers.reserve(path_groups.size());
+
+        for (auto & group: path_groups) {
+
+            uint32_t ploidy_combinations = group.second.size();
+
+            if (ploidy == 2) {
+
+                ploidy_combinations = group.second.size() * (group.second.size() - 1) / 2 + group.second.size();
+            }
+             
+            group_ploidy_path_indices.emplace_back(vector<vector<uint32_t> >());
+            group_ploidy_path_indices.back().reserve(ploidy_combinations);
+
+            group_ploidy_log_samplers.emplace_back(LogDiscreteSampler(ploidy_combinations));
+
+            if (ploidy == 1) {
+
+                for (size_t i = 0; i < group.second.size(); ++i) {
+
+                    group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i)}));
+                    group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * (read_path_probs.col(group.second.at(i)) + noise_probs).array().log().matrix());
+                }
+
+            } else {
+
+                for (size_t i = 0; i < group.second.size(); ++i) {
+
+                    group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i), group.second.at(i)}));
+                    group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * (read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(i)) + noise_probs).array().log().matrix());
+
+                    for (size_t j = i + 1; j < group.second.size(); ++j) {
+
+                        group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.second.at(i), group.second.at(j)}));
+                        group_ploidy_log_samplers.back().addOutcome(read_counts.cast<double>() * ((read_path_probs.col(group.second.at(i)) + read_path_probs.col(group.second.at(j)) + noise_probs).array()).log().matrix() + log(2));
+                    }
+                }
+            }
+        }
+
+        path_cluster_estimates->abundances = Abundances(path_cluster_estimates->paths.size() + 1, true);
+        path_cluster_estimates->abundances.read_count = read_counts.sum();
+
+        Abundances prev_ploidy_abundances;
+
+        for (size_t s = 1; s <= num_nested_its + num_burn_in_its; ++s) {
+
+            vector<uint32_t> ploidy_path_indices;
+            ploidy_path_indices.reserve(group_ploidy_path_indices.size() * ploidy);
+
+            Eigen::ColMatrixXd ploidy_read_path_probs(read_path_probs.rows(), group_ploidy_path_indices.size() * ploidy);
+
+            for (size_t i = 0; i < group_ploidy_path_indices.size(); ++i) {
+
+                auto sampled_path_indices = group_ploidy_path_indices.at(i).at(group_ploidy_log_samplers.at(i).sample(&mt_rng));
+                assert(sampled_path_indices.size() == ploidy);
+
+                for (size_t j = 0; j < sampled_path_indices.size(); ++j) {
+
+                    ploidy_read_path_probs.col(i * ploidy + j) = read_path_probs.col(sampled_path_indices.at(j));
+                }
+
+                ploidy_path_indices.insert(ploidy_path_indices.end(), sampled_path_indices.begin(), sampled_path_indices.end());
+            }
+
+            assert(ploidy_path_indices.size() == ploidy_read_path_probs.cols());
+
+            addNoiseAndNormalizeProbabilityMatrix(&ploidy_read_path_probs, noise_probs);
+
+            auto ploidy_read_counts = read_counts;
+            sortProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
+            collapseProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
+            assert(ploidy_read_counts.sum() == read_counts.sum());
+
+            assert(ploidy_read_path_probs.cols() >= 2);
+            Abundances ploidy_abundances(ploidy_read_path_probs.cols(), false);
+
+            if (s > 1) {
+
+                assert(prev_ploidy_abundances.expression.cols() == ploidy_abundances.expression.cols());
+
+                for (size_t i = 0; i < prev_ploidy_abundances.expression.cols(); ++i) {
+
+                    ploidy_abundances.expression(i) = max(prev_ploidy_abundances.expression(i), min_abundance);
+                }
+
+                ploidy_abundances.expression = ploidy_abundances.expression / ploidy_abundances.expression.sum();
+            }
+            
+            expectationMaximizationEstimator(&ploidy_abundances, ploidy_read_path_probs, ploidy_read_counts);
+            prev_ploidy_abundances = ploidy_abundances;
+
+            if (s > num_burn_in_its) {
+
+                for (size_t i = 0; i < ploidy_path_indices.size(); i += 2) {
+
+                    if (ploidy_abundances.confidence(i) > 0) {
+
+                        assert(doubleCompare(ploidy_abundances.confidence(i), 1));
+
+                        path_cluster_estimates->abundances.confidence(ploidy_path_indices.at(i)) += ploidy_abundances.confidence(i);
+                        path_cluster_estimates->abundances.expression(ploidy_path_indices.at(i)) += ploidy_abundances.expression(i);
+                    }
+                }
+
+                for (size_t i = 1; i < ploidy_path_indices.size(); i += 2) {
+
+                    if (ploidy_abundances.confidence(i) > 0) {
+
+                        assert(doubleCompare(ploidy_abundances.confidence(i), 1));
+
+                        if (ploidy_path_indices.at(i - 1) != ploidy_path_indices.at(i)) {
+                            
+                            path_cluster_estimates->abundances.confidence(ploidy_path_indices.at(i)) += ploidy_abundances.confidence(i);
+                        }
+                        
+                        path_cluster_estimates->abundances.expression(ploidy_path_indices.at(i)) += ploidy_abundances.expression(i);
+                    }
+                }
+
+                assert(ploidy_abundances.confidence.cols() == ploidy_path_indices.size() + 1);
+
+                if (ploidy_abundances.confidence(ploidy_path_indices.size()) > 0) {
+
+                    path_cluster_estimates->abundances.confidence(path_cluster_estimates->paths.size()) += ploidy_abundances.confidence(ploidy_path_indices.size());
+                    path_cluster_estimates->abundances.expression(path_cluster_estimates->paths.size()) += ploidy_abundances.expression(ploidy_path_indices.size());  
+                }
+            }
+        }
+
+        for (size_t i = 0; i < path_cluster_estimates->abundances.expression.cols(); ++i) {
+
+            if (path_cluster_estimates->abundances.confidence(i) > 0) {
+
+                path_cluster_estimates->abundances.expression(i) /= path_cluster_estimates->abundances.confidence(i);
+            }
+
+            path_cluster_estimates->abundances.confidence(i) /= num_nested_its;
+        }
+
+        removeNoiseAndRenormalizeAbundances(&(path_cluster_estimates->abundances));
+
+    } else {
+
+        path_cluster_estimates->abundances = Abundances(path_cluster_estimates->paths.size(), true);
+    }
+}

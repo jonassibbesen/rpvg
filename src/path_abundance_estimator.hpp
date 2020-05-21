@@ -62,5 +62,26 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         mt19937 mt_rng;
 };
 
+class AdaptiveNestedPathAbundanceEstimator : public PathAbundanceEstimator {
+
+    public:
+
+        AdaptiveNestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count, const double prob_precision);
+        ~AdaptiveNestedPathAbundanceEstimator() {};
+
+        void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
+
+    private:
+
+        const uint32_t num_burn_in_its;
+        const uint32_t num_nested_its;
+
+        const double min_abundance;
+
+        const uint32_t ploidy;
+        
+        mt19937 mt_rng;
+};
+
  
 #endif
