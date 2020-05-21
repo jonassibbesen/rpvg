@@ -495,7 +495,7 @@ void AdaptiveNestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_
                 auto sampled_path_indices = group_ploidy_path_indices.at(i).at(group_ploidy_log_samplers.at(i).sample(&mt_rng));
                 assert(sampled_path_indices.size() == ploidy);
 
-                for (size_t j = 0; j < sampled_path_indices.size(); ++j) {
+                for (size_t j = 0; j < ploidy; ++j) {
 
                     ploidy_read_path_probs.col(i * ploidy + j) = read_path_probs.col(sampled_path_indices.at(j));
                 }
@@ -528,7 +528,7 @@ void AdaptiveNestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_
             }
             
             expectationMaximizationEstimator(&ploidy_abundances, ploidy_read_path_probs, ploidy_read_counts);
-            prev_ploidy_abundances = ploidy_abundances;
+            prev_ploidy_abundances.expression = ploidy_abundances.expression;
 
             if (s > num_burn_in_its) {
 
