@@ -20,7 +20,7 @@ class PathLikelihoodEstimator : public PathEstimator {
     public:
 
         PathLikelihoodEstimator(const bool use_log_in, const double prob_precision);
-        ~PathLikelihoodEstimator() {};
+        virtual ~PathLikelihoodEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
 

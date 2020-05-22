@@ -19,15 +19,17 @@ class PathAbundanceEstimator : public PathEstimator {
 
     public:
 
-        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_read_count_in, const double prob_precision);
-        ~PathAbundanceEstimator() {};
+        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_em_conv, const double prob_precision);
+        virtual ~PathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
 
     protected: 
 
         const uint32_t max_em_its;
-        const double min_read_count;
+
+        const double em_conv_min_exp;
+        const double em_conv_max_rel_diff;
 
         void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
         void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;    
@@ -37,7 +39,7 @@ class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_read_count, const double prob_precision);
+        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_em_conv, const double prob_precision);
         ~MinimumPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
@@ -49,7 +51,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_read_count, const double prob_precision);
+        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_em_conv, const double prob_precision);
         ~NestedPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
