@@ -17,15 +17,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
         if (align_search_path.complete()) {
 
-            auto align_search_path_ids = paths_index.index().locate(align_search_path.search);
-
-            if (paths_index.index().bidirectional()) {
-
-                for (auto & id: align_search_path_ids) {
-
-                    id = gbwt::Path::id(id);
-                }
-            }
+            auto align_search_path_ids = paths_index.locatePathIds(align_search_path.search);
 
             auto align_paths_it = align_paths.begin();
 

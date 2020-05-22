@@ -1,6 +1,6 @@
 
 /*
-BayesTyper (https://github.com/bioinformatics-centre/BayesTyper)
+The following code have been copied and modified from BayesTyper (https://github.com/bioinformatics-centre/BayesTyper)
 */
 
 /*

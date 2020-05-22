@@ -16,6 +16,18 @@ void AlignmentPathFinder<AlignmentType>::setMaxPairSeqLength(const uint32_t max_
 
     max_pair_seq_length = max_pair_seq_length_in;
 }
+        
+template<class AlignmentType>
+bool AlignmentPathFinder<AlignmentType>::alignmentHasPath(const vg::Alignment & alignment) const {
+
+    return alignment.has_path();
+}
+
+template<class AlignmentType>
+bool AlignmentPathFinder<AlignmentType>::alignmentHasPath(const vg::MultipathAlignment & alignment) const {
+
+    return (alignment.subpath_size() > 0);
+}
 
 template<class AlignmentType>
 bool AlignmentPathFinder<AlignmentType>::alignmentStartInGraph(const AlignmentType & alignment) const {
@@ -42,6 +54,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
     cerr << pb2json(alignment) << endl;
 
 #endif
+
+    if (!alignmentHasPath(alignment)) {
+
+        return vector<AlignmentPath>();
+    }
 
     if (!alignmentStartInGraph(alignment)) {
 
@@ -246,6 +263,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
     findAlignmentPaths(alignment_2);
 
 #endif
+
+    if (!alignmentHasPath(alignment_1) || !alignmentHasPath(alignment_2)) {
+
+        return vector<AlignmentPath>();
+    }
 
     if (!alignmentStartInGraph(alignment_1) || !alignmentStartInGraph(alignment_2)) {
 

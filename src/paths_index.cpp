@@ -74,6 +74,21 @@ uint32_t PathsIndex::nodeLength(const uint32_t node_id) const {
     return node_lengths.at(node_id);
 }
 
+vector<gbwt::size_type> PathsIndex::locatePathIds(const gbwt::SearchState & search) const {
+
+    auto path_ids = index_.locate(search);
+
+    if (index_.bidirectional()) {
+
+        for (auto & id: path_ids) {
+
+            id = gbwt::Path::id(id);
+        }
+    }
+
+    return path_ids;
+}
+
 string PathsIndex::pathName(const uint32_t path_id) const {
 
     stringstream sstream;
