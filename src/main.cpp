@@ -144,22 +144,22 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
                 auto threaded_align_paths_index_it = align_paths_index->emplace(align_paths, 0);
                 threaded_align_paths_index_it.first->second++;
 
-                auto anchor_path_id = align_paths.front().ids.front();
+                // auto anchor_path_id = align_paths.front().ids.front();
 
-                for (auto & align_path: align_paths) {
+                // for (auto & align_path: align_paths) {
 
-                    for (auto & path_id: align_path.ids) {
+                //     for (auto & path_id: align_path.ids) {
 
-                        if (anchor_path_id != path_id) {
+                //         if (anchor_path_id != path_id) {
 
-                            auto connected_align_paths_it = connected_align_paths->emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
-                            connected_align_paths_it.first->second.emplace(path_id);
+                //             auto connected_align_paths_it = connected_align_paths->emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
+                //             connected_align_paths_it.first->second.emplace(path_id);
 
-                            connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
-                            connected_align_paths_it.first->second.emplace(anchor_path_id);
-                        }
-                    }
-                }
+                //             connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
+                //             connected_align_paths_it.first->second.emplace(anchor_path_id);
+                //         }
+                //     }
+                // }
             }   
         } 
 
