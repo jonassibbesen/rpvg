@@ -24,10 +24,10 @@ TEST_CASE("Connected paths can be clustered") {
     REQUIRE(path_clusters.path_to_cluster_index.size() == 7);
     REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 1, 1, 2, 3, 1, 2}));
 
-    REQUIRE(path_clusters.cluster_to_path_index.size() == 4);
-    REQUIRE(path_clusters.cluster_to_path_index.at(0) == vector<uint32_t>({0}));
-    REQUIRE(path_clusters.cluster_to_path_index.at(1) == vector<uint32_t>({1, 2, 5}));
-    REQUIRE(path_clusters.cluster_to_path_index.at(2) == vector<uint32_t>({3, 6}));
-    REQUIRE(path_clusters.cluster_to_path_index.at(3) == vector<uint32_t>({4}));
+    REQUIRE(path_clusters.cluster_to_paths_index.size() == 4);
+    REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0}));
+    REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({1, 2, 5}));
+    REQUIRE(path_clusters.cluster_to_paths_index.at(2) == vector<uint32_t>({3, 6}));
+    REQUIRE(path_clusters.cluster_to_paths_index.at(3) == vector<uint32_t>({4}));
 }
 
