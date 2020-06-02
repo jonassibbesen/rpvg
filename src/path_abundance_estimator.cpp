@@ -457,9 +457,3 @@ void NestedPathAbundanceEstimator::updateAbundances(PathClusterEstimates * path_
         path_cluster_estimates->abundances.expression(path_cluster_estimates->paths.size()) += (ploidy_abundances.expression(path_indices.size()) * sample_count);  
     }
 }
-
-
-
-
-
-
