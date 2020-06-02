@@ -24,13 +24,13 @@ The number of threads can be given using `-t`.
 #### Inference models:
 The method currently contains four different inference models. Each model have been written with a particurlar path type and corresponding inference problem in mind:
 
-* `haplotypes`: Infers haplotype/diplotype likelihoods.
+* `haplotypes`: Infers haplotype/diplotype likelihoods. The ploidy can be given using `-y`.
 
 * `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm.
 
 * `strains`: Infers abundances using a combination of weighted minimim path cover and EM. **Note that this algorithm is work in progress and have therefore not been properly evalauted yet**.
 
-* `haplotype-transcripts`: Infers abundances using a combination of maximum likelihood haplotype/diplotype estimation and EM. The algorithm requires a file (`--path-origin`) containing the transcript origin of each path (`--write-info` output from *vg rna*). The ploidy can be given using `-y`.
+* `haplotype-transcripts`: Infers abundances using a combination of maximum likelihood haplotype/diplotype estimation and EM. The algorithm requires a file (`-f`) containing the transcript origin of each path (`--write-info` output from *vg rna*). The ploidy can be given using `-y`.
 
 #### Alignment types:
 * Use `-u` if the input alignment format is multipath (*.gamp*) from *vg mpmap*.
