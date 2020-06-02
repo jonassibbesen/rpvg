@@ -10,6 +10,7 @@
 #include "path_estimator.hpp"
 #include "path_cluster_estimates.hpp"
 #include "read_path_probabilities.hpp"
+#include "discrete_sampler.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -62,6 +63,16 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         const uint32_t ploidy;
 
         mt19937 mt_rng;
+
+    unordered_map<string, vector<uint32_t> > findPathOriginGroups(const PathClusterEstimates & path_cluster_estimates);
+
+    void calculateGroupPloidyLogProbabilities(vector<vector<vector<uint32_t> > > * group_ploidy_path_indices, vector<LogDiscreteSampler> * group_ploidy_log_samplers, const unordered_map<string, vector<uint32_t> > & path_groups, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
+    
+    unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndices(const vector<vector<vector<uint32_t> > > & group_ploidy_path_indices, const vector<LogDiscreteSampler> & group_ploidy_log_samplers, const uint32_t num_path_groups);
+
+    void constructPloidyProbabilityMatrix(Eigen::ColMatrixXd * ploidy_read_path_probs, const Eigen::ColMatrixXd & read_path_probs, const vector<uint32_t> & path_indices);
+    
+    void updateAbundances(PathClusterEstimates * path_cluster_estimates, const Abundances & ploidy_abundances, const vector<uint32_t> & path_indices, const uint32_t sample_count);
 };
 
  
