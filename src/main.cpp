@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
 
     options.add_options("Abundance")
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
-      ("c,min-read-count", "minimum read count and max difference needed to stop EM early", cxxopts::value<double>()->default_value("0.001"))
+      ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ("y,ploidy", "sample ploidy (used for haplotype and haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
       ("n,num-hap-its", "number of haplotype iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
@@ -502,15 +502,15 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "transcripts") {
 
-        path_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
+        path_estimator = new PathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
 
     } else if (inference_model == "strains") {
 
-        path_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
+        path_estimator = new MinimumPathAbundanceEstimator(option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-read-count"].as<double>(), prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
      
         path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 
