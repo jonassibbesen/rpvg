@@ -66,7 +66,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     vector<vector<uint32_t> > findPathOriginGroups(const vector<PathInfo> & paths) const;
     
-    unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesExact(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
+    unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesApproximate(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
     unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesGibbs(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
 
     void constructPloidyProbabilityMatrix(Eigen::ColMatrixXd * ploidy_read_path_probs, const Eigen::ColMatrixXd & read_path_probs, const vector<uint32_t> & path_indices) const;

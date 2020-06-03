@@ -271,9 +271,15 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         Eigen::ColVectorXd noise_probs;
         Eigen::RowVectorXui read_counts;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, false);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
 
-        // auto ploidy_path_indices_samples = samplePloidyPathIndicesExact(path_cluster_estimates->paths, read_path_probs, noise_probs, read_counts);
+        sortProbabilityMatrix(&read_path_probs, &read_counts);
+        collapseProbabilityMatrix(&read_path_probs, &read_counts);
+
+        noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
+        read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
+
+        // auto ploidy_path_indices_samples = samplePloidyPathIndicesApproximate(path_cluster_estimates->paths, read_path_probs, noise_probs, read_counts);
 
         auto ploidy_path_indices_samples = samplePloidyPathIndicesGibbs(path_cluster_estimates->paths, read_path_probs, noise_probs, read_counts);
 
@@ -343,7 +349,7 @@ vector<vector<uint32_t> > NestedPathAbundanceEstimator::findPathOriginGroups(con
     return path_groups;
 }
 
-unordered_map<vector<uint32_t>, uint32_t> NestedPathAbundanceEstimator::samplePloidyPathIndicesExact(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts) {
+unordered_map<vector<uint32_t>, uint32_t> NestedPathAbundanceEstimator::samplePloidyPathIndicesApproximate(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts) {
 
     auto path_groups = findPathOriginGroups(paths);
 
