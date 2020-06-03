@@ -456,7 +456,7 @@ unordered_map<vector<uint32_t>, uint32_t> NestedPathAbundanceEstimator::samplePl
 
             for (auto & path_idx: path_groups.at(gp_idx.first)) {
 
-                group_ploidy_log_samplers.addOutcome(read_counts.cast<double>() * (group_ploidy_probs + read_path_probs.col(group_ploidy_path_indices.at(gp_idx.first * ploidy + gp_idx.second)) - read_path_probs.col(path_idx)).array().log().matrix());
+                group_ploidy_log_samplers.addOutcome(read_counts.cast<double>() * (group_ploidy_probs - read_path_probs.col(group_ploidy_path_indices.at(gp_idx.first * ploidy + gp_idx.second)) + read_path_probs.col(path_idx)).array().log().matrix());
             }
 
             auto sampled_path_idx = path_groups.at(gp_idx.first).at(group_ploidy_log_samplers.sample(&mt_rng));
