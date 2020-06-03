@@ -2,11 +2,31 @@
 #include "path_estimator.hpp"
 
 
-bool probabilityCountRowsSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, const pair<Eigen::RowVectorXd, uint32_t> & rhs) { 
+bool probabilityCountRowSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, const pair<Eigen::RowVectorXd, uint32_t> & rhs) { 
 
     assert(lhs.first.cols() == rhs.first.cols());
 
     for (size_t i = 0; i < lhs.first.cols(); ++i) {
+
+        if (!doubleCompare(lhs.first(i), rhs.first(i))) {
+
+            return (lhs.first(i) < rhs.first(i));    
+        }         
+    }   
+
+    if (lhs.second != rhs.second) {
+
+        return (lhs.second < rhs.second);
+    }
+
+    return false;
+}
+
+bool probabilityCountColSorter(const pair<Eigen::ColVectorXd, uint32_t> & lhs, const pair<Eigen::ColVectorXd, uint32_t> & rhs) { 
+
+    assert(lhs.first.rows() == rhs.first.rows());
+
+    for (size_t i = 0; i < lhs.first.rows(); ++i) {
 
         if (!doubleCompare(lhs.first(i), rhs.first(i))) {
 
@@ -63,7 +83,7 @@ void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Eigen::ColMatrixXd * r
     read_path_probs->col(read_path_probs->cols() - 1) = noise_probs;
 }
 
-void PathEstimator::sortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
+void PathEstimator::rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
@@ -76,7 +96,7 @@ void PathEstimator::sortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, 
         read_path_prob_rows.emplace_back(read_path_probs->row(i), (*read_counts)(i));
     }
 
-    sort(read_path_prob_rows.begin(), read_path_prob_rows.end(), probabilityCountRowsSorter);
+    sort(read_path_prob_rows.begin(), read_path_prob_rows.end(), probabilityCountRowSorter);
 
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
     
@@ -85,10 +105,11 @@ void PathEstimator::sortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, 
     }    
 }
 
-void PathEstimator::collapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
+void PathEstimator::rowCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
+    rowSortProbabilityMatrix(read_path_probs, read_counts);
 
     uint32_t prev_unique_probs_row = 0;
 
@@ -125,3 +146,56 @@ void PathEstimator::collapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_pro
     read_counts->conservativeResize(read_counts->rows(), prev_unique_probs_row + 1);
 }
 
+void PathEstimator::colSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs) {
+
+    assert(read_path_probs->cols() > 0);
+
+    vector<pair<Eigen::ColVectorXd, uint32_t> > read_path_prob_cols;
+    read_path_prob_cols.reserve(read_path_probs->cols());
+
+    for (size_t i = 0; i < read_path_probs->cols(); ++i) {
+
+        read_path_prob_cols.emplace_back(read_path_probs->col(i), i);
+    }
+
+    sort(read_path_prob_cols.begin(), read_path_prob_cols.end(), probabilityCountColSorter);
+
+    for (size_t i = 0; i < read_path_probs->cols(); ++i) {
+    
+        read_path_probs->col(i) = read_path_prob_cols.at(i).first;
+    }    
+}
+
+void PathEstimator::colCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs) {
+
+    assert(read_path_probs->cols() > 0);    
+    colSortProbabilityMatrix(read_path_probs);
+
+    uint32_t prev_unique_probs_col = 0;
+
+    for (size_t i = 1; i < read_path_probs->cols(); ++i) {
+
+        bool is_identical = true;
+
+        for (size_t j = 0; j < read_path_probs->rows(); ++j) {
+
+            if (abs((*read_path_probs)(j, prev_unique_probs_col) - (*read_path_probs)(j, i)) >= prob_precision) {
+
+                is_identical = false;
+                break;
+            }
+        }
+
+        if (!is_identical) {
+
+            if (prev_unique_probs_col + 1 < i) {
+
+                read_path_probs->col(prev_unique_probs_col + 1) = read_path_probs->col(i);
+            }
+
+            prev_unique_probs_col++;
+        }
+    }
+
+    read_path_probs->conservativeResize(read_path_probs->rows(), prev_unique_probs_col + 1);
+}

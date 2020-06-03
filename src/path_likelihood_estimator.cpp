@@ -13,9 +13,7 @@ void PathLikelihoodEstimator::estimate(PathClusterEstimates * path_cluster_estim
         Eigen::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
-
-        sortProbabilityMatrix(&read_path_probs, &read_counts);
-        collapseProbabilityMatrix(&read_path_probs, &read_counts);
+        rowCollapseProbabilityMatrix(&read_path_probs, &read_counts);
 
         path_cluster_estimates->likelihoods = Likelihoods(path_cluster_estimates->paths.size(), 1, use_log);
         assert(path_cluster_estimates->likelihoods.likelihoods.cols() + 1 == read_path_probs.cols());
@@ -51,9 +49,7 @@ void PathGroupLikelihoodEstimator::estimate(PathClusterEstimates * path_cluster_
         Eigen::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
-
-        sortProbabilityMatrix(&read_path_probs, &read_counts);
-        collapseProbabilityMatrix(&read_path_probs, &read_counts);
+        rowCollapseProbabilityMatrix(&read_path_probs, &read_counts);
 
         path_cluster_estimates->likelihoods = Likelihoods(path_cluster_estimates->paths.size(), ploidy, use_log);
         assert(path_cluster_estimates->likelihoods.likelihoods.cols() == path_cluster_estimates->likelihoods.groups.size());
