@@ -20,7 +20,7 @@ void PathLikelihoodEstimator::estimate(PathClusterEstimates * path_cluster_estim
 
         for (size_t i = 0; i < path_cluster_estimates->likelihoods.likelihoods.cols(); ++i) {
 
-            path_cluster_estimates->likelihoods.likelihoods(i) = read_counts.cast<double>() * (read_path_probs.col(i) + read_path_probs.col(read_path_probs.cols() - 1)).array().log().matrix();
+            path_cluster_estimates->likelihoods.likelihoods(0, i) = read_counts.cast<double>() * (read_path_probs.col(i) + read_path_probs.col(read_path_probs.cols() - 1)).array().log().matrix();
         }
 
     } else {
@@ -63,7 +63,7 @@ void PathGroupLikelihoodEstimator::estimate(PathClusterEstimates * path_cluster_
                 path_group_probs += read_path_probs.col(path_idx);
             }
 
-            path_cluster_estimates->likelihoods.likelihoods(i) = read_counts.cast<double>() * path_group_probs.array().log().matrix();
+            path_cluster_estimates->likelihoods.likelihoods(0, i) = read_counts.cast<double>() * path_group_probs.array().log().matrix();
         }
 
     } else {

@@ -65,7 +65,7 @@ void PathEstimatesWriter::writeThreadedPathClusterLikelihoods(const vector<vecto
                 }
 
                 *writer_stream << cluster_id;
-                *writer_stream << "\t" << -1 * likelihoods.likelihoods(i);
+                *writer_stream << "\t" << -1 * likelihoods.likelihoods(0, i);
                 *writer_stream << endl;
             }
         }
