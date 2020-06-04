@@ -515,7 +515,7 @@ unordered_map<vector<uint32_t>, uint32_t> NestedPathAbundanceEstimator::samplePl
         double cur_sampled_group_paths_prob = group_read_counts.cast<double>() * cur_sampled_group_path_read_probs.array().log().matrix();
 
         uint32_t accept_count = 0;
-        uint32_t burn_in = ceil(num_nested_its / 10);
+        uint32_t burn_in = 10;
 
         for (uint32_t i = 0; i < burn_in + num_nested_its; ++i) {
 
