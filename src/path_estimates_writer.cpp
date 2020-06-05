@@ -84,7 +84,7 @@ void PathEstimatesWriter::writeThreadedPathClusterAbundances(const vector<vector
 
             for (size_t i = 0; i < path_cluster_estimates.paths.size(); ++i) {
 
-                assert(path_cluster_estimates.paths.size() == path_cluster_estimates.abundances.confidence.cols());
+                assert(path_cluster_estimates.paths.size() == path_cluster_estimates.abundances.posterior.cols());
                 assert(path_cluster_estimates.paths.size() == path_cluster_estimates.abundances.expression.cols());
 
                 if (path_cluster_estimates.paths.at(i).effective_length > 0) {
@@ -116,7 +116,7 @@ void PathEstimatesWriter::writeThreadedPathClusterAbundances(const vector<vector
                 *writer_stream << "\t" << cluster_id;
                 *writer_stream << "\t" << path_cluster_estimates.paths.at(i).length;
                 *writer_stream << "\t" << path_cluster_estimates.paths.at(i).effective_length;
-                *writer_stream << "\t" << path_cluster_estimates.abundances.confidence(0, i);
+                *writer_stream << "\t" << path_cluster_estimates.abundances.posterior(0, i);
                 *writer_stream << "\t" << path_cluster_estimates.abundances.expression(0, i);
                 *writer_stream << "\t" << path_cluster_estimates.abundances.expression(0, i) * path_cluster_estimates.abundances.read_count;
                 *writer_stream << "\t" << transcript_count / transcript_count_sum * pow(10, 6);

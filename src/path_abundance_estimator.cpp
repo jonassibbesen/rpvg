@@ -90,7 +90,7 @@ void PathAbundanceEstimator::expectationMaximizationEstimator(Abundances * abund
 
         if (abundances->expression(0, i) < min_expression) {
 
-            abundances->confidence(0, i) = 0;
+            abundances->posterior(0, i) = 0;
             abundances->expression(0, i) = 0;            
         
         } else {
@@ -107,7 +107,7 @@ void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(Abundances * ab
     const double noise_read_count = abundances->expression(0, abundances->expression.cols() - 1) * abundances->read_count;
     assert(abundances->read_count >= noise_read_count);
 
-    abundances->confidence.conservativeResize(1, abundances->confidence.cols() - 1);
+    abundances->posterior.conservativeResize(1, abundances->posterior.cols() - 1);
     abundances->expression.conservativeResize(1, abundances->expression.cols() - 1);
 
     if (abundances->expression.sum() > 0) {
@@ -195,13 +195,13 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
 
         for (size_t j = 0; j < min_path_cover.size(); j++) {
 
-            path_cluster_estimates->abundances.confidence(0, min_path_cover.at(j)) = min_path_cluster_estimates.confidence(0, j);
+            path_cluster_estimates->abundances.posterior(0, min_path_cover.at(j)) = min_path_cluster_estimates.posterior(0, j);
             path_cluster_estimates->abundances.expression(0, min_path_cover.at(j)) = min_path_cluster_estimates.expression(0, j);
         }
 
-        assert(min_path_cluster_estimates.confidence.cols() == min_path_cover.size() + 1);
+        assert(min_path_cluster_estimates.posterior.cols() == min_path_cover.size() + 1);
 
-        path_cluster_estimates->abundances.confidence(0, min_path_cover.size()) = min_path_cluster_estimates.confidence(0, min_path_cover.size());
+        path_cluster_estimates->abundances.posterior(0, min_path_cover.size()) = min_path_cluster_estimates.posterior(0, min_path_cover.size());
         path_cluster_estimates->abundances.expression(0, min_path_cover.size()) = min_path_cluster_estimates.expression(0, min_path_cover.size());  
                   
         removeNoiseAndRenormalizeAbundances(&(path_cluster_estimates->abundances));
@@ -325,12 +325,12 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             for (size_t i = 0; i < path_cluster_estimates->abundances.expression.cols(); ++i) {
 
-                if (path_cluster_estimates->abundances.confidence(0, i) > 0) {
+                if (path_cluster_estimates->abundances.posterior(0, i) > 0) {
 
-                    path_cluster_estimates->abundances.expression(0, i) /= path_cluster_estimates->abundances.confidence(0, i);
+                    path_cluster_estimates->abundances.expression(0, i) /= path_cluster_estimates->abundances.posterior(0, i);
                 }
 
-                path_cluster_estimates->abundances.confidence(0, i) /= num_nested_its;
+                path_cluster_estimates->abundances.posterior(0, i) /= num_nested_its;
             }
 
             removeNoiseAndRenormalizeAbundances(&(path_cluster_estimates->abundances));
@@ -565,28 +565,24 @@ void NestedPathAbundanceEstimator::updateAbundances(Abundances * abundances, con
 
    for (size_t i = 0; i < path_indices.size(); ++i) {
 
-        if (ploidy_abundances.confidence(0, i) > 0) {
+        if (ploidy_abundances.posterior(0, i) > 0) {
 
-            assert(doubleCompare(ploidy_abundances.confidence(0, i), 1));
-
-            if (i > 0) {
+            assert(doubleCompare(ploidy_abundances.posterior(0, i), 1));
     
-                if (path_indices.at(i - 1) != path_indices.at(i)) {
+            if (i == 0 || path_indices.at(i - 1) != path_indices.at(i)) {
                     
-                    abundances->confidence(0, path_indices.at(i)) += (ploidy_abundances.confidence(0, i) * sample_count);
-                }
+                abundances->posterior(0, path_indices.at(i)) += (ploidy_abundances.posterior(0, i) * sample_count);
             }
-
-            abundances->confidence(0, path_indices.at(i)) += (ploidy_abundances.confidence(0, i) * sample_count);
+            
             abundances->expression(0, path_indices.at(i)) += (ploidy_abundances.expression(0, i) * sample_count);
         }
     }
 
-    assert(ploidy_abundances.confidence.cols() == path_indices.size() + 1);
+    assert(ploidy_abundances.posterior.cols() == path_indices.size() + 1);
 
-    if (ploidy_abundances.confidence(path_indices.size()) > 0) {
+    if (ploidy_abundances.posterior(path_indices.size()) > 0) {
 
-        abundances->confidence(0, abundances->confidence.cols() - 1) += (ploidy_abundances.confidence(0, path_indices.size()) * sample_count);
+        abundances->posterior(0, abundances->posterior.cols() - 1) += (ploidy_abundances.posterior(0, path_indices.size()) * sample_count);
         abundances->expression(0, abundances->expression.cols() - 1) += (ploidy_abundances.expression(0, path_indices.size()) * sample_count);  
     }
 }

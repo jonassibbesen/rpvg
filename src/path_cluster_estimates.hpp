@@ -71,7 +71,7 @@ struct Likelihoods {
 
 struct Abundances {
         
-    Eigen::RowVectorXd confidence;
+    Eigen::RowVectorXd posterior;
     Eigen::RowVectorXd expression;
 
     double read_count;
@@ -81,12 +81,12 @@ struct Abundances {
 
         if (init_zero) {
 
-            confidence = Eigen::RowVectorXd::Zero(1, num_components);
+            posterior = Eigen::RowVectorXd::Zero(1, num_components);
             expression = Eigen::RowVectorXd::Zero(1, num_components);
 
         } else {
 
-            confidence = Eigen::RowVectorXd::Constant(1, num_components, 1);
+            posterior = Eigen::RowVectorXd::Constant(1, num_components, 1);
             expression = Eigen::RowVectorXd::Constant(1, num_components, 1 / static_cast<float>(num_components));
         }
 

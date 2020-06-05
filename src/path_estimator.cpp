@@ -77,9 +77,12 @@ void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_pr
         }
     } 
 
-    read_path_probs->conservativeResize(num_rows, read_path_probs->cols());
-    noise_probs->conservativeResize(num_rows, noise_probs->cols());
-    read_counts->conservativeResize(read_counts->rows(), num_rows);    
+    if (num_rows < cluster_probs.size()) {
+
+        read_path_probs->conservativeResize(num_rows, read_path_probs->cols());
+        noise_probs->conservativeResize(num_rows, noise_probs->cols());
+        read_counts->conservativeResize(read_counts->rows(), num_rows);  
+    }  
 }
 
 void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, const Eigen::ColVectorXd & noise_probs) {
