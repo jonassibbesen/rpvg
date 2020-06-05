@@ -271,7 +271,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         double time1 = gbwt::readTimer();
         cerr << "\n\n##" << endl;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 0.0001);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 2);
 
         if (read_path_probs.rows() > 0) {
 
@@ -422,7 +422,10 @@ unordered_map<vector<uint32_t>, uint32_t> NestedPathAbundanceEstimator::samplePl
 
             for (size_t i = 0; i < group.size(); ++i) {
 
-                for (size_t j = i; j < group.size(); ++j) {
+                group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.at(i)}));
+                group_ploidy_log_samplers.back().addOutcome(group_read_counts.cast<double>() * ((group_read_path_probs.col(i) + group_read_path_probs.col(i) + group_read_path_probs.col(group.size())).array()).log().matrix() + log(2));
+
+                for (size_t j = i + 1; j < group.size(); ++j) {
 
                     group_ploidy_path_indices.back().emplace_back(vector<uint32_t>({group.at(i), group.at(j)}));
                     group_ploidy_log_samplers.back().addOutcome(group_read_counts.cast<double>() * ((group_read_path_probs.col(i) + group_read_path_probs.col(j) + group_read_path_probs.col(group.size())).array()).log().matrix() + log(2));
@@ -530,9 +533,17 @@ unordered_map<vector<uint32_t>, uint32_t> NestedPathAbundanceEstimator::samplePl
 
             if (i >= burn_in) {
 
-                for (auto & group_path_idx: cur_sampled_group_paths) {
+                vector<uint32_t> cur_sampled_group_paths_sort = cur_sampled_group_paths;
+                sort(cur_sampled_group_paths_sort.begin(), cur_sampled_group_paths_sort.end());
 
-                    ploidy_path_indices_samples.at(i - burn_in).emplace_back(group.at(group_path_idx));
+                ploidy_path_indices_samples.at(i - burn_in).emplace_back(group.at(cur_sampled_group_paths_sort.front()));
+
+                for (uint32_t j = 1; j < cur_sampled_group_paths_sort.size(); ++j) {
+
+                    if (ploidy_path_indices_samples.at(i - burn_in).back() != group.at(cur_sampled_group_paths_sort.at(j))) {
+
+                        ploidy_path_indices_samples.at(i - burn_in).emplace_back(group.at(cur_sampled_group_paths_sort.at(j)));
+                    }
                 }
             }
         }
@@ -568,12 +579,8 @@ void NestedPathAbundanceEstimator::updateAbundances(Abundances * abundances, con
         if (ploidy_abundances.posterior(0, i) > 0) {
 
             assert(doubleCompare(ploidy_abundances.posterior(0, i), 1));
-    
-            if (i == 0 || path_indices.at(i - 1) != path_indices.at(i)) {
-                    
-                abundances->posterior(0, path_indices.at(i)) += (ploidy_abundances.posterior(0, i) * sample_count);
-            }
-            
+
+            abundances->posterior(0, path_indices.at(i)) += (ploidy_abundances.posterior(0, i) * sample_count);            
             abundances->expression(0, path_indices.at(i)) += (ploidy_abundances.expression(0, i) * sample_count);
         }
     }
