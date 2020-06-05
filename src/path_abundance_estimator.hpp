@@ -52,7 +52,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const bool use_mh_gibbs_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_em_conv, const double prob_precision);
+        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const bool use_gibbs_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_em_conv, const double prob_precision);
         ~NestedPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
@@ -61,7 +61,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
         const uint32_t num_nested_its;
         const uint32_t ploidy;
-        const bool use_mh_gibbs;
+        const bool use_gibbs;
 
         mt19937 mt_rng;
 
@@ -69,7 +69,6 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
     
     unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesExact(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
     unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesGibbs(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
-    unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesMHGibbs(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
 
     void constructPloidyProbabilityMatrix(Eigen::ColMatrixXd * ploidy_read_path_probs, const Eigen::ColMatrixXd & read_path_probs, const vector<uint32_t> & path_indices) const;
     

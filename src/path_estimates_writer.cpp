@@ -74,7 +74,7 @@ void PathEstimatesWriter::writeThreadedPathClusterLikelihoods(const vector<vecto
 
 void PathEstimatesWriter::writeThreadedPathClusterAbundances(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates) {
 
-    *writer_stream << "Name\tClusterID\tLength\tEffectiveLength\tIsExpressedConfidence\tMeanGroupExpression\tMeanReadCount\tMeanTPM" << endl;
+    *writer_stream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypePosterior\tMeanGroupExpression\tMeanReadCount\tMeanTPM" << endl;
 
     double transcript_count_sum = 0;
 

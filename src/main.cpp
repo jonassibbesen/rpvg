@@ -226,9 +226,9 @@ int main(int argc, char* argv[]) {
     options.add_options("Abundance")
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
-      ("y,ploidy", "sample ploidy (used for haplotype and haplotype-transcript inference, max: 2)", cxxopts::value<uint32_t>()->default_value("2"))
-      ("n,num-hap-its", "number of haplotyping iterations (used for haplotype-transcript inference)", cxxopts::value<uint32_t>()->default_value("100"))
-      ("j,use-mh-gibbs", "use Metropolis-Hastings within Gibbs for haplotyping (used for haplotype-transcript inference)", cxxopts::value<bool>())
+      ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
+      ("n,num-hap-its", "number of haplotyping iterations", cxxopts::value<uint32_t>()->default_value("1000"))
+      ("j,use-gibbs", "use Gibbs sampling for haplotyping", cxxopts::value<bool>())
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
@@ -511,7 +511,7 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-mh-gibbs"), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-gibbs"), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
      
         path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 

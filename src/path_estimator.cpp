@@ -44,7 +44,7 @@ bool probabilityCountColSorter(const pair<Eigen::ColVectorXd, uint32_t> & lhs, c
 
 PathEstimator::PathEstimator(const double prob_precision_in) : prob_precision(prob_precision_in) {}
 
-void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const bool add_noise) {
+void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const bool add_noise, const double max_noise_prob) {
 
     assert(!cluster_probs.empty());
 
@@ -52,23 +52,34 @@ void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_pr
     *noise_probs = Eigen::ColVectorXd(cluster_probs.size());
     *read_counts = Eigen::RowVectorXui(cluster_probs.size());
 
+    uint32_t num_rows = 0;
+
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
 
-        assert(cluster_probs.at(i).probabilities().size() + static_cast<uint32_t>(add_noise) == read_path_probs->cols());
+        if (cluster_probs.at(i).noiseProbability() <= max_noise_prob) {
 
-        for (size_t j = 0; j < cluster_probs.at(i).probabilities().size(); ++j) {
+            assert(cluster_probs.at(i).probabilities().size() + static_cast<uint32_t>(add_noise) == read_path_probs->cols());
 
-            (*read_path_probs)(i, j) = cluster_probs.at(i).probabilities().at(j);
+            for (size_t j = 0; j < cluster_probs.at(i).probabilities().size(); ++j) {
+
+                (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(j);
+            }
+
+            if (add_noise) {
+
+                (*read_path_probs)(num_rows, cluster_probs.at(i).probabilities().size()) = cluster_probs.at(i).noiseProbability();
+            }
+
+            (*noise_probs)(num_rows, 0) = cluster_probs.at(i).noiseProbability();
+            (*read_counts)(0, num_rows) = cluster_probs.at(i).readCount();
+
+            num_rows++;
         }
-
-        if (add_noise) {
-
-            (*read_path_probs)(i, cluster_probs.at(i).probabilities().size()) = cluster_probs.at(i).noiseProbability();
-        }
-
-        (*noise_probs)(i) = cluster_probs.at(i).noiseProbability();
-        (*read_counts)(i) = cluster_probs.at(i).readCount();
     } 
+
+    read_path_probs->conservativeResize(num_rows, read_path_probs->cols());
+    noise_probs->conservativeResize(num_rows, noise_probs->cols());
+    read_counts->conservativeResize(read_counts->rows(), num_rows);    
 }
 
 void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, const Eigen::ColVectorXd & noise_probs) {
@@ -93,7 +104,7 @@ void PathEstimator::rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
 
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
 
-        read_path_prob_rows.emplace_back(read_path_probs->row(i), (*read_counts)(i));
+        read_path_prob_rows.emplace_back(read_path_probs->row(i), (*read_counts)(0, i));
     }
 
     sort(read_path_prob_rows.begin(), read_path_prob_rows.end(), probabilityCountRowSorter);
@@ -101,7 +112,7 @@ void PathEstimator::rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
     
         read_path_probs->row(i) = read_path_prob_rows.at(i).first;
-        (*read_counts)(i) = read_path_prob_rows.at(i).second;
+        (*read_counts)(0, i) = read_path_prob_rows.at(i).second;
     }    
 }
 
@@ -109,6 +120,7 @@ void PathEstimator::rowCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
+
     rowSortProbabilityMatrix(read_path_probs, read_counts);
 
     uint32_t prev_unique_probs_row = 0;
@@ -128,14 +140,14 @@ void PathEstimator::rowCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_
 
         if (is_identical) {
 
-            (*read_counts)(prev_unique_probs_row) += (*read_counts)(i);
+            read_counts->col(prev_unique_probs_row) += read_counts->col(i);
 
         } else {
 
             if (prev_unique_probs_row + 1 < i) {
 
                 read_path_probs->row(prev_unique_probs_row + 1) = read_path_probs->row(i);
-                (*read_counts)(prev_unique_probs_row + 1) = (*read_counts)(i);
+                read_counts->col(prev_unique_probs_row + 1) = read_counts->col(i);
             }
 
             prev_unique_probs_row++;
