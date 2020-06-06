@@ -31,7 +31,7 @@
 #include "read_path_probabilities.hpp"
 #include "probability_matrix_writer.hpp"
 #include "path_estimator.hpp"
-#include "path_likelihood_estimator.hpp"
+#include "path_posterior_estimator.hpp"
 #include "path_abundance_estimator.hpp"
 #include "path_cluster_estimates.hpp"
 #include "path_estimates_writer.hpp"
@@ -195,7 +195,7 @@ spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & fi
 
 int main(int argc, char* argv[]) {
 
-    cxxopts::Options options("rpvg", "rpvg - infers path likelihoods and abundances from variation graph read alignments");
+    cxxopts::Options options("rpvg", "rpvg - infers path posterior probabilities and abundances from variation graph read alignments");
 
     options.add_options("Required")
       ("g,graph", "xg graph filename", cxxopts::value<string>())
@@ -224,11 +224,11 @@ int main(int argc, char* argv[]) {
       ;
 
     options.add_options("Abundance")
+      ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
+      ("j,use-exact", "use slower exact likelihood inference for haplotyping", cxxopts::value<bool>())
+      ("n,num-hap-its", "number of haplotyping iterations", cxxopts::value<uint32_t>()->default_value("1000"))
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
-      ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
-      ("n,num-hap-its", "number of haplotyping iterations", cxxopts::value<uint32_t>()->default_value("1000"))
-      ("j,use-gibbs", "use Gibbs sampling for haplotyping", cxxopts::value<bool>())
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
@@ -283,12 +283,6 @@ int main(int argc, char* argv[]) {
     if (ploidy == 0) {
 
         cerr << "ERROR: Ploidy (--ploidy) can not be 0." << endl;
-        return 1;        
-    }
-
-    if (ploidy > 2) {
-
-        cerr << "ERROR: Maximum support ploidy (--ploidy) is currently 2." << endl;
         return 1;        
     }
 
@@ -387,7 +381,7 @@ int main(int argc, char* argv[]) {
     }
 
     double time2 = gbwt::readTimer();
-    cerr << "Load graph and GBWT " << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Loaded graph and GBWT (" << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
@@ -429,7 +423,7 @@ int main(int argc, char* argv[]) {
     cerr << align_paths_index.size() << endl;
 
     double time3 = gbwt::readTimer();
-    cerr << "Found alignment paths " << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     auto threaded_connected_align_paths = new vector<connected_align_paths_t>(num_threads);
 
@@ -471,7 +465,7 @@ int main(int argc, char* argv[]) {
     delete threaded_connected_align_paths;
 
     double time6 = gbwt::readTimer();
-    cerr << "Created alignment path clusters " << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
  
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 
@@ -484,7 +478,7 @@ int main(int argc, char* argv[]) {
     }
 
     double time7 = gbwt::readTimer();
-    cerr << "Clustered alignment paths " << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Clustered alignment paths (" << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     ProbabilityMatrixWriter * prob_matrix_writer = nullptr;
 
@@ -499,7 +493,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        path_estimator = new PathGroupLikelihoodEstimator(ploidy, true, prob_precision);
+        path_estimator = new PathGroupPosteriorEstimator(ploidy, prob_precision);
 
     } else if (inference_model == "transcripts") {
 
@@ -511,7 +505,7 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-gibbs"), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-exact"), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
      
         path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
 
@@ -640,7 +634,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        path_estimates_writer.writeThreadedPathClusterLikelihoods(threaded_path_cluster_estimates, ploidy); 
+        path_estimates_writer.writeThreadedPathClusterPosteriors(threaded_path_cluster_estimates, ploidy); 
 
     } else {
 
@@ -648,7 +642,7 @@ int main(int argc, char* argv[]) {
     }
 
     double time8 = gbwt::readTimer();
-    cerr << "Inferred path likelihoods and/or abundances " << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB" << endl;
+    cerr << "Inferred path posterior probabilities" << ((inference_model != "haplotypes") ? " and abundances" : "") << " (" << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
 	return 0;
 }

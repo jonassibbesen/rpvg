@@ -1,5 +1,5 @@
 # rpvg
-Method for inferring path likelihoods and abundances from variation graph read aligments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) variation graph in xg format the probability of it originating from each path in a [GBWT](https://github.com/jltsiren/gbwt) index is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a seperate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The read-path probabilities are used to calculate likelihoods and infer abundances for each group indepedently. The method supports mapped paired-end reads in both the *vg map* [Alignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L111) format (.gam) and *vg mpmap* [MultipathAlignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L156) format (.gmap). 
+Method for inferring path posterior probability and abundances from variation graph read aligments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) variation graph in xg format the probability of it originating from each path in a [GBWT](https://github.com/jltsiren/gbwt) index is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a seperate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The read-path probabilities are used to calculate posterior probabilities and infer abundances for each group indepedently. The method supports mapped paired-end reads in both the *vg map* [Alignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L111) format (.gam) and *vg mpmap* [MultipathAlignment](https://github.com/vgteam/libvgio/blob/a369fb1f293545eccfdf2d6d3bd4a30b6f5ec664/deps/vg.proto#L156) format (.gmap). 
 
 
 ### Compilation
@@ -24,7 +24,7 @@ The number of threads can be given using `-t`.
 #### Inference models:
 The method currently contains four different inference models. Each model have been written with a particurlar path type and corresponding inference problem in mind:
 
-* `haplotypes`: Infers haplotype/diplotype likelihoods. The ploidy can be given using `-y`.
+* `haplotypes`: Infers haplotype/diplotype posterior probability. The ploidy can be given using `-y`.
 
 * `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm.
 
