@@ -74,7 +74,6 @@ add_library(${PROJECT_NAME}
   src/path_posterior_estimator.cpp 
   src/path_abundance_estimator.cpp
   src/path_estimates_writer.cpp
-  src/discrete_sampler.cpp
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
   src/io/register_loader_saver_xg.cpp

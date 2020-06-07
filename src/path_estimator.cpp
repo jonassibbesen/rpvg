@@ -119,7 +119,7 @@ void PathEstimator::rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
     }    
 }
 
-void PathEstimator::rowCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
+void PathEstimator::collapseProbabilityMatrixReads(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
@@ -181,7 +181,7 @@ void PathEstimator::colSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
     }    
 }
 
-void PathEstimator::colCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs) {
+void PathEstimator::collapseProbabilityMatrixPaths(Eigen::ColMatrixXd * read_path_probs) {
 
     assert(read_path_probs->cols() > 0);    
     colSortProbabilityMatrix(read_path_probs);
@@ -214,3 +214,127 @@ void PathEstimator::colCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_
 
     read_path_probs->conservativeResize(read_path_probs->rows(), prev_unique_probs_col + 1);
 }
+
+void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const uint32_t noise_col_idx, const Eigen::RowVectorXui & read_counts, const uint32_t group_size) {
+
+    assert(group_size > 0);
+
+    path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size(), group_size, true);
+    assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
+
+    double sum_log_posterior = numeric_limits<double>::lowest();
+
+    for (uint32_t i = 0; i < path_cluster_estimates->path_groups.size(); ++i) {
+
+        assert(!path_cluster_estimates->path_groups.at(i).empty());
+
+        Eigen::ColVectorXd group_read_probs = read_path_probs.col(noise_col_idx);
+
+        for (auto & path_idx: path_cluster_estimates->path_groups.at(i)) {
+
+            group_read_probs += read_path_probs.col(path_idx);
+        }
+
+        path_cluster_estimates->posteriors(0, i) = read_counts.cast<double>() * group_read_probs.array().log().matrix();
+        sum_log_posterior = add_log(sum_log_posterior, path_cluster_estimates->posteriors(0, i));
+    }
+
+    for (size_t i = 0; i < path_cluster_estimates->posteriors.cols(); ++i) {
+
+        path_cluster_estimates->posteriors(0, i) = exp(path_cluster_estimates->posteriors(0, i) - sum_log_posterior);
+    }
+}
+
+void PathEstimator::samplePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const uint32_t noise_col_idx, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, const uint32_t num_gibbs_its, mt19937 * mt_rng) {
+
+    assert(group_size > 0);
+
+    path_cluster_estimates->initEstimates(0, 0, true);
+    assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
+
+    PathClusterEstimates marginal_path_cluster_estimates;
+
+    calculatePathGroupPosteriors(&marginal_path_cluster_estimates, read_path_probs, noise_col_idx, read_counts, group_size);
+    assert(marginal_path_cluster_estimates.posteriors.size() == marginal_path_cluster_estimates.path_groups.size());
+
+    discrete_distribution<uint32_t> marginal_path_sampler(marginal_path_cluster_estimates.posteriors.begin(), marginal_path_cluster_estimates.posteriors.end());
+
+    vector<uint32_t> cur_sampled_group_paths;
+    cur_sampled_group_paths.reserve(group_size);
+
+    for (uint32_t i = 0; i < group_size; ++i) {
+
+        cur_sampled_group_paths.emplace_back(marginal_path_sampler(*mt_rng));
+    }
+
+    spp::sparse_hash_map<vector<uint32_t>, discrete_distribution<uint32_t> > group_path_sampler_cache;
+    spp::sparse_hash_map<vector<uint32_t>, uint32_t> path_groups_indices;
+
+    vector<uint32_t> path_group_sample_counts;
+
+    uint32_t num_burn_its = 10 * (group_size - 1);
+
+    for (uint32_t i = 0; i < num_burn_its + num_gibbs_its; ++i) {
+
+        for (uint32_t j = 0; j < group_size; ++j) {
+
+            vector<uint32_t> new_cur_sampled_group_paths = cur_sampled_group_paths;
+
+            new_cur_sampled_group_paths.at(j) = read_path_probs.cols() - 1;
+            sort(new_cur_sampled_group_paths.begin(), new_cur_sampled_group_paths.end());
+
+            auto group_path_sampler_cache_it = group_path_sampler_cache.emplace(new_cur_sampled_group_paths, discrete_distribution<uint32_t>());
+
+            if (group_path_sampler_cache_it.second) {
+
+                Eigen::ColVectorXd group_read_probs = read_path_probs.col(noise_col_idx);
+
+                for (uint32_t k = 0; k < group_size; ++k) {
+
+                    if (k != j) {
+
+                        group_read_probs += read_path_probs.col(cur_sampled_group_paths.at(k));
+                    }
+                }
+
+                vector<double> group_probs;
+                group_probs.reserve(read_path_probs.cols() - 1);
+
+                for (uint32_t k = 0; k < (read_path_probs.cols() - 1); ++k) {
+
+                    group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + read_path_probs.col(k)).array().log().matrix());
+                }
+
+                group_path_sampler_cache_it.first->second = discrete_distribution<uint32_t>(group_probs.begin(), group_probs.end());
+            }
+
+            cur_sampled_group_paths.at(j) = group_path_sampler_cache_it.first->second(*mt_rng);
+        }
+
+        if (i >= num_burn_its) {
+
+            vector<uint32_t> cur_sampled_group_paths_sort = cur_sampled_group_paths;
+            sort(cur_sampled_group_paths_sort.begin(), cur_sampled_group_paths_sort.end());
+
+            auto path_groups_indices_it = path_groups_indices.emplace(cur_sampled_group_paths_sort, path_cluster_estimates->path_groups.size());
+
+            if (path_groups_indices_it.second) {
+
+                path_cluster_estimates->path_groups.emplace_back(cur_sampled_group_paths_sort);
+                path_group_sample_counts.emplace_back(1);
+
+            } else {
+
+                path_group_sample_counts.at(path_groups_indices_it.first->second)++;
+            }
+        }
+    }
+
+    path_cluster_estimates->posteriors = Eigen::RowVectorXd::Zero(1, path_group_sample_counts.size());
+
+    for (size_t i = 0; i < path_group_sample_counts.size(); ++i) {
+
+        path_cluster_estimates->posteriors(0, i) = path_group_sample_counts.at(i) / static_cast<double>(num_gibbs_its);
+    }
+}
+

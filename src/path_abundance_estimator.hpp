@@ -10,7 +10,6 @@
 #include "path_estimator.hpp"
 #include "path_cluster_estimates.hpp"
 #include "read_path_probabilities.hpp"
-#include "discrete_sampler.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -65,14 +64,11 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
         mt19937 mt_rng;
 
-    vector<vector<uint32_t> > findPathOriginGroups(const vector<PathInfo> & paths) const;
-    
-    unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesExact(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
-    unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndicesGibbs(const vector<PathInfo> & paths, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
-
-    void constructPloidyProbabilityMatrix(Eigen::ColMatrixXd * ploidy_read_path_probs, const Eigen::ColMatrixXd & read_path_probs, const vector<uint32_t> & path_indices) const;
-    
-    void updateEstimates(PathClusterEstimates * path_cluster_estimates, const PathClusterEstimates & new_path_cluster_estimates, const vector<uint32_t> & path_indices, const uint32_t sample_count) const;
+        vector<vector<uint32_t> > findPathOriginGroups(const vector<PathInfo> & paths) const;
+        
+        void samplePloidyPathIndices(vector<vector<uint32_t> > * ploidy_path_indices_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<uint32_t> & group);
+                
+        void updateEstimates(PathClusterEstimates * path_cluster_estimates, const PathClusterEstimates & new_path_cluster_estimates, const vector<uint32_t> & path_indices, const uint32_t sample_count) const;
 };
 
  

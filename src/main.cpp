@@ -493,7 +493,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        path_estimator = new PathGroupPosteriorEstimator(ploidy, prob_precision);
+        path_estimator = new PathGroupPosteriorEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-exact"), rng_seed, prob_precision);
 
     } else if (inference_model == "transcripts") {
 

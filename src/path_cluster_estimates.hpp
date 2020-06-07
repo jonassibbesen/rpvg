@@ -67,7 +67,7 @@ struct PathClusterEstimates {
 
         if (init_zero) {
 
-            posteriors = Eigen::RowVectorXd::Zero(1, num_components);               
+            posteriors = Eigen::RowVectorXd::Zero(1, num_components);
             abundances = Eigen::RowVectorXd::Zero(1, num_components);
 
         } else {
