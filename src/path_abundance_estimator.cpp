@@ -303,20 +303,22 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 assert(group_read_path_probs.cols() == group.size() + 1);
                 assert(group_read_counts.sum() == read_counts.sum());
 
+                Eigen::ColVectorXd group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
+                group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
+
                 PathClusterEstimates group_path_cluster_estimates;
 
                 if (use_exact) {
 
-                    calculatePathGroupPosteriors(&group_path_cluster_estimates, group_read_path_probs, group_read_path_probs.cols() - 1, group_read_counts, ploidy);
+                    calculatePathGroupPosteriors(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy);
 
                 } else {
 
-                    samplePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_read_path_probs.cols() - 1, group_read_counts, ploidy, num_nested_its, &mt_rng);
+                    estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy, num_nested_its, &mt_rng);
                 }
 
                 samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);
             }
-
 
             unordered_map<vector<uint32_t>, uint32_t> collapsed_ploidy_path_indices_samples;
 
@@ -410,9 +412,9 @@ vector<vector<uint32_t> > NestedPathAbundanceEstimator::findPathOriginGroups(con
 
 void NestedPathAbundanceEstimator::samplePloidyPathIndices(vector<vector<uint32_t> > * ploidy_path_indices_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<uint32_t> & group) {
 
-    discrete_distribution<uint32_t> group_ploidy_path_sampler(group_path_cluster_estimates.posteriors.begin(), group_path_cluster_estimates.posteriors.end());
+    discrete_distribution<uint32_t> group_ploidy_path_sampler(group_path_cluster_estimates.posteriors.row(0).begin(), group_path_cluster_estimates.posteriors.row(0).end());
 
-    assert(group_path_cluster_estimates.posteriors.size() == group_path_cluster_estimates.path_groups.size());
+    assert(group_path_cluster_estimates.posteriors.cols() == group_path_cluster_estimates.path_groups.size());
 
     for (size_t i = 0; i < num_nested_its; ++i) {
 
