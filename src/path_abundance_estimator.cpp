@@ -267,7 +267,10 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         Eigen::ColVectorXd noise_probs;
         Eigen::RowVectorXui read_counts;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, false, 2);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 2);
+        collapseProbabilityMatrixReads(&read_path_probs, &read_counts);
+
+        noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
 
         auto path_groups = findPathOriginGroups(path_cluster_estimates->paths);
 

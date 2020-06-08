@@ -230,7 +230,7 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
 
     for (uint32_t i = 0; i < path_cluster_estimates->path_groups.size(); ++i) {
 
-        assert(!path_cluster_estimates->path_groups.at(i).empty());
+        assert(path_cluster_estimates->path_groups.at(i).size() == group_size);
 
         Eigen::ColVectorXd group_read_probs = noise_probs;
 
@@ -240,6 +240,8 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
         }
 
         path_cluster_estimates->posteriors(0, i) = read_counts.cast<double>() * group_read_probs.array().log().matrix();
+        path_cluster_estimates->posteriors(0, i) += log(numPermutations(path_cluster_estimates->path_groups.at(i)));
+
         sum_log_posterior = add_log(sum_log_posterior, path_cluster_estimates->posteriors(0, i));
     }
 

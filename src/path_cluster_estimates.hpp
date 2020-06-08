@@ -44,7 +44,14 @@ struct PathClusterEstimates {
 
         if (cur_group.size() < group_size) {
 
-            for (uint32_t i = 0; i < num_components; ++i) {
+            uint32_t start_idx = 0;
+
+            if (!cur_group.empty()) {
+
+                start_idx = cur_group.back();
+            }
+
+            for (uint32_t i = start_idx; i < num_components; ++i) {
 
                 vector<uint32_t> new_group = cur_group;
                 new_group.push_back(i);

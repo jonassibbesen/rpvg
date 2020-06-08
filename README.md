@@ -24,13 +24,13 @@ The number of threads can be given using `-t`.
 #### Inference models:
 The method currently contains four different inference models. Each model have been written with a particurlar path type and corresponding inference problem in mind:
 
-* `haplotypes`: Infers haplotype/diplotype posterior probability. The ploidy can be given using `-y`.
+* `haplotypes`: Infers haplotype/diplotype/... posterior probabilities. By default it uses a Gibbs sampling scheme to infer the probabilities, however exact inference can be enabled using `-j`. The exact inference scales exponentially in the sample ploidy and it is therefore only recommeneded for when the number of haplotypes are low ot the ploidy is 1. The ploidy can be given using `-y`.
 
 * `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm.
 
 * `strains`: Infers abundances using a combination of weighted minimim path cover and EM. **Note that this algorithm is work in progress and have therefore not been properly evalauted yet**.
 
-* `haplotype-transcripts`: Infers abundances using a combination of haplotype/diplotype sampling and EM. When working with The algorithm requires a file (`-f`) containing the transcript origin of each path (`--write-info` output from *vg rna*). The ploidy can be given using `-y`.
+* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. By default it uses a Gibbs sampling to estimate the most probable haplotype combinations (see `haplotypes` for more information). The algorithm requires a file (`-f`) containing the transcript origin of each path (`--write-info` output from *vg rna*).
 
 #### Alignment types:
 * Use `-u` if the input alignment format is multipath (*.gamp*) from *vg mpmap*.
