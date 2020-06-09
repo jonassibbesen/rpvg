@@ -10,7 +10,6 @@
 #include "path_estimator.hpp"
 #include "path_cluster_estimates.hpp"
 #include "read_path_probabilities.hpp"
-#include "discrete_sampler.hpp"
 #include "utils.hpp"
 
 using namespace std;
@@ -32,8 +31,8 @@ class PathAbundanceEstimator : public PathEstimator {
         const double em_conv_min_exp;
         const double em_conv_max_rel_diff;
 
-        void expectationMaximizationEstimator(Abundances * abundances, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
-        void removeNoiseAndRenormalizeAbundances(Abundances * abundances) const;    
+        void EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const;
+        void removeNoiseAndRenormalizeAbundances(PathClusterEstimates * path_cluster_estimates) const;    
 };
 
 class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {
@@ -52,7 +51,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_em_conv, const double prob_precision);
+        NestedPathAbundanceEstimator(const uint32_t num_nested_its_in, const uint32_t ploidy_in, const bool use_exact_in, const uint32_t rng_seed, const uint32_t max_em_its, const double min_em_conv, const double prob_precision);
         ~NestedPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
@@ -61,18 +60,15 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
         const uint32_t num_nested_its;
         const uint32_t ploidy;
+        const bool use_exact;
 
         mt19937 mt_rng;
 
-    unordered_map<string, vector<uint32_t> > findPathOriginGroups(const PathClusterEstimates & path_cluster_estimates);
-
-    void calculateGroupPloidyLogProbabilities(vector<vector<vector<uint32_t> > > * group_ploidy_path_indices, vector<LogDiscreteSampler> * group_ploidy_log_samplers, const unordered_map<string, vector<uint32_t> > & path_groups, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts);
-    
-    unordered_map<vector<uint32_t>, uint32_t> samplePloidyPathIndices(const vector<vector<vector<uint32_t> > > & group_ploidy_path_indices, const vector<LogDiscreteSampler> & group_ploidy_log_samplers, const uint32_t num_path_groups);
-
-    void constructPloidyProbabilityMatrix(Eigen::ColMatrixXd * ploidy_read_path_probs, const Eigen::ColMatrixXd & read_path_probs, const vector<uint32_t> & path_indices);
-    
-    void updateAbundances(PathClusterEstimates * path_cluster_estimates, const Abundances & ploidy_abundances, const vector<uint32_t> & path_indices, const uint32_t sample_count);
+        vector<vector<uint32_t> > findPathOriginGroups(const vector<PathInfo> & paths) const;
+        
+        void samplePloidyPathIndices(vector<vector<uint32_t> > * ploidy_path_indices_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<uint32_t> & group);
+                
+        void updateEstimates(PathClusterEstimates * path_cluster_estimates, const PathClusterEstimates & new_path_cluster_estimates, const vector<uint32_t> & path_indices, const uint32_t sample_count) const;
 };
 
  

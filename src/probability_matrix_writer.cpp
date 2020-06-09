@@ -48,7 +48,7 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
 
     for (auto & prob: collpased_probs) {
 
-        if (write_zero || !doubleCompare(prob.first, 0)) {
+        if (write_zero || prob.first > 0) {
 
             *writer_stream << " " << prob.first << ":";
 

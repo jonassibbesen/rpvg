@@ -27,78 +27,64 @@ struct PathInfo {
     }
 };
 
-struct Likelihoods {
-        
-    Eigen::RowVectorXd likelihoods;
-    bool is_log; 
-        
-    vector<vector<uint32_t> > groups;
+struct PathClusterEstimates {
 
-    Likelihoods() {}
-    Likelihoods(const uint32_t num_components, const uint32_t group_size, const bool init_log) : is_log(init_log) {
+    vector<PathInfo> paths;
 
-        assert(group_size <= 2);
-        groups.reserve((num_components * (num_components - 1) / 2) * (group_size - 1) + num_components);
+    Eigen::RowVectorXd posteriors;
+    Eigen::RowVectorXd abundances;
 
-        if (group_size == 1) {
-            
-            for (uint32_t i = 0; i < num_components; ++i) {
+    uint32_t read_count;
 
-                groups.emplace_back(vector<uint32_t>({i}));
+    vector<vector<uint32_t> > path_groups;
+
+    void generateGroupsRecursive(const uint32_t num_components, const uint32_t group_size, vector<uint32_t> cur_group) {
+
+        assert(cur_group.size() <= group_size);
+
+        if (cur_group.size() < group_size) {
+
+            uint32_t start_idx = 0;
+
+            if (!cur_group.empty()) {
+
+                start_idx = cur_group.back();
+            }
+
+            for (uint32_t i = start_idx; i < num_components; ++i) {
+
+                vector<uint32_t> new_group = cur_group;
+                new_group.push_back(i);
+                generateGroupsRecursive(num_components, group_size, new_group);
             }
 
         } else {
 
-            for (uint32_t i = 0; i < num_components; ++i) {
-
-                for (uint32_t j = i; j < num_components; ++j) {
-
-                    groups.emplace_back(vector<uint32_t>({i, j}));
-                }
-            }
-        }
-
-        if (init_log) {
-
-            likelihoods = Eigen::RowVectorXd::Constant(1, groups.size(), numeric_limits<double>::lowest());
-
-        } else {
-
-            likelihoods = Eigen::RowVectorXd::Zero(1, groups.size());
+            path_groups.emplace_back(cur_group);
         }
     }
-};
 
-struct Abundances {
-        
-    Eigen::RowVectorXd confidence;
-    Eigen::RowVectorXd expression;
+    void initEstimates(uint32_t num_components, const uint32_t group_size, const bool init_zero) {
 
-    double read_count;
-        
-    Abundances() {}
-    Abundances(const uint32_t num_components, const bool init_zero) {
+        if (group_size > 0) {
+
+            generateGroupsRecursive(num_components, group_size, vector<uint>());
+            num_components = path_groups.size();
+        }
 
         if (init_zero) {
 
-            confidence = Eigen::RowVectorXd::Zero(1, num_components);
-            expression = Eigen::RowVectorXd::Zero(1, num_components);
+            posteriors = Eigen::RowVectorXd::Zero(1, num_components);
+            abundances = Eigen::RowVectorXd::Zero(1, num_components);
 
         } else {
 
-            confidence = Eigen::RowVectorXd::Constant(1, num_components, 1);
-            expression = Eigen::RowVectorXd::Constant(1, num_components, 1 / static_cast<float>(num_components));
+            posteriors = Eigen::RowVectorXd::Constant(num_components, 1);
+            abundances = Eigen::RowVectorXd::Constant(num_components, 1 / static_cast<float>(num_components));
         }
 
         read_count = 0;
     }
-};
-
-struct PathClusterEstimates {
-
-    vector<PathInfo> paths;
-    Abundances abundances;
-    Likelihoods likelihoods;
 };
 
 

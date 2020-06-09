@@ -71,10 +71,9 @@ add_library(${PROJECT_NAME}
   src/read_path_probabilities.cpp 
   src/probability_matrix_writer.cpp 
   src/path_estimator.cpp 
-  src/path_likelihood_estimator.cpp 
+  src/path_posterior_estimator.cpp 
   src/path_abundance_estimator.cpp
   src/path_estimates_writer.cpp
-  src/discrete_sampler.cpp
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
   src/io/register_loader_saver_xg.cpp

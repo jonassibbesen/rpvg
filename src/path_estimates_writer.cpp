@@ -33,14 +33,14 @@ PathEstimatesWriter::~PathEstimatesWriter() {
     }
 }
 
-void PathEstimatesWriter::writeThreadedPathClusterLikelihoods(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates, const uint32_t ploidy) {
+void PathEstimatesWriter::writeThreadedPathClusterPosteriors(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates, const uint32_t ploidy) {
 
     for (uint32_t i = 0; i < ploidy; ++i) {
 
         *writer_stream << "Name" << i + 1 << "\t";
     }
 
-    *writer_stream << "ClusterID\tMinusLogLikelihood" << endl;
+    *writer_stream << "ClusterID\tPosterior" << endl;
 
     uint32_t cluster_id = 0;
 
@@ -50,22 +50,19 @@ void PathEstimatesWriter::writeThreadedPathClusterLikelihoods(const vector<vecto
 
             ++cluster_id;
 
-            const Likelihoods & likelihoods = path_cluster_estimates.likelihoods;
+            assert(path_cluster_estimates.path_groups.size() == path_cluster_estimates.posteriors.cols());
 
-            assert(likelihoods.is_log);
-            assert(likelihoods.groups.size() == likelihoods.likelihoods.size());
+            for (size_t i = 0; i < path_cluster_estimates.path_groups.size(); ++i) {
 
-            for (size_t i = 0; i < likelihoods.groups.size(); ++i) {
+                assert(path_cluster_estimates.path_groups.at(i).size() == ploidy);
 
-                assert(likelihoods.groups.at(i).size() == ploidy);
-
-                for (auto & path_idx: likelihoods.groups.at(i)) {
+                for (auto & path_idx: path_cluster_estimates.path_groups.at(i)) {
 
                     *writer_stream << path_cluster_estimates.paths.at(path_idx).name << "\t";
                 }
 
                 *writer_stream << cluster_id;
-                *writer_stream << "\t" << -1 * likelihoods.likelihoods(i);
+                *writer_stream << "\t" << path_cluster_estimates.posteriors(0, i);
                 *writer_stream << endl;
             }
         }
@@ -74,7 +71,7 @@ void PathEstimatesWriter::writeThreadedPathClusterLikelihoods(const vector<vecto
 
 void PathEstimatesWriter::writeThreadedPathClusterAbundances(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates) {
 
-    *writer_stream << "Name\tClusterID\tLength\tEffectiveLength\tIsExpressedConfidence\tMeanGroupExpression\tMeanReadCount\tMeanTPM" << endl;
+    *writer_stream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypePosterior\tClusterRelativeExpression\tReadCount\tTPM" << endl;
 
     double transcript_count_sum = 0;
 
@@ -82,14 +79,15 @@ void PathEstimatesWriter::writeThreadedPathClusterAbundances(const vector<vector
 
         for (auto & path_cluster_estimates: path_cluster_estimates_thread) {
 
-            for (size_t i = 0; i < path_cluster_estimates.paths.size(); ++i) {
+            assert(path_cluster_estimates.paths.size() == path_cluster_estimates.posteriors.cols());
+            assert(path_cluster_estimates.paths.size() == path_cluster_estimates.abundances.cols());
+            assert(path_cluster_estimates.path_groups.empty());
 
-                assert(path_cluster_estimates.paths.size() == path_cluster_estimates.abundances.confidence.cols());
-                assert(path_cluster_estimates.paths.size() == path_cluster_estimates.abundances.expression.cols());
+            for (size_t i = 0; i < path_cluster_estimates.paths.size(); ++i) {
 
                 if (path_cluster_estimates.paths.at(i).effective_length > 0) {
 
-                    transcript_count_sum += path_cluster_estimates.abundances.expression(0, i) * path_cluster_estimates.abundances.read_count / path_cluster_estimates.paths.at(i).effective_length;
+                    transcript_count_sum += path_cluster_estimates.abundances(0, i) * path_cluster_estimates.read_count / path_cluster_estimates.paths.at(i).effective_length;
                 }
             }
         }
@@ -109,16 +107,16 @@ void PathEstimatesWriter::writeThreadedPathClusterAbundances(const vector<vector
 
                 if (path_cluster_estimates.paths.at(i).effective_length > 0) {
 
-                    transcript_count = path_cluster_estimates.abundances.expression(0, i) * path_cluster_estimates.abundances.read_count / path_cluster_estimates.paths.at(i).effective_length;
+                    transcript_count = path_cluster_estimates.abundances(0, i) * path_cluster_estimates.read_count / path_cluster_estimates.paths.at(i).effective_length;
                 }
 
                 *writer_stream << path_cluster_estimates.paths.at(i).name;
                 *writer_stream << "\t" << cluster_id;
                 *writer_stream << "\t" << path_cluster_estimates.paths.at(i).length;
                 *writer_stream << "\t" << path_cluster_estimates.paths.at(i).effective_length;
-                *writer_stream << "\t" << path_cluster_estimates.abundances.confidence(0, i);
-                *writer_stream << "\t" << path_cluster_estimates.abundances.expression(0, i);
-                *writer_stream << "\t" << path_cluster_estimates.abundances.expression(0, i) * path_cluster_estimates.abundances.read_count;
+                *writer_stream << "\t" << path_cluster_estimates.posteriors(0, i);
+                *writer_stream << "\t" << path_cluster_estimates.abundances(0, i);
+                *writer_stream << "\t" << path_cluster_estimates.abundances(0, i) * path_cluster_estimates.read_count;
                 *writer_stream << "\t" << transcript_count / transcript_count_sum * pow(10, 6);
                 *writer_stream << endl;
             }

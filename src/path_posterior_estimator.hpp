@@ -15,33 +15,33 @@
 using namespace std;
 
 
-class PathLikelihoodEstimator : public PathEstimator {
+class PathPosteriorEstimator : public PathEstimator {
 
     public:
 
-        PathLikelihoodEstimator(const bool use_log_in, const double prob_precision);
-        virtual ~PathLikelihoodEstimator() {};
+        PathPosteriorEstimator(const double prob_precision);
+        virtual ~PathPosteriorEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
 
-    protected: 
-
-        const bool use_log; 
-
 };
 
-class PathGroupLikelihoodEstimator : public PathLikelihoodEstimator {
+class PathGroupPosteriorEstimator : public PathPosteriorEstimator {
 
     public:
 
-        PathGroupLikelihoodEstimator(const uint32_t ploidy_in, const bool use_log, const double prob_precision);
-        ~PathGroupLikelihoodEstimator() {};
+        PathGroupPosteriorEstimator(const uint32_t num_gibbs_its_in, const uint32_t ploidy_in, const bool use_exact_in, const uint32_t rng_seed, const double prob_precision);
+        ~PathGroupPosteriorEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs);
 
     private: 
 
+        const uint32_t num_gibbs_its;
         const uint32_t ploidy;
+        const bool use_exact;
+
+        mt19937 mt_rng;
 };
 
  
