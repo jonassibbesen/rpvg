@@ -157,12 +157,10 @@ uint32_t AlignmentSearchPath::scoreSum() const {
 
 bool AlignmentSearchPath::complete() const {
 
-    if (path.empty() || path_end_pos != path.size()) {
+    if (path.empty() || path_end_pos != path.size() || search.empty()) {
 
         return false;
     }
-
-    assert(search.node == path.back());
 
     return true;
 }

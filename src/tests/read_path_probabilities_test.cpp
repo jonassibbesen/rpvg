@@ -36,7 +36,14 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 		ReadPathProbabilities read_path_probs_2(1, 2, score_log_base, fragment_length_dist);
 		read_path_probs_2.calcReadPathProbabilities(alignment_paths, clustered_path_index, paths, false);
 
-		REQUIRE(read_path_probs == read_path_probs_2);
+		cerr << read_path_probs.probabilities() << endl;
+		cerr << read_path_probs_2.probabilities() << endl;
+
+		REQUIRE(read_path_probs.readCount() == read_path_probs_2.readCount());
+		REQUIRE(doubleCompare(read_path_probs.noiseProbability(), read_path_probs_2.noiseProbability()));
+		REQUIRE(read_path_probs.probabilities().size() == read_path_probs_2.probabilities().size() );
+		REQUIRE(doubleCompare(read_path_probs.probabilities().front(), read_path_probs_2.probabilities().front()));
+		REQUIRE(doubleCompare(read_path_probs.probabilities().back(), read_path_probs_2.probabilities().back()));
 	}
 
     SECTION("Probabilities are calculated from multiple alignment paths") {
@@ -54,6 +61,8 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
 		ReadPathProbabilities read_path_probs_3(1, 4, score_log_base, fragment_length_dist);
 		read_path_probs_3.calcReadPathProbabilities(alignment_paths, clustered_path_index, paths, false);
+
+		cerr << read_path_probs_3.probabilities() << endl;
 
 		REQUIRE(read_path_probs_3.readCount() == 1);
 		REQUIRE(doubleCompare(read_path_probs_3.noiseProbability(), 0.1));

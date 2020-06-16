@@ -35,7 +35,7 @@ The method currently contains four different inference models. Each model have b
 #### Alignment types:
 * Use `-u` if the input alignment format is multipath (*.gamp*) from *vg mpmap*.
 * Use `-s` for single-end reads. Note that the fragment length distribtion will still be used for calculating the effective path length.
-* Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but does not use the effective path length.
+* Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but does normalize with the path length.
 
 #### Fragment length distribution:
 Fragment length distribution mean and standard deviation can be given using `-m` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. 

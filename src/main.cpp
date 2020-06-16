@@ -68,7 +68,7 @@ void addAlignmentPathsToBufferQueue(vector<vector<AlignmentPath> > * align_paths
 template<class AlignmentType> 
 void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const uint32_t num_threads) {
 
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, fragment_length_dist.maxLength());
+    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, true, fragment_length_dist.maxLength());
 
     auto threaded_align_path_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -101,7 +101,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 template<class AlignmentType> 
 void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const uint32_t num_threads) {
 
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, fragment_length_dist.maxLength());
+    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, true, fragment_length_dist.maxLength());
 
     auto threaded_align_path_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -569,7 +569,7 @@ int main(int argc, char* argv[]) {
 
             if (is_long_reads) {
 
-                path_cluster_estimates->back().paths.back().effective_length = paths_index.pathLength(path_id); 
+                path_cluster_estimates->back().paths.back().effective_length = 1; 
 
             } else {
 
