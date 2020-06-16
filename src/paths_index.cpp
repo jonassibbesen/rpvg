@@ -97,6 +97,10 @@ string PathsIndex::pathName(const uint32_t path_id) const {
         
         sstream << path_id + 1;
     
+    } else if (index_.metadata.sample(index_.metadata.path(path_id).sample) == "*") {
+
+        sstream << path_id + 1;
+
     } else {
 
         const gbwt::PathName& path_name = index_.metadata.path(path_id);
