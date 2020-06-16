@@ -9,7 +9,7 @@
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const bool allow_partial_in, const uint32_t max_pair_seq_length_in) : paths_index(paths_index_in), allow_partial(allow_partial_in), max_pair_seq_length(max_pair_seq_length_in) {}
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const bool allow_partial_overlap_in, const uint32_t max_pair_seq_length_in) : paths_index(paths_index_in), allow_partial_overlap(allow_partial_overlap_in), max_pair_seq_length(max_pair_seq_length_in) {}
 
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::setMaxPairSeqLength(const uint32_t max_pair_seq_length_in) {
@@ -174,12 +174,12 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
             align_search_path->seq_start_offset = mapping_it->position().offset();
             align_search_path->search = paths_index.index().find(align_search_path->path.back());
         
-        } else if (allow_partial && align_search_path->search.empty() && align_search_path->mapqs.size() == 1) {
+        } else if (allow_partial_overlap && align_search_path->search.empty() && align_search_path->mapqs.size() == 1) {
 
             align_search_path->seq_start_offset = mapping_it->position().offset();
             align_search_path->search = paths_index.index().find(align_search_path->path.back());
 
-        } else if (allow_partial && align_search_path->mapqs.size() == 2) {
+        } else if (allow_partial_overlap && align_search_path->mapqs.size() == 2) {
 
             assert(!align_search_path->search.empty());
             auto new_search = paths_index.index().extend(align_search_path->search, align_search_path->path.back());
@@ -197,7 +197,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
         align_search_path->seq_length += mapping_to_length(*mapping_it);
         ++mapping_it;
 
-        if (!allow_partial && align_search_path->search.empty()) {
+        if (!allow_partial_overlap && align_search_path->search.empty()) {
 
             break;
         }
@@ -207,7 +207,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment) const {
 
-    assert(!allow_partial);
+    assert(!allow_partial_overlap);
 
     vector<AlignmentSearchPath> extended_align_search_paths;
 
@@ -223,7 +223,7 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t subpath_start_idx) const {
 
-    assert(!allow_partial);
+    assert(!allow_partial_overlap);
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
     extended_align_search_path.front().mapqs.emplace_back(alignment.mapping_quality());
@@ -501,7 +501,7 @@ multimap<gbwt::node_type, uint32_t> AlignmentPathFinder<AlignmentType>::getAlign
 template<class AlignmentType>
 multimap<gbwt::node_type, uint32_t> AlignmentPathFinder<AlignmentType>::getAlignmentStartNodesIndex(const vg::MultipathAlignment & alignment) const {
 
-    assert(!allow_partial);
+    assert(!allow_partial_overlap);
 
     multimap<gbwt::node_type, uint32_t> alignment_start_nodes_index;
 

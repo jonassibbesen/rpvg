@@ -66,9 +66,9 @@ void addAlignmentPathsToBufferQueue(vector<vector<AlignmentPath> > * align_paths
 }
 
 template<class AlignmentType> 
-void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const uint32_t num_threads) {
+void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const bool allow_partial_overlap, const uint32_t num_threads) {
 
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, true, fragment_length_dist.maxLength());
+    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, allow_partial_overlap, fragment_length_dist.maxLength());
 
     auto threaded_align_path_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -99,9 +99,9 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 }
 
 template<class AlignmentType> 
-void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const uint32_t num_threads) {
+void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const bool allow_partial_overlap, const uint32_t num_threads) {
 
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, true, fragment_length_dist.maxLength());
+    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, allow_partial_overlap, fragment_length_dist.maxLength());
 
     auto threaded_align_path_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -215,6 +215,7 @@ int main(int argc, char* argv[]) {
       ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
+      ("k,partial-overlap", "allow partial overlap between read and paths")
       ;
 
     options.add_options("Probability")
@@ -307,9 +308,10 @@ int main(int argc, char* argv[]) {
     cerr << "Running rpvg (commit: " << GIT_COMMIT << ")" << endl;
     cerr << "Random number generator seed: " << rng_seed << endl;
 
+    bool is_multipath = option_results.count("multipath");
     bool is_single_end = option_results.count("single-end");
     bool is_long_reads = option_results.count("long-reads");
-    bool is_multipath = option_results.count("multipath");
+    bool allow_partial_overlap = option_results.count("partial-overlap");
 
     if (is_long_reads) {
 
@@ -395,22 +397,22 @@ int main(int argc, char* argv[]) {
 
         if (is_multipath) {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, num_threads);
+            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, allow_partial_overlap, num_threads);
 
         } else {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, num_threads);
+            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, allow_partial_overlap, num_threads);
         }
 
     } else {
 
         if (is_multipath) {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, num_threads);
+            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, allow_partial_overlap, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, num_threads);
+            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, allow_partial_overlap, num_threads);
         }        
     }
 

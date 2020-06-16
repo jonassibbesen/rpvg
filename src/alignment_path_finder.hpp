@@ -17,7 +17,7 @@ class AlignmentPathFinder {
 
     public: 
     
-       	AlignmentPathFinder(const PathsIndex & paths_index_in, const bool allow_partial_in, const uint32_t max_pair_seq_length_in);
+       	AlignmentPathFinder(const PathsIndex & paths_index_in, const bool allow_partial_overlap_in, const uint32_t max_pair_seq_length_in);
        	void setMaxPairSeqLength(const uint32_t max_pair_seq_length_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
@@ -27,7 +27,7 @@ class AlignmentPathFinder {
 
        	const PathsIndex & paths_index;
 
-       	const bool allow_partial;
+       	const bool allow_partial_overlap;
        	uint32_t max_pair_seq_length;
 
 		bool alignmentHasPath(const vg::Alignment & alignment) const;
