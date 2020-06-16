@@ -95,11 +95,11 @@ string PathsIndex::pathName(const uint32_t path_id) const {
 
     if (!index_.hasMetadata() || !index_.metadata.hasPathNames() || index_.metadata.paths() <= path_id || !index_.metadata.hasSampleNames()) {
         
-        sstream << path_id + 1;
+        sstream << path_id;
     
     } else if (index_.metadata.sample(index_.metadata.path(path_id).sample) == "*") {
 
-        sstream << path_id + 1;
+        sstream << path_id;
 
     } else {
 

@@ -40,7 +40,7 @@ void PathEstimatesWriter::writeThreadedPathClusterPosteriors(const vector<vector
         *writer_stream << "Name" << i + 1 << "\t";
     }
 
-    *writer_stream << "ClusterID\tPosterior" << endl;
+    *writer_stream << "ClusterID\tPosterior\tClusterReadCount" << endl;
 
     uint32_t cluster_id = 0;
 
@@ -63,6 +63,7 @@ void PathEstimatesWriter::writeThreadedPathClusterPosteriors(const vector<vector
 
                 *writer_stream << cluster_id;
                 *writer_stream << "\t" << path_cluster_estimates.posteriors(0, i);
+                *writer_stream << "\t" << path_cluster_estimates.read_count;
                 *writer_stream << endl;
             }
         }

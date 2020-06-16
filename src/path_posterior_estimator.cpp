@@ -24,6 +24,8 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->paths.size());
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
 
+        path_cluster_estimates->read_count = read_counts.sum();
+
     } else {
 
         path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size(), 1, true);
@@ -48,7 +50,7 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
 
         noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
         read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
-
+        
         if (use_exact) {
 
             calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy);
@@ -59,6 +61,8 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
         }
 
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
+
+        path_cluster_estimates->read_count = read_counts.sum();
 
     } else {
 
