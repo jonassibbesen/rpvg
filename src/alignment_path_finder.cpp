@@ -320,6 +320,13 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
 #endif
 
+    // if (alignment_1.name() == "73484_0_18316_2307_279/1") {
+
+    //     cerr << alignment_1.name() << endl;
+    //     cerr << paired_align_search_paths << endl;
+    //     cerr << paired_align_paths << endl;
+    // }
+
     return paired_align_paths;
 }
 

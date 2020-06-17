@@ -58,38 +58,44 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
             }
         }
 
+        vector<double> read_path_log_probs(read_path_probs.size(), numeric_limits<double>::lowest());
         double read_path_log_probs_sum = numeric_limits<double>::lowest();
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
-            for (auto & path: align_paths.at(i).ids) {
+            for (size_t j = 0; j < align_paths.at(i).ids.size(); ++j) {
 
-                uint32_t path_idx = clustered_path_index.at(path);
+                if (j > 0) {
 
-                read_path_probs.at(path_idx) = align_paths_log_probs.at(i);
-            
+                    if (align_paths.at(i).ids.at(j - 1) == align_paths.at(i).ids.at(j)) {
+
+                        continue;
+                    }
+                }
+
+                uint32_t path_idx = clustered_path_index.at(align_paths.at(i).ids.at(j));
+                assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
+
                 if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
 
-                    read_path_probs.at(path_idx) = numeric_limits<double>::lowest();
+                    read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
 
                 } else {
 
-                    read_path_probs.at(path_idx) -= log(cluster_paths.at(path_idx).effective_length);
+                    read_path_log_probs.at(path_idx) = align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length);
                 }
 
-                read_path_log_probs_sum = add_log(read_path_log_probs_sum, read_path_probs.at(path_idx));
+                read_path_log_probs_sum = add_log(read_path_log_probs_sum, read_path_log_probs.at(path_idx));
             }
         }
 
+        assert(read_path_probs.size() == read_path_log_probs.size());
         assert(read_path_log_probs_sum > numeric_limits<double>::lowest());
 
-        for (size_t i = 0; i < align_paths.size(); ++i) {
+        for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
-            for (auto & path: align_paths.at(i).ids) {
-
-                read_path_probs.at(clustered_path_index.at(path)) = exp(read_path_probs.at(clustered_path_index.at(path)) - read_path_log_probs_sum);
-                read_path_probs.at(clustered_path_index.at(path)) *= (1 - noise_prob);
-            }
+            read_path_probs.at(i) = exp(read_path_log_probs.at(i) - read_path_log_probs_sum);
+            read_path_probs.at(i) *= (1 - noise_prob);
         }
     }
 }
