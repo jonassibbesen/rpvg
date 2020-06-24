@@ -124,6 +124,8 @@ AlignmentSearchPath::AlignmentSearchPath() {
     seq_start_offset = 0;
     seq_end_offset = 0;
     seq_length = 0;
+
+    is_complete = false;
 }
 
 double AlignmentSearchPath::mapqProb() const {

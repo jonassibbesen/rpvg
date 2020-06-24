@@ -12,7 +12,8 @@ using namespace std;
 
 
 struct PathInfo {
-        
+    
+    uint32_t id;
     string name;
     string origin;
     uint32_t length;
@@ -20,6 +21,7 @@ struct PathInfo {
     
     PathInfo() {
 
+        id = numeric_limits<uint32_t>::max();
         name = "";
         origin = "";
         length = 0;

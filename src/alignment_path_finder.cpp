@@ -181,12 +181,19 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 
         } else if (allow_partial_overlap && align_search_path->mapqs.size() == 2) {
 
-            assert(!align_search_path->search.empty());
-            auto new_search = paths_index.index().extend(align_search_path->search, align_search_path->path.back());
+            if (!align_search_path->is_complete) {
 
-            if (!new_search.empty()) {
+                assert(!align_search_path->search.empty());
+                auto new_search = paths_index.index().extend(align_search_path->search, align_search_path->path.back());
 
-                align_search_path->search = new_search;
+                if (!new_search.empty()) {
+
+                    align_search_path->search = new_search;
+                
+                } else {
+
+                    align_search_path->is_complete = true;
+                }
             }
 
         } else {

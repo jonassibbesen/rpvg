@@ -4,34 +4,154 @@
 #include <algorithm>
 
 #include "path_clusters.hpp"
+#include "utils.hpp"
 
 
-PathClusters::PathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths) {
+void PathClusters::findPathClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index, const bool use_path_node_clustering) {
 
-    findPathClusters(connected_paths, num_paths);
+    if (use_path_node_clustering) {
+
+        addPathNodeClusters(connected_paths, paths_index);
+    }
+
+    createPathClusters(*connected_paths, paths_index.index().metadata.paths());
 }
 
-PathClusters::PathClusters(const vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > & connected_paths, const uint32_t num_paths) {
+void PathClusters::findPathClusters(vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > * connected_paths, const PathsIndex & paths_index, const bool use_path_node_clustering) {
 
-    auto merged_connected_paths = connected_paths.front();
+    for (size_t i = 1; i < connected_paths->size(); ++i) {
 
-    for (size_t i = 1; i < connected_paths.size(); ++i) {
+        for (auto & path_component: connected_paths->at(i)) {
 
-        for (auto & path_component: connected_paths.at(i)) {
-
-            auto merged_connected_paths_it = merged_connected_paths.emplace(path_component.first, spp::sparse_hash_set<uint32_t>());
+            auto connected_paths_it = connected_paths->front().emplace(path_component.first, spp::sparse_hash_set<uint32_t>());
 
             for (auto & path_id: path_component.second) {
 
-                merged_connected_paths_it.first->second.emplace(path_id);
+                connected_paths_it.first->second.emplace(path_id);
             }
         }
     }
 
-    findPathClusters(merged_connected_paths, num_paths);
+    findPathClusters(&(connected_paths->front()), paths_index, use_path_node_clustering);
 }
 
-void PathClusters::findPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths) {
+void PathClusters::findCallTraversalClusters(const PathsIndex & paths_index) {
+
+    spp::sparse_hash_map<string, vector<uint32_t> > connected_path_names;
+
+    for (size_t i = 0; i < paths_index.index().sequences(); ++i) {
+
+        auto path_id = i;
+
+        if (paths_index.index().bidirectional()) {
+
+            path_id = gbwt::Path::id(i);
+        }
+
+        auto call_path_name_split = splitString(paths_index.pathName(path_id), '_');
+        assert(call_path_name_split.size() == 4);
+
+        stringstream call_path_name_ss;
+        call_path_name_ss << call_path_name_split.at(0);
+        call_path_name_ss << "_" << call_path_name_split.at(1);
+        call_path_name_ss << "_" << call_path_name_split.at(2);
+
+        auto connected_path_names_it = connected_path_names.emplace(call_path_name_ss.str(), vector<uint32_t>());
+        connected_path_names_it.first->second.emplace_back(path_id);
+    }
+
+    spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_paths;
+
+    for (auto & path_names: connected_path_names) {
+
+        assert(!path_names.second.empty());
+        auto anchor_path_id = path_names.second.front();
+
+        for (auto & path_id: path_names.second) {
+
+            if (anchor_path_id != path_id) {
+
+                auto connected_paths_it = connected_paths.emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
+                connected_paths_it.first->second.emplace(path_id);
+
+                connected_paths_it = connected_paths.emplace(path_id, spp::sparse_hash_set<uint32_t>());
+                connected_paths_it.first->second.emplace(anchor_path_id);
+            }
+        }
+    } 
+
+    createPathClusters(connected_paths, paths_index.index().metadata.paths());
+}
+
+void PathClusters::addPathNodeClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index) {
+
+    spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_nodes;
+    uint32_t max_node_id = 0;
+
+    for (size_t i = 0; i < paths_index.index().sequences(); ++i) {
+
+        auto gbwt_path = paths_index.index().extract(i);
+
+        assert(!gbwt_path.empty());
+        auto anchor_node_id = gbwt::Node::id(gbwt_path.front());
+
+        for (auto & gbwt_node: gbwt_path) {
+
+            uint32_t node_id = gbwt::Node::id(gbwt_node);
+            max_node_id = max(max_node_id, node_id);
+
+            if (anchor_node_id != node_id) {
+
+                auto connected_nodes_it = connected_nodes.emplace(anchor_node_id, spp::sparse_hash_set<uint32_t>());
+                connected_nodes_it.first->second.emplace(node_id);
+
+                connected_nodes_it = connected_nodes.emplace(node_id, spp::sparse_hash_set<uint32_t>());
+                connected_nodes_it.first->second.emplace(anchor_node_id);
+            }
+        }
+    }
+
+    PathClusters node_clusters;
+    node_clusters.createPathClusters(connected_nodes, max_node_id + 1);
+    
+    unordered_map<uint32_t, vector<uint32_t> > path_clusters;
+
+    for (size_t i = 0; i < paths_index.index().sequences(); ++i) {
+
+        auto anchor_node_id = gbwt::Node::id(paths_index.index().extract(i).front());
+
+        auto path_id = i;
+
+        if (paths_index.index().bidirectional()) {
+
+            path_id = gbwt::Path::id(i);
+        }
+
+        auto path_clusters_it = path_clusters.emplace(node_clusters.path_to_cluster_index.at(anchor_node_id), vector<uint32_t>());
+        path_clusters_it.first->second.emplace_back(path_id);
+    }
+
+    for (auto & path_cluster: path_clusters) {
+
+        assert(!path_cluster.second.empty());
+        auto anchor_path_id = path_cluster.second.front();
+
+        for (auto & path_id: path_cluster.second) {
+
+            if (anchor_path_id != path_id) {
+
+                auto connected_paths_it = connected_paths->emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
+                connected_paths_it.first->second.emplace(path_id);
+
+                connected_paths_it = connected_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
+                connected_paths_it.first->second.emplace(anchor_path_id);
+            }
+        }
+    }
+}
+
+
+void PathClusters::createPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths) {
 
     path_to_cluster_index = vector<uint32_t>(num_paths, -1);
 

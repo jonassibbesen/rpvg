@@ -73,19 +73,37 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
                     }
                 }
 
-                uint32_t path_idx = clustered_path_index.at(align_paths.at(i).ids.at(j));
-                assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
+                auto clustered_path_index_it = clustered_path_index.find(align_paths.at(i).ids.at(j));
 
-                if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
+                if (clustered_path_index_it != clustered_path_index.end()) {
 
-                    read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
+                    uint32_t path_idx = clustered_path_index_it->second;
 
-                } else {
+                    if (!doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest())) {
 
-                    read_path_log_probs.at(path_idx) = align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length);
+                        for (size_t i = 0; i < align_paths.size(); ++i) {
+
+                            cerr << align_paths.at(i) << endl;
+                            cerr << read_path_log_probs.at(path_idx) << endl;
+                            cerr << align_paths.at(i).ids << endl;
+                            cerr << align_paths.at(i).ids.at(j) << endl;
+                            cerr << j << endl;
+                        }
+                    }
+
+                    assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
+
+                    if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
+
+                        read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
+
+                    } else {
+
+                        read_path_log_probs.at(path_idx) = align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length);
+                    }
+
+                    read_path_log_probs_sum = add_log(read_path_log_probs_sum, read_path_log_probs.at(path_idx));
                 }
-
-                read_path_log_probs_sum = add_log(read_path_log_probs_sum, read_path_log_probs.at(path_idx));
             }
         }
 

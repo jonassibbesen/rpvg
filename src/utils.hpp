@@ -256,6 +256,19 @@ inline bool doubleCompare(const double a, const double b) {
     return ((a == b) or (abs(a - b) < abs(min(a, b)) * double_precision));
 }
 
+inline vector<string> splitString(const string & str, const char delim) {
+
+    stringstream ss(str);
+    vector<string> elems;
+
+    for (string item; getline(ss, item, delim);) {
+
+        elems.push_back(item);
+    }
+
+    return elems;
+}
+
 inline uint32_t numPermutations(vector<uint32_t> values) {
 
     assert(!values.empty());

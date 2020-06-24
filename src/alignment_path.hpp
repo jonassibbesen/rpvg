@@ -78,6 +78,7 @@ class AlignmentSearchPath {
         uint32_t seq_end_offset;
 
         gbwt::SearchState search;
+        bool is_complete;
 
         uint32_t seq_length;
 

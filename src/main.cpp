@@ -211,7 +211,8 @@ int main(int argc, char* argv[]) {
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
-    options.add_options("Alignment")
+    options.add_options("Input")
+      ("v,call-travs", "paths are vg call generated traversals", cxxopts::value<bool>())
       ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
@@ -219,15 +220,17 @@ int main(int argc, char* argv[]) {
       ;
 
     options.add_options("Probability")
+      ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
+      ("j,use-exact", "use slower exact likelihood inference for haplotyping", cxxopts::value<bool>())
+      ("n,num-hap-its", "number of haplotyping iterations", cxxopts::value<uint32_t>()->default_value("1000"))
+      ("b,read-prob-output", "write read path probabilities to file", cxxopts::value<string>())
+      ("x,best-pp-output", "write best (haplo/diplo/...)-type posterior probability to GAF file (haplotype inference only)", cxxopts::value<string>())
+      ("z,marg-pp-output", "write marginal path posterior probability to GAF file (haplotype inference only)", cxxopts::value<string>())
       ;
 
     options.add_options("Abundance")
-      ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
-      ("j,use-exact", "use slower exact likelihood inference for haplotyping", cxxopts::value<bool>())
-      ("n,num-hap-its", "number of haplotyping iterations", cxxopts::value<uint32_t>()->default_value("1000"))
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
@@ -235,7 +238,7 @@ int main(int argc, char* argv[]) {
 
     if (argc == 1) {
 
-        cerr << options.help({"Required", "General", "Alignment", "Probability", "Abundance"}) << endl;
+        cerr << options.help({"Required", "General", "Input", "Probability", "Abundance"}) << endl;
         return 1;
     }
 
@@ -243,7 +246,7 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("help")) {
 
-        cerr << options.help({"Required", "General", "Alignment", "Probability", "Abundance"}) << endl;
+        cerr << options.help({"Required", "General", "Input", "Probability", "Abundance"}) << endl;
         return 1;
     }
 
@@ -293,6 +296,18 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    if (inference_model != "haplotypes" && option_results.count("best-pp-output")) {
+
+        cerr << "ERROR: Best (haplo/diplo/...)-type posterior probability GAF output (--best-pp-output) only work when running haplotypes inference mode." << endl;
+        return 1;
+    }
+
+    if (inference_model != "haplotypes" && option_results.count("marg-pp-output")) {
+
+        cerr << "ERROR: Marginal path posterior probability GAF output (--marg-pp-output) only work when running haplotypes inference mode." << endl;
+        return 1;
+    }
+
     uint64_t rng_seed = 0; 
 
     if (option_results.count("rng-seed")) {
@@ -308,6 +323,7 @@ int main(int argc, char* argv[]) {
     cerr << "Running rpvg (commit: " << GIT_COMMIT << ")" << endl;
     cerr << "Random number generator seed: " << rng_seed << endl;
 
+    bool is_call_traversals = option_results.count("call-travs");
     bool is_multipath = option_results.count("multipath");
     bool is_single_end = option_results.count("single-end");
     bool is_long_reads = option_results.count("long-reads");
@@ -427,44 +443,54 @@ int main(int argc, char* argv[]) {
     double time3 = gbwt::readTimer();
     cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    auto threaded_connected_align_paths = new vector<connected_align_paths_t>(num_threads);
+    PathClusters path_clusters;
 
-    #pragma omp parallel for schedule(static, 1)
-    for (size_t i = 0; i < threaded_connected_align_paths->size(); ++i) {
+    if (is_call_traversals) {
 
-        connected_align_paths_t * connected_align_paths = &(threaded_connected_align_paths->at(i));
+        path_clusters.findCallTraversalClusters(paths_index);
 
-        uint32_t cur_align_paths_index_pos = 0;
+    } else {
 
-        for (auto & align_paths: align_paths_index) {
+        auto threaded_connected_align_paths = new vector<connected_align_paths_t>(num_threads);
 
-            if (cur_align_paths_index_pos % num_threads == i) {
+        #pragma omp parallel for schedule(static, 1)
+        for (size_t i = 0; i < threaded_connected_align_paths->size(); ++i) {
 
-                auto anchor_path_id = align_paths.first.front().ids.front();
+            connected_align_paths_t * connected_align_paths = &(threaded_connected_align_paths->at(i));
 
-                for (auto & align_path: align_paths.first) {
+            uint32_t cur_align_paths_index_pos = 0;
 
-                    for (auto & path_id: align_path.ids) {
+            for (auto & align_paths: align_paths_index) {
 
-                        if (anchor_path_id != path_id) {
+                if (cur_align_paths_index_pos % num_threads == i) {
 
-                            auto connected_align_paths_it = connected_align_paths->emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
-                            connected_align_paths_it.first->second.emplace(path_id);
+                    auto anchor_path_id = align_paths.first.front().ids.front();
 
-                            connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
-                            connected_align_paths_it.first->second.emplace(anchor_path_id);
+                    for (auto & align_path: align_paths.first) {
+
+                        for (auto & path_id: align_path.ids) {
+
+                            if (anchor_path_id != path_id) {
+
+                                auto connected_align_paths_it = connected_align_paths->emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
+                                connected_align_paths_it.first->second.emplace(path_id);
+
+                                connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
+                                connected_align_paths_it.first->second.emplace(anchor_path_id);
+                            }
                         }
                     }
                 }
-            }
 
-            ++cur_align_paths_index_pos;
+                ++cur_align_paths_index_pos;
+            }
         }
+
+        path_clusters.findPathClusters(threaded_connected_align_paths, paths_index, true);
+        delete threaded_connected_align_paths;
     }
 
-    auto path_clusters = PathClusters(*threaded_connected_align_paths, paths_index.index().metadata.paths());
-
-    delete threaded_connected_align_paths;
+    cerr << path_clusters.path_to_cluster_index.size() << " " << path_clusters.cluster_to_paths_index.size() << endl;
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
@@ -475,7 +501,28 @@ int main(int argc, char* argv[]) {
 
     while (align_paths_index_it != align_paths_index.end()) {
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->first.front().ids.front())).emplace_back(align_paths_index_it);
+        if (is_call_traversals) {
+
+            unordered_set<uint32_t> visited_clusters;
+
+            for (auto & align_path: align_paths_index_it->first) {
+
+                for (auto & path_id: align_path.ids) {
+
+                    auto cur_cluster = path_clusters.path_to_cluster_index.at(path_id);
+
+                    if (visited_clusters.emplace(cur_cluster).second) {
+
+                        align_paths_clusters.at(cur_cluster).emplace_back(align_paths_index_it);
+                    }
+                }
+            }
+
+        } else {
+
+            align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->first.front().ids.front())).emplace_back(align_paths_index_it);
+        }
+
         ++align_paths_index_it;
     }
 
@@ -486,9 +533,9 @@ int main(int argc, char* argv[]) {
 
     spp::sparse_hash_map<string, string> path_transcript_origin;
    
-    if (option_results.count("prob-output")) {
+    if (option_results.count("read-prob-output")) {
 
-        prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["prob-output"].as<string>(), prob_precision);
+        prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["read-prob-output"].as<string>(), prob_precision);
     }
 
     PathEstimator * path_estimator;
@@ -558,6 +605,7 @@ int main(int argc, char* argv[]) {
             assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
             path_cluster_estimates->back().paths.emplace_back(PathInfo());
 
+            path_cluster_estimates->back().paths.back().id = path_id;
             path_cluster_estimates->back().paths.back().name = paths_index.pathName(path_id);
 
             auto path_transcript_origin_it = path_transcript_origin.find(path_cluster_estimates->back().paths.back().name);
@@ -569,7 +617,7 @@ int main(int argc, char* argv[]) {
 
             path_cluster_estimates->back().paths.back().length = paths_index.pathLength(path_id); 
 
-            if (is_long_reads) {
+            if (is_long_reads || inference_model == "haplotypes") {
 
                 path_cluster_estimates->back().paths.back().effective_length = 1; 
 
@@ -636,11 +684,29 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        path_estimates_writer.writeThreadedPathClusterPosteriors(threaded_path_cluster_estimates, ploidy); 
+        path_estimates_writer.writePathClusterPosteriors(threaded_path_cluster_estimates, ploidy);
 
     } else {
 
-        path_estimates_writer.writeThreadedPathClusterAbundances(threaded_path_cluster_estimates);    
+        path_estimates_writer.writePathClusterAbundances(threaded_path_cluster_estimates);    
+    }
+
+    if (option_results.count("best-pp-output")) {
+
+        assert(inference_model == "haplotypes");
+        assert(option_results["best-pp-output"].as<string>() != "stdout");
+
+        PathEstimatesWriter path_estimates_writer_best(false, option_results["best-pp-output"].as<string>());
+        path_estimates_writer_best.writeBestPathGroupsPosteriors(threaded_path_cluster_estimates, paths_index, is_call_traversals);
+    }
+
+    if (option_results.count("marg-pp-output")) {
+
+        assert(inference_model == "haplotypes");
+        assert(option_results["marg-pp-output"].as<string>() != "stdout");
+
+        PathEstimatesWriter path_estimates_writer_marg(false, option_results["marg-pp-output"].as<string>());
+        path_estimates_writer_marg.writeMarginalPathPosteriors(threaded_path_cluster_estimates, paths_index, is_call_traversals);
     }
 
     double time8 = gbwt::readTimer();
