@@ -473,14 +473,41 @@ int main(int argc, char* argv[]) {
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
- 
+    
+    unordered_map<uint32_t, uint32_t> node_to_cluster_index;
+
+    for (size_t i = 0; i < paths_index.index().sequences(); ++i) {
+
+        auto path_id = i;
+
+        if (paths_index.index().bidirectional()) {
+
+            path_id = gbwt::Path::id(i);
+        }
+
+        auto gbwt_path = paths_index.index().extract(i);
+        assert(!gbwt_path.empty());
+
+        for (auto & gbwt_node: gbwt_path) {
+
+            uint32_t node_id = gbwt::Node::id(gbwt_node);
+
+            auto node_to_cluster_index_it = node_to_cluster_index.emplace(node_id, path_clusters.path_to_cluster_index.at(path_id));
+
+            if (node_to_cluster_index_it.second) {
+
+                assert(node_to_cluster_index_it.first->second == path_clusters.path_to_cluster_index.at(path_id));
+            }
+        }
+    }
+
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 
     auto align_paths_index_it = align_paths_index.begin();
 
     while (align_paths_index_it != align_paths_index.end()) {
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->first.front().ids.front())).emplace_back(align_paths_index_it);
+        align_paths_clusters.at(node_to_cluster_index.at(gbwt::Node::id(align_paths_index_it->first.front().search_state.node))).emplace_back(align_paths_index_it);
         ++align_paths_index_it;
     }
 
@@ -586,8 +613,16 @@ int main(int argc, char* argv[]) {
 
         for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
+            vector<vector<gbwt::size_type> > align_paths_ids;
+            align_paths_ids.reserve(align_paths->first.size());
+
+            for (auto & align_path: align_paths->first) {
+
+                align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
+            }
+
             read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
-            read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
+            read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
         }
 
         path_estimator->estimate(&(path_cluster_estimates->back()),read_path_cluster_probs_buffer->back());

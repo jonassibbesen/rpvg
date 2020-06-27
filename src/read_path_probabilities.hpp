@@ -25,7 +25,7 @@ class ReadPathProbabilities {
         const vector<double> & probabilities() const;
 
         void addReadCount(const uint32_t read_count_in);
-        void calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end);
+        void calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end);
 
         bool mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & probs_2, const double prob_precision);
         vector<pair<double, vector<uint32_t> > > collapsedProbabilities(const double precision) const;

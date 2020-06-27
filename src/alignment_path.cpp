@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <numeric>
 
-AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const vector<gbwt::size_type> & ids_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), score_sum(score_sum_in), ids(ids_in) {}
+AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const gbwt::SearchState & search_state_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), score_sum(score_sum_in), search_state(search_state_in) {}
 
-AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const vector<gbwt::size_type> & ids_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), ids(ids_in) {}
+AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), search_state(align_path_in.search_state) {}
 
 vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const PathsIndex & paths_index) {
 
@@ -17,37 +17,8 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
         if (align_search_path.complete()) {
 
-            auto align_search_path_ids = paths_index.locatePathIds(align_search_path.search);
-
-            auto align_paths_it = align_paths.begin();
-
-            while (align_paths_it != align_paths.end()) {
-
-                if (align_paths_it->seq_length == align_search_path.seq_length && align_paths_it->score_sum == align_search_path.scoreSum()) {
-
-                    assert(align_paths_it->mapq_comb == align_search_path.mapqComb());
-                    break;
-                }
-
-                ++align_paths_it;
-            }
-
-            if (align_paths_it == align_paths.end()) {
-
-                align_paths.emplace_back(align_search_path, align_search_path_ids);
-
-            } else {
-
-                align_paths_it->ids.insert(align_paths_it->ids.end(), align_search_path_ids.begin(), align_search_path_ids.end());
-            }
+            align_paths.emplace_back(align_search_path);
         }
-    }
-
-    align_paths.shrink_to_fit();
-
-    for (auto & align_path: align_paths) {
-
-        sort(align_path.ids.begin(), align_path.ids.end());
     }
 
     return align_paths;
@@ -55,7 +26,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.ids == rhs.ids);
+    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.search_state == rhs.search_state);
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -80,18 +51,15 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
         return (lhs.score_sum < rhs.score_sum);    
     } 
 
-    if (lhs.ids.size() != rhs.ids.size()) {
+    if (lhs.search_state.node != rhs.search_state.node) {
 
-        return (lhs.ids.size() < rhs.ids.size());    
+        return (lhs.search_state.node < rhs.search_state.node);    
     } 
 
-    for (size_t i = 0; i < lhs.ids.size(); ++i) {
+    if (lhs.search_state.range != rhs.search_state.range) {
 
-        if (lhs.ids.at(i) != rhs.ids.at(i)) {
-
-            return (lhs.ids.at(i) < rhs.ids.at(i));    
-        }         
-    }   
+        return (lhs.search_state.range < rhs.search_state.range);    
+    } 
 
     return false;
 }
@@ -101,7 +69,8 @@ ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
     os << align_path.seq_length;
     os << " | " << align_path.mapq_comb;
     os << " | " << align_path.score_sum;
-    os << " | (" << align_path.ids << ")";
+    os << " | " << gbwt::Node::id(align_path.search_state.node);
+    os << " | " << align_path.search_state.size();
 
     return os;
 }
@@ -162,7 +131,7 @@ bool AlignmentSearchPath::complete() const {
         return false;
     }
 
-    assert(search.node == path.back());
+    assert(search_state.node == path.back());
 
     return true;
 }
@@ -173,8 +142,8 @@ ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path
     os << " | " << align_search_path.path_end_pos;
     os << " | " << align_search_path.seq_start_offset;
     os << " | " << align_search_path.seq_end_offset;
-    os << " | " << gbwt::Node::id(align_search_path.search.node);
-    os << " | " << align_search_path.search.size();
+    os << " | " << gbwt::Node::id(align_search_path.search_state.node);
+    os << " | " << align_search_path.search_state.size();
     os << " | " << align_search_path.seq_length;
     os << " | (" << align_search_path.mapqs << ")";
     os << " | (" << align_search_path.scores << ")";

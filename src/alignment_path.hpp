@@ -20,14 +20,14 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const vector<gbwt::size_type> & ids_in);
-        AlignmentPath(const AlignmentSearchPath & align_path_in, const vector<gbwt::size_type> & ids_in);
+        AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const gbwt::SearchState & search_state_in);
+        AlignmentPath(const AlignmentSearchPath & align_path_in);
 
         uint32_t seq_length;
         uint32_t mapq_comb;
         uint32_t score_sum;
-        
-        vector<gbwt::size_type> ids;
+
+        gbwt::SearchState search_state;
 
         static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const PathsIndex & paths_index);
 };
@@ -53,11 +53,9 @@ namespace std {
                 spp::hash_combine(seed, align_path.seq_length);
                 spp::hash_combine(seed, align_path.mapq_comb);
                 spp::hash_combine(seed, align_path.score_sum);
-
-                for (auto & id: align_path.ids) {
-
-                    spp::hash_combine(seed, id);                    
-                } 
+                spp::hash_combine(seed, align_path.search_state.node);
+                spp::hash_combine(seed, align_path.search_state.range.first);
+                spp::hash_combine(seed, align_path.search_state.range.second);
             }
 
             return seed;
@@ -77,7 +75,7 @@ class AlignmentSearchPath {
         uint32_t seq_start_offset;
         uint32_t seq_end_offset;
 
-        gbwt::SearchState search;
+        gbwt::SearchState search_state;
 
         uint32_t seq_length;
 

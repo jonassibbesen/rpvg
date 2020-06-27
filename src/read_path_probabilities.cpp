@@ -34,9 +34,11 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end) {
+void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end) {
 
     assert(!align_paths.empty());
+    assert(align_paths.size() == align_paths_ids.size());
+
     assert(clustered_path_index.size() == read_path_probs.size());
     assert(cluster_paths.size() == read_path_probs.size());
 
@@ -71,7 +73,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
-            for (auto & path: align_paths.at(i).ids) {
+            for (auto & path: align_paths_ids.at(i)) {
 
                 uint32_t path_idx = clustered_path_index.at(path);
 
