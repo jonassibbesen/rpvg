@@ -36,8 +36,8 @@ class ReadPathProbabilities {
         double noise_prob;
         vector<double> read_path_probs;
         
-        const double score_log_base;
-        const FragmentLengthDist & fragment_length_dist;
+        double score_log_base;
+        FragmentLengthDist fragment_length_dist;
 };
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs);

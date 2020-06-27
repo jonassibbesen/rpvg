@@ -73,7 +73,37 @@ void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_pr
             (*noise_probs)(num_rows, 0) = cluster_probs.at(i).noiseProbability();
             (*read_counts)(0, num_rows) = cluster_probs.at(i).readCount();
 
-            num_rows++;
+            if (num_rows > 0) {
+
+                bool is_identical = true;
+
+                for (size_t j = 0; j < read_path_probs->cols(); ++j) {
+
+                    if (abs((*read_path_probs)(num_rows - 1, j) - (*read_path_probs)(num_rows, j)) >= prob_precision) {
+
+                        is_identical = false;
+                        break;
+                    }
+                }
+
+                if (abs((*noise_probs)(num_rows - 1, 0) - (*noise_probs)(num_rows, 0)) >= prob_precision) {
+
+                    is_identical = false;
+                }
+
+                if (is_identical) {
+
+                    (*read_counts)(0, num_rows - 1) += (*read_counts)(0, num_rows);
+
+                } else {
+
+                    num_rows++;
+                }
+
+            } else {
+
+                num_rows++;
+            }
         }
     } 
 

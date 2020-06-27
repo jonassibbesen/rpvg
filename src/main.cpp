@@ -625,6 +625,8 @@ int main(int argc, char* argv[]) {
             read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
         }
 
+        sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
+        
         path_estimator->estimate(&(path_cluster_estimates->back()),read_path_cluster_probs_buffer->back());
 
         if (prob_matrix_writer) {
