@@ -466,7 +466,8 @@ int main(int argc, char* argv[]) {
 
     auto connected_align_paths = new connected_align_paths_t();
 
-    auto path_clusters = PathClusters(connected_align_paths, paths_index);
+    PathClusters path_clusters;
+    path_clusters.findPathClusters(connected_align_paths, paths_index, true);
 
     delete connected_align_paths;
 

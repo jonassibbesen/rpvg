@@ -3,6 +3,8 @@
 #include <queue>
 #include <algorithm>
 
+#include "gbwt/gbwt.h"
+
 #include "path_clusters.hpp"
 #include "utils.hpp"
 
