@@ -8,6 +8,9 @@
 
 #include "sparsepp/spp.h"
 
+#include "paths_index.hpp"
+#include "gbwt/gbwt.h"
+
 using namespace std;
 
 
@@ -15,13 +18,17 @@ class PathClusters {
 
     public: 
 
-    	PathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths);   
-    	PathClusters(const vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > & connected_paths, const uint32_t num_paths);   
+    	PathClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index);   
+    	PathClusters(vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > * connected_paths, const PathsIndex & paths_indexs);   
 
-    	void findPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths);
-    	
     	vector<uint32_t> path_to_cluster_index;
     	vector<vector<uint32_t> > cluster_to_paths_index;
+
+    private:
+
+		void addPathNodeClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index);
+    	void findPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths);
+
 };
 
 
