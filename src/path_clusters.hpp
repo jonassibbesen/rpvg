@@ -19,17 +19,22 @@ class PathClusters {
 
         PathClusters() {};
 
-        void findPathClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index, const bool use_path_node_clustering);   
-        void findPathClusters(vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > * connected_paths, const PathsIndex & paths_index, const bool use_path_node_clustering);
+    	void findPathClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index, const bool use_path_node_clustering);   
+    	void findPathClusters(vector<spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > > * connected_paths, const PathsIndex & paths_index, const bool use_path_node_clustering);
+
+    	void findCallTraversalClusters(const PathsIndex & paths_index);
+
+		spp::sparse_hash_map<uint32_t, vector<uint32_t> > node_to_paths_index;
 
         vector<uint32_t> path_to_cluster_index;
         vector<vector<uint32_t> > cluster_to_paths_index;
 
     private: 
 
-        void addPathNodeClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index);
-        void createPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths);
+		void addPathNodeClusters(spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > * connected_paths, const PathsIndex & paths_index);
+    	void createPathClusters(const spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > & connected_paths, const uint32_t num_paths);
 };
 
 
 #endif
+

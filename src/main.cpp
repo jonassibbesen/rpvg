@@ -425,45 +425,6 @@ int main(int argc, char* argv[]) {
     double time3 = gbwt::readTimer();
     cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    // auto threaded_connected_align_paths = new vector<connected_align_paths_t>(num_threads);
-
-    // #pragma omp parallel for schedule(static, 1)
-    // for (size_t i = 0; i < threaded_connected_align_paths->size(); ++i) {
-
-    //     connected_align_paths_t * connected_align_paths = &(threaded_connected_align_paths->at(i));
-
-    //     uint32_t cur_align_paths_index_pos = 0;
-
-    //     for (auto & align_paths: align_paths_index) {
-
-    //         if (cur_align_paths_index_pos % num_threads == i) {
-
-    //             auto anchor_path_id = align_paths.first.front().ids.front();
-
-    //             for (auto & align_path: align_paths.first) {
-
-    //                 for (auto & path_id: align_path.ids) {
-
-    //                     if (anchor_path_id != path_id) {
-
-    //                         auto connected_align_paths_it = connected_align_paths->emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
-    //                         connected_align_paths_it.first->second.emplace(path_id);
-
-    //                         connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
-    //                         connected_align_paths_it.first->second.emplace(anchor_path_id);
-    //                     }
-    //                 }
-    //             }
-    //         }
-
-    //         ++cur_align_paths_index_pos;
-    //     }
-    // }
-
-    // auto path_clusters = PathClusters(threaded_connected_align_paths, paths_index.index().metadata.paths());
-
-    // delete threaded_connected_align_paths;
-
     auto connected_align_paths = new connected_align_paths_t();
 
     PathClusters path_clusters;
@@ -473,33 +434,6 @@ int main(int argc, char* argv[]) {
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
-    
-    unordered_map<uint32_t, uint32_t> node_to_cluster_index;
-
-    for (size_t i = 0; i < paths_index.index().sequences(); ++i) {
-
-        auto path_id = i;
-
-        if (paths_index.index().bidirectional()) {
-
-            path_id = gbwt::Path::id(i);
-        }
-
-        auto gbwt_path = paths_index.index().extract(i);
-        assert(!gbwt_path.empty());
-
-        for (auto & gbwt_node: gbwt_path) {
-
-            uint32_t node_id = gbwt::Node::id(gbwt_node);
-
-            auto node_to_cluster_index_it = node_to_cluster_index.emplace(node_id, path_clusters.path_to_cluster_index.at(path_id));
-
-            if (node_to_cluster_index_it.second) {
-
-                assert(node_to_cluster_index_it.first->second == path_clusters.path_to_cluster_index.at(path_id));
-            }
-        }
-    }
 
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 
@@ -507,7 +441,9 @@ int main(int argc, char* argv[]) {
 
     while (align_paths_index_it != align_paths_index.end()) {
 
-        align_paths_clusters.at(node_to_cluster_index.at(gbwt::Node::id(align_paths_index_it->first.front().search_state.node))).emplace_back(align_paths_index_it);
+        auto node_id = gbwt::Node::id(align_paths_index_it->first.front().search_state.node);
+
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(path_clusters.node_to_paths_index.at(node_id).front())).emplace_back(align_paths_index_it);
         ++align_paths_index_it;
     }
 

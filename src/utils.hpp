@@ -244,6 +244,19 @@ inline void json2pb(google::protobuf::Message &msg, const string& buf) {
 //------------------------------------------------------------------------------
 
 
+inline vector<string> splitString(const string & str, const char delim) {
+
+    stringstream ss(str);
+    vector<string> elems;
+
+    for (string item; getline(ss, item, delim);) {
+
+        elems.push_back(item);
+    }
+
+    return elems;
+}
+
 // Precision used when comparing double variables.
 static const double double_precision = numeric_limits<double>::epsilon() * 100;
 
