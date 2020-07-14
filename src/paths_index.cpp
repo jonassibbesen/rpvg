@@ -58,6 +58,11 @@ const gbwt::GBWT & PathsIndex::index() const {
     return index_;
 }
 
+uint32_t PathsIndex::numberOfNodes() const {
+
+    return node_lengths.size();
+}
+
 bool PathsIndex::hasNodeId(const uint32_t node_id) const {
 
     if (node_id >= node_lengths.size()) {

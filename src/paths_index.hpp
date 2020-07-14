@@ -22,6 +22,7 @@ class PathsIndex {
 
         const gbwt::GBWT & index() const;
 
+        uint32_t numberOfNodes() const;
         bool hasNodeId(const uint32_t node_id) const;
         uint32_t nodeLength(const uint32_t node_id) const;
 

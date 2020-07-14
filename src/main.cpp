@@ -425,55 +425,21 @@ int main(int argc, char* argv[]) {
     double time3 = gbwt::readTimer();
     cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    auto threaded_connected_align_paths = new vector<connected_align_paths_t>(num_threads);
-
-    #pragma omp parallel for schedule(static, 1)
-    for (size_t i = 0; i < threaded_connected_align_paths->size(); ++i) {
-
-        connected_align_paths_t * connected_align_paths = &(threaded_connected_align_paths->at(i));
-
-        uint32_t cur_align_paths_index_pos = 0;
-
-        for (auto & align_paths: align_paths_index) {
-
-            if (cur_align_paths_index_pos % num_threads == i) {
-
-                auto anchor_path_id = align_paths.first.front().ids.front();
-
-                for (auto & align_path: align_paths.first) {
-
-                    for (auto & path_id: align_path.ids) {
-
-                        if (anchor_path_id != path_id) {
-
-                            auto connected_align_paths_it = connected_align_paths->emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
-                            connected_align_paths_it.first->second.emplace(path_id);
-
-                            connected_align_paths_it = connected_align_paths->emplace(path_id, spp::sparse_hash_set<uint32_t>());
-                            connected_align_paths_it.first->second.emplace(anchor_path_id);
-                        }
-                    }
-                }
-            }
-
-            ++cur_align_paths_index_pos;
-        }
-    }
-
-    auto path_clusters = PathClusters(*threaded_connected_align_paths, paths_index.index().metadata.paths());
-
-    delete threaded_connected_align_paths;
+    PathClusters path_clusters(num_threads);
+    auto node_to_path_index = path_clusters.findPathNodeClusters(paths_index);
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
- 
+
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 
     auto align_paths_index_it = align_paths_index.begin();
 
     while (align_paths_index_it != align_paths_index.end()) {
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(align_paths_index_it->first.front().ids.front())).emplace_back(align_paths_index_it);
+        auto node_id = gbwt::Node::id(align_paths_index_it->first.front().search_state.node);
+
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(node_to_path_index.at(node_id))).emplace_back(align_paths_index_it);
         ++align_paths_index_it;
     }
 
@@ -579,11 +545,21 @@ int main(int argc, char* argv[]) {
 
         for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
+            vector<vector<gbwt::size_type> > align_paths_ids;
+            align_paths_ids.reserve(align_paths->first.size());
+
+            for (auto & align_path: align_paths->first) {
+
+                align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
+            }
+
             read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
-            read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
+            read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
         }
 
-        path_estimator->estimate(&(path_cluster_estimates->back()),read_path_cluster_probs_buffer->back());
+        sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
+        
+        path_estimator->estimate(&(path_cluster_estimates->back()), read_path_cluster_probs_buffer->back());
 
         if (prob_matrix_writer) {
 
