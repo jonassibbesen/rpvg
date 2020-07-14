@@ -8,7 +8,7 @@ AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_c
 
 AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), search_state(align_path_in.search_state) {}
 
-vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const PathsIndex & paths_index) {
+vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths) {
 
     vector<AlignmentPath> align_paths;
     align_paths.reserve(align_search_paths.size());
@@ -70,7 +70,7 @@ ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
     os << " | " << align_path.mapq_comb;
     os << " | " << align_path.score_sum;
     os << " | " << gbwt::Node::id(align_path.search_state.node);
-    os << " | " << align_path.search_state.size();
+    os << " | " << align_path.search_state.range.first << " " << align_path.search_state.range.second;
 
     return os;
 }

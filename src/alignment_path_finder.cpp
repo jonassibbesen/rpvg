@@ -78,7 +78,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         align_search_paths.insert(align_search_paths.end(), align_search_paths_rc.begin(), align_search_paths_rc.end());
     }  
 
-    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, paths_index);
+    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths);
 
 #ifdef debug
 
@@ -287,7 +287,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc);
     }
 
-    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, paths_index);
+    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths);
 
 #ifdef debug
 

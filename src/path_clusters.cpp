@@ -84,7 +84,7 @@ spp::sparse_hash_map<uint32_t, uint32_t> PathClusters::findPathNodeClusters(cons
     spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_paths;
     spp::sparse_hash_map<uint32_t, uint32_t> node_to_path_index;
 
-    #pragma omp parallel 
+    #pragma omp parallel num_threads(num_threads)
     {
         spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > thread_connected_paths;
         spp::sparse_hash_map<uint32_t, uint32_t> thread_node_to_path_index;

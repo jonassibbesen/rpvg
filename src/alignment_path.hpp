@@ -29,7 +29,7 @@ class AlignmentPath {
 
         gbwt::SearchState search_state;
 
-        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const PathsIndex & paths_index);
+        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
