@@ -50,8 +50,6 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
         vector<double> align_paths_log_probs;
         align_paths_log_probs.reserve(align_paths.size());
 
-        double align_paths_log_probs_sum = numeric_limits<double>::lowest();
-
         for (auto & align_path: align_paths) {
 
             align_paths_log_probs.emplace_back(score_log_base * align_path.score_sum);
@@ -60,44 +58,48 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
                 align_paths_log_probs.back() += fragment_length_dist.logProb(align_path.seq_length);
             }
-
-            align_paths_log_probs_sum = add_log(align_paths_log_probs_sum, align_paths_log_probs.back());
         }
-
-        for (auto & log_probs: align_paths_log_probs) {
-
-            log_probs -= align_paths_log_probs_sum;
-        }
-
-        double read_path_probs_sum = 0;
+        
+        vector<double> read_path_log_probs(read_path_probs.size(), numeric_limits<double>::lowest());
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
-            for (auto & path: align_paths_ids.at(i)) {
+            for (auto path_id: align_paths_ids.at(i)) {
 
-                uint32_t path_idx = clustered_path_index.at(path);
+                auto clustered_path_index_it = clustered_path_index.find(path_id);
 
-                read_path_probs.at(path_idx) = exp(align_paths_log_probs.at(i));
-            
-                if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
+                if (clustered_path_index_it != clustered_path_index.end()) {
 
-                    read_path_probs.at(path_idx) = 0;
+                    uint32_t path_idx = clustered_path_index_it->second;
 
-                } else {
+                    if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
 
-                    read_path_probs.at(path_idx) /= cluster_paths.at(path_idx).effective_length;
+                        assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
+                        read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
+
+                    } else {
+
+                        // account for really rare cases when a mpmap alignment can have multiple alignments on the same path
+                        read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length));
+                    }
                 }
-
-                read_path_probs_sum += read_path_probs.at(path_idx);
             }
         }
 
-        assert(read_path_probs_sum > 0);
+        double read_path_log_probs_sum = numeric_limits<double>::lowest();
 
-        for (auto & prob: read_path_probs) {
+        for (auto & log_prob: read_path_log_probs) {
 
-            prob /= read_path_probs_sum;
-            prob *= (1 - noise_prob);
+            read_path_log_probs_sum = add_log(read_path_log_probs_sum, log_prob);
+        }
+
+        assert(read_path_probs.size() == read_path_log_probs.size());
+        assert(read_path_log_probs_sum > numeric_limits<double>::lowest());
+
+        for (size_t i = 0; i < read_path_probs.size(); ++i) {
+
+            read_path_probs.at(i) = exp(read_path_log_probs.at(i) - read_path_log_probs_sum);
+            read_path_probs.at(i) *= (1 - noise_prob);
         }
     }
 }
