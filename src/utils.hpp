@@ -9,6 +9,7 @@
 #include <limits>
 #include <sstream>
 #include <algorithm>
+#include <cmath>
 
 #include "Eigen/Dense"
 #include "google/protobuf/util/json_util.h"
@@ -243,6 +244,19 @@ inline void json2pb(google::protobuf::Message &msg, const string& buf) {
 //------------------------------------------------------------------------------
 
 
+inline vector<string> splitString(const string & str, const char delim) {
+
+    stringstream ss(str);
+    vector<string> elems;
+
+    for (string item; getline(ss, item, delim);) {
+
+        elems.push_back(item);
+    }
+
+    return elems;
+}
+
 // Precision used when comparing double variables.
 static const double double_precision = numeric_limits<double>::epsilon() * 100;
 
@@ -253,6 +267,30 @@ inline bool doubleCompare(const double a, const double b) {
     assert(isfinite(b));
 
     return ((a == b) or (abs(a - b) < abs(min(a, b)) * double_precision));
+}
+
+inline uint32_t numPermutations(vector<uint32_t> values) {
+
+    assert(!values.empty());
+
+    if (values.size() == 1) {
+
+        return 1;
+    }
+
+    sort(values.begin(), values.end());
+
+    uint32_t num_unique_values = 1;
+
+    for (size_t i = 1; i < values.size(); ++i) {
+
+        if (values.at(i - 1) != values.at(i)) {
+
+            num_unique_values++;
+        }
+    }
+
+    return (tgamma(values.size() + 1) / tgamma(values.size() - num_unique_values + 2));
 }
 
 template<class T>

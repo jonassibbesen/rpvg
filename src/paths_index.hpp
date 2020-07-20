@@ -22,11 +22,14 @@ class PathsIndex {
 
         const gbwt::GBWT & index() const;
 
+        uint32_t numberOfNodes() const;
         bool hasNodeId(const uint32_t node_id) const;
         uint32_t nodeLength(const uint32_t node_id) const;
 
+        vector<gbwt::size_type> locatePathIds(const gbwt::SearchState & search) const;
+
         string pathName(const uint32_t path_id) const;
-        uint32_t pathLength(const uint32_t path_id) const;
+        uint32_t pathLength(uint32_t path_id) const;
         double effectivePathLength(const uint32_t path_id, const FragmentLengthDist & fragment_length_dist) const;
 
     private:

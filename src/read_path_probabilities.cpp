@@ -8,12 +8,6 @@
 #include <sstream>
 
 
-ReadPathProbabilities::ReadPathProbabilities() : score_log_base(1), fragment_length_dist(FragmentLengthDist()) {
-
-    read_count = 1;
-    noise_prob = 1;     
-}
-
 ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const FragmentLengthDist & fragment_length_dist_in) : read_count(read_count_in), score_log_base(score_log_base_in), fragment_length_dist(fragment_length_dist_in) {
 
     noise_prob = 1;
@@ -40,9 +34,11 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<Path> & cluster_paths, const bool is_single_end) {
+void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end) {
 
     assert(!align_paths.empty());
+    assert(align_paths.size() == align_paths_ids.size());
+
     assert(clustered_path_index.size() == read_path_probs.size());
     assert(cluster_paths.size() == read_path_probs.size());
 
@@ -54,8 +50,6 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
         vector<double> align_paths_log_probs;
         align_paths_log_probs.reserve(align_paths.size());
 
-        double align_paths_log_probs_sum = numeric_limits<double>::lowest();
-
         for (auto & align_path: align_paths) {
 
             align_paths_log_probs.emplace_back(score_log_base * align_path.score_sum);
@@ -64,63 +58,67 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
                 align_paths_log_probs.back() += fragment_length_dist.logProb(align_path.seq_length);
             }
-
-            align_paths_log_probs_sum = add_log(align_paths_log_probs_sum, align_paths_log_probs.back());
         }
-
-        for (auto & log_probs: align_paths_log_probs) {
-
-            log_probs -= align_paths_log_probs_sum;
-        }
-
-        double read_path_probs_sum = 0;
+        
+        vector<double> read_path_log_probs(read_path_probs.size(), numeric_limits<double>::lowest());
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
-            for (auto & path: align_paths.at(i).ids) {
+            for (auto path_id: align_paths_ids.at(i)) {
 
-                uint32_t path_idx = clustered_path_index.at(path);
+                auto clustered_path_index_it = clustered_path_index.find(path_id);
 
-                read_path_probs.at(path_idx) = exp(align_paths_log_probs.at(i));
-            
-                if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
+                if (clustered_path_index_it != clustered_path_index.end()) {
 
-                    read_path_probs.at(path_idx) = 0;
+                    uint32_t path_idx = clustered_path_index_it->second;
 
-                } else {
+                    if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
 
-                    read_path_probs.at(path_idx) /= cluster_paths.at(path_idx).effective_length;
+                        assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
+                        read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
+
+                    } else {
+
+                        // account for really rare cases when a mpmap alignment can have multiple alignments on the same path
+                        read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length));
+                    }
                 }
-
-                read_path_probs_sum += read_path_probs.at(clustered_path_index.at(path));
             }
         }
 
-        assert(read_path_probs_sum > 0);
+        double read_path_log_probs_sum = numeric_limits<double>::lowest();
 
-        for (auto & prob: read_path_probs) {
+        for (auto & log_prob: read_path_log_probs) {
 
-            prob /= read_path_probs_sum;
-            prob *= (1 - noise_prob);
+            read_path_log_probs_sum = add_log(read_path_log_probs_sum, log_prob);
+        }
+
+        assert(read_path_probs.size() == read_path_log_probs.size());
+        assert(read_path_log_probs_sum > numeric_limits<double>::lowest());
+
+        for (size_t i = 0; i < read_path_probs.size(); ++i) {
+
+            read_path_probs.at(i) = exp(read_path_log_probs.at(i) - read_path_log_probs_sum);
+            read_path_probs.at(i) *= (1 - noise_prob);
         }
     }
 }
 
-bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & cluster_probs_2, const double prob_precision) {
+bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & probs_2, const double prob_precision) {
 
-    assert(probabilities().size() == cluster_probs_2.probabilities().size());
+    assert(probabilities().size() == probs_2.probabilities().size());
 
-    if (abs(noiseProbability() - cluster_probs_2.noiseProbability()) < prob_precision) {
+    if (abs(noiseProbability() - probs_2.noiseProbability()) < prob_precision) {
 
         for (size_t i = 0; i < probabilities().size(); ++i) {
 
-            if (abs(probabilities().at(i) - cluster_probs_2.probabilities().at(i)) >= prob_precision) {
+            if (abs(probabilities().at(i) - probs_2.probabilities().at(i)) >= prob_precision) {
 
                 return false;
             }
         }
 
-        addReadCount(cluster_probs_2.readCount());
+        addReadCount(probs_2.readCount());
         return true;
     } 
 

@@ -48,7 +48,7 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
 
     for (auto & prob: collpased_probs) {
 
-        if (write_zero || !doubleCompare(prob.first, 0)) {
+        if (write_zero || prob.first > 0) {
 
             *writer_stream << " " << prob.first << ":";
 
@@ -70,7 +70,7 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
     }
 }
 
-void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<Path> & cluster_paths) {
+void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
 
     assert(!cluster_paths.empty());
 

@@ -4,7 +4,7 @@ The following code have been copied and modified from BayesTyper (https://github
 */
 
 /*
-DiscreteSampler.hpp - This file is part of BayesTyper (https://github.com/bioinformatics-centre/BayesTyper)
+ProducerConsumerQueue.hpp - This file is part of BayesTyper (https://github.com/bioinformatics-centre/BayesTyper)
 
 
 The MIT License (MIT)
@@ -31,44 +31,38 @@ THE SOFTWARE.
 */
 
 
-#ifndef RPVG_SRC_DISCRETESAMPLER_HPP
-#define RPVG_SRC_DISCRETESAMPLER_HPP
+#ifndef RPVG_SRC_PRODUCERCONSUMERQUEUE_HPP
+#define RPVG_SRC_PRODUCERCONSUMERQUEUE_HPP
 
-#include <random>
-#include <vector>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <deque>
 
-using namespace std;
-
-
-class DiscreteSampler {
-
-	public:
-
-		DiscreteSampler(const uint32_t size_guess);
-		virtual ~DiscreteSampler() {};
-
-		uint32_t size() const;
-
-		virtual void addOutcome(const double prob); 
-		virtual uint32_t sample(mt19937 * mt_rng) const;
-
-	protected:
-
-		uint32_t search(const double random01_sample_scaled) const;
-
-		vector<double> cumulative_probs;		
-};
-
-class LogDiscreteSampler : public DiscreteSampler {
+template <typename Data>
+class ProducerConsumerQueue {
 
 	public:
-		
-		LogDiscreteSampler(const uint32_t size_guess);
-		~LogDiscreteSampler() {};
 
-		void addOutcome(const double log_prob);
-		uint32_t sample(mt19937 * mt_rng) const;
+		ProducerConsumerQueue(uint32_t); // Argument - max buffer size
+		void push(Data);
+		void pushedLast();
+		bool pop(Data *);
+
+	private:
+
+		uint32_t max_buffer_size;
+
+		bool pushed_last;
+
+		std::deque<Data> queue;
+
+		std::mutex queue_mutex;
+
+		std::condition_variable producer_cv;
+		std::condition_variable consumer_cv;
 };
 
+#include "producer_consumer_queue.tpp"
 
 #endif

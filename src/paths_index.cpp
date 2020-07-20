@@ -58,6 +58,11 @@ const gbwt::GBWT & PathsIndex::index() const {
     return index_;
 }
 
+uint32_t PathsIndex::numberOfNodes() const {
+
+    return node_lengths.size();
+}
+
 bool PathsIndex::hasNodeId(const uint32_t node_id) const {
 
     if (node_id >= node_lengths.size()) {
@@ -72,6 +77,21 @@ uint32_t PathsIndex::nodeLength(const uint32_t node_id) const {
 
     assert(hasNodeId(node_id));
     return node_lengths.at(node_id);
+}
+
+vector<gbwt::size_type> PathsIndex::locatePathIds(const gbwt::SearchState & search) const {
+
+    auto path_ids = index_.locate(search);
+
+    if (index_.bidirectional()) {
+
+        for (auto & id: path_ids) {
+
+            id = gbwt::Path::id(id);
+        }
+    }
+
+    return path_ids;
 }
 
 string PathsIndex::pathName(const uint32_t path_id) const {
@@ -99,7 +119,12 @@ string PathsIndex::pathName(const uint32_t path_id) const {
     return sstream.str();
 }
 
-uint32_t PathsIndex::pathLength(const uint32_t path_id) const {
+uint32_t PathsIndex::pathLength(uint32_t path_id) const {
+
+    if (index_.bidirectional()) {
+
+        path_id = gbwt::Path::encode(path_id, false);
+    }
 
     uint32_t path_length = 0;
     

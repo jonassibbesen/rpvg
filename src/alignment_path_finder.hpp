@@ -28,6 +28,9 @@ class AlignmentPathFinder {
        	const PathsIndex & paths_index;
        	uint32_t max_pair_seq_length;
 
+		bool alignmentHasPath(const vg::Alignment & alignment) const;
+		bool alignmentHasPath(const vg::MultipathAlignment & alignment) const;
+		
        	bool alignmentStartInGraph(const AlignmentType & alignment) const;
 
 		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const;
