@@ -281,11 +281,32 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
         for (auto & group: path_groups) {
 
+            bool print_debug = false;        
+
             Eigen::ColMatrixXd group_read_path_probs = Eigen::ColMatrixXd(read_path_probs.rows(), group.size());
 
             for (size_t i = 0; i < group.size(); ++i) {
 
                 group_read_path_probs.col(i) = read_path_probs.col(group.at(i));
+
+                if (path_cluster_estimates->paths.at(group.at(i)).origin == "ENST00000331523.6") {
+
+                    print_debug = true;
+                }
+            }
+
+            double time1 = gbwt::readTimer();
+
+            if (print_debug) {
+
+                assert(ploidy == 2); 
+                cerr << "###" << endl;
+
+                cerr << path_cluster_estimates->paths.size() << endl;
+                cerr << path_groups.size() << endl;
+                cerr << group.size() << endl;
+
+                cerr << "###" << endl;
             }
 
             addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, noise_probs);
@@ -310,7 +331,62 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy, num_nested_its, &mt_rng);
             }
 
+            double time2 = gbwt::readTimer();
+
+            if (print_debug) {
+
+                assert(ploidy == 2); 
+                cerr << "### " << time2 - time1 << endl;
+
+                vector<pair<double, pair<string, string> > > post;
+
+                for (size_t i = 0; i < group_path_cluster_estimates.path_groups.size(); i++) {
+
+                    auto path_group = group_path_cluster_estimates.path_groups.at(i);
+                    assert(path_group.size() == 2);
+
+                    post.emplace_back(group_path_cluster_estimates.posteriors(0, i), pair<string, string>(path_cluster_estimates->paths.at(group.at(path_group.front())).name, path_cluster_estimates->paths.at(group.at(path_group.back())).name));
+                }
+
+                sort(post.begin(), post.end());
+
+                for (auto v: post) {
+
+                    cerr << v.first << "\t" << v.second.first << "," << v.second.second << endl;
+                }  
+
+                cerr << "###" << endl;
+            }
+
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);
+
+            double time3 = gbwt::readTimer();
+
+            if (print_debug) {
+
+                assert(ploidy == 2);
+                cerr << "### " << time3 - time2 << endl;
+
+                unordered_map<uint32_t, unordered_map<uint32_t, uint32_t> > samples;
+
+                for (auto & sample: ploidy_path_indices_samples) {
+
+                    assert(sample.size() >= 2);
+                    auto samples_it = samples.emplace(sample.at(sample.size() - 2), unordered_map<uint32_t, uint32_t>());
+                    auto samples_it2 = samples_it.first->second.emplace(sample.at(sample.size() - 1), 0);
+                    samples_it2.first->second++;
+                }
+
+                for (auto sample: samples) {
+
+                    for (auto v: sample.second) {
+
+                        cerr << path_cluster_estimates->paths.at(sample.first).name << "," << path_cluster_estimates->paths.at(v.first).name << "\t" << v.second << endl;
+                    }
+                }  
+
+                cerr << "###" << endl;
+            }
         }
 
         unordered_map<vector<uint32_t>, uint32_t> collapsed_ploidy_path_indices_samples;
@@ -411,10 +487,10 @@ void NestedPathAbundanceEstimator::samplePloidyPathIndices(vector<vector<uint32_
 
         for (size_t j = 1; j < sampled_path_indices.size(); ++j) {
 
-            if (ploidy_path_indices_samples->at(i).back() != group.at(sampled_path_indices.at(j))) {
+            // if (ploidy_path_indices_samples->at(i).back() != group.at(sampled_path_indices.at(j))) {
 
                 ploidy_path_indices_samples->at(i).emplace_back(group.at(sampled_path_indices.at(j)));
-            }
+            // }
         }
     }
 }

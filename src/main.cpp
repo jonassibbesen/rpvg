@@ -37,7 +37,7 @@
 #include "path_estimates_writer.hpp"
 
 const uint32_t align_path_buffer_size = 10000;
-const uint32_t read_path_cluster_probs_buffer_size = 100;
+const uint32_t read_path_cluster_probs_buffer_size = 10;
 const double prob_precision = pow(10, -8);
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
