@@ -18,7 +18,7 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
         Eigen::ColVectorXd noise_probs;
         Eigen::RowVectorXui read_counts;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 2);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 0.002);
 
         path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size() + 1, 0, false);
 
@@ -266,7 +266,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         Eigen::ColVectorXd noise_probs;
         Eigen::RowVectorXui read_counts;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 2);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 0.002);
 
         noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
 
