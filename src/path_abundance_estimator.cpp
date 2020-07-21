@@ -330,19 +330,32 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 cerr << "### " << time2 - time1 << endl;
                 cerr << endl;
 
-                for (auto v: group) {
+                cerr << "Count" << " ";
+                cerr << "Noise" << " ";
+                cerr << path_cluster_estimates->paths.at(group.at(29)).name << " ";
+                cerr << path_cluster_estimates->paths.at(group.at(35)).name << " ";
+                cerr << path_cluster_estimates->paths.at(group.at(44)).name;
+                cerr << endl;
 
-                    cerr << path_cluster_estimates->paths.at(v).name << " ";
-                }
+                Eigen::ColMatrixXd probs_debug = Eigen::ColMatrixXd::Zero(group_read_path_probs.rows(), 5);
+
+                probs_debug.col(1) = group_noise_probs;
+                probs_debug.col(2) = group_read_path_probs.col(29);
+                probs_debug.col(3) = group_read_path_probs.col(35);
+                probs_debug.col(4) = group_read_path_probs.col(44);
+
+                Eigen::RowVectorXui read_counts_debug = group_read_counts;
+                collapseProbabilityMatrixReads(&probs_debug, &read_counts_debug);
+
+                probs_debug.col(0) = read_counts_debug.transpose().cast<double>();
 
                 cerr << endl;
+                cerr << probs_debug << endl;
                 cerr << endl;
-                cerr << group_read_path_probs << endl;
-                cerr << endl;
-                cerr << group_noise_probs << endl;
-                cerr << endl;
-                cerr << group_read_counts << endl;
-                
+
+                cerr << probs_debug.col(0) * (probs_debug.col(1) + probs_debug.col(2) + probs_debug.col(3)).array().log().matrix() << endl;
+                cerr << probs_debug.col(0) * (probs_debug.col(1) + probs_debug.col(4) + probs_debug.col(4)).array().log().matrix() << endl;
+
                 cerr << endl;
                 cerr << "###" << endl;
             }
