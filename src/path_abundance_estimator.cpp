@@ -356,6 +356,27 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 cerr << probs_debug.col(0) * (probs_debug.col(1) + probs_debug.col(2) + probs_debug.col(3)).array().log().matrix() << endl;
                 cerr << probs_debug.col(0) * (probs_debug.col(1) + probs_debug.col(4) + probs_debug.col(4)).array().log().matrix() << endl;
 
+
+                Eigen::ColMatrixXd probs_debug2 = Eigen::ColMatrixXd::Zero(read_path_probs.rows(), 5);
+
+                probs_debug2.col(1) = noise_probs;
+                probs_debug2.col(2) = read_path_probs.col(group.at(29));
+                probs_debug2.col(3) = read_path_probs.col(group.at(35));
+                probs_debug2.col(4) = read_path_probs.col(group.at(44));
+
+                Eigen::RowVectorXui read_counts_debug2 = read_counts;
+                collapseProbabilityMatrixReads(&probs_debug2, &read_counts_debug2);
+
+                probs_debug2.col(0) = read_counts_debug2.transpose().cast<double>();
+
+                cerr << endl;
+                cerr << probs_debug2 << endl;
+                cerr << endl;
+
+                cerr << probs_debug2.col(0) * (probs_debug2.col(1) + probs_debug2.col(2) + probs_debug2.col(3)).array().log().matrix() << endl;
+                cerr << probs_debug2.col(0) * (probs_debug2.col(1) + probs_debug2.col(4) + probs_debug2.col(4)).array().log().matrix() << endl;
+
+
                 cerr << endl;
                 cerr << "###" << endl;
             }
