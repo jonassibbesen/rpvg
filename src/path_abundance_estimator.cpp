@@ -300,12 +300,14 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             if (print_debug) {
 
                 assert(ploidy == 2); 
-                cerr << "###" << endl;
+                cerr << "### " << time1 - time1 << endl;
+                cerr << endl;
 
                 cerr << path_cluster_estimates->paths.size() << endl;
                 cerr << path_groups.size() << endl;
                 cerr << group.size() << endl;
-
+                
+                cerr << endl;
                 cerr << "###" << endl;
             }
 
@@ -320,6 +322,31 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             Eigen::ColVectorXd group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
             group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
 
+            double time2 = gbwt::readTimer();
+
+            if (print_debug) {
+
+                assert(ploidy == 2); 
+                cerr << "### " << time2 - time1 << endl;
+                cerr << endl;
+
+                for (auto v: group) {
+
+                    cerr << path_cluster_estimates->paths.at(v).name << " ";
+                }
+
+                cerr << endl;
+                cerr << endl;
+                cerr << group_read_path_probs << endl;
+                cerr << endl;
+                cerr << group_noise_probs << endl;
+                cerr << endl;
+                cerr << group_read_counts << endl;
+                
+                cerr << endl;
+                cerr << "###" << endl;
+            }
+
             PathClusterEstimates group_path_cluster_estimates;
 
             if (use_exact) {
@@ -331,12 +358,13 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy, num_nested_its, &mt_rng);
             }
 
-            double time2 = gbwt::readTimer();
+            double time3 = gbwt::readTimer();
 
             if (print_debug) {
 
                 assert(ploidy == 2); 
-                cerr << "### " << time2 - time1 << endl;
+                cerr << "### " << time3 - time2 << endl;
+                cerr << endl;
 
                 vector<pair<double, pair<string, string> > > post;
 
@@ -355,17 +383,19 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                     cerr << v.first << "\t" << v.second.first << "," << v.second.second << endl;
                 }  
 
+                cerr << endl;
                 cerr << "###" << endl;
             }
 
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);
 
-            double time3 = gbwt::readTimer();
+            double time4 = gbwt::readTimer();
 
             if (print_debug) {
 
                 assert(ploidy == 2);
-                cerr << "### " << time3 - time2 << endl;
+                cerr << "### " << time4 - time3 << endl;
+                cerr << endl;
 
                 unordered_map<uint32_t, unordered_map<uint32_t, uint32_t> > samples;
 
@@ -385,6 +415,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                     }
                 }  
 
+                cerr << endl;
                 cerr << "###" << endl;
             }
         }
