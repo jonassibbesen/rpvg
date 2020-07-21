@@ -376,7 +376,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 cerr << probs_debug2.col(0) * (probs_debug2.col(1) + probs_debug2.col(2) + probs_debug2.col(3)).array().log().matrix() << endl;
                 cerr << probs_debug2.col(0) * (probs_debug2.col(1) + probs_debug2.col(4) + probs_debug2.col(4)).array().log().matrix() << endl;
 
-
                 cerr << endl;
                 cerr << "###" << endl;
             }
