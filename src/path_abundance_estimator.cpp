@@ -303,6 +303,23 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 cerr << "### " << time1 - time1 << endl;
                 cerr << endl;
 
+                ofstream debug_writer("debug_probs.txt");
+
+                for (auto & p: path_cluster_estimates->paths) {
+
+                    debug_writer << p.name << "\t";
+                }
+
+                debug_writer << "Noise\tReadCounts" << endl;
+
+                auto debug_read_path_probs = read_path_probs;
+                debug_read_path_probs.conservativeResize(debug_read_path_probs.rows(), debug_read_path_probs.cols() + 1);
+                debug_read_path_probs.col(debug_read_path_probs.cols() - 1) = read_counts.transpose().cast<double>();
+
+                debug_writer << debug_read_path_probs << endl;
+
+                debug_writer.close();
+
                 cerr << path_cluster_estimates->paths.size() << endl;
                 cerr << path_groups.size() << endl;
                 cerr << group.size() << endl;
@@ -331,18 +348,23 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 cerr << endl;
 
                 cerr << "Count" << " ";
-                cerr << "Noise" << " ";
                 cerr << path_cluster_estimates->paths.at(group.at(29)).name << " ";
                 cerr << path_cluster_estimates->paths.at(group.at(35)).name << " ";
-                cerr << path_cluster_estimates->paths.at(group.at(44)).name;
+                cerr << path_cluster_estimates->paths.at(group.at(44)).name << " ";
+                cerr << "Noise";
                 cerr << endl;
 
-                Eigen::ColMatrixXd probs_debug = Eigen::ColMatrixXd::Zero(group_read_path_probs.rows(), 5);
+                Eigen::ColMatrixXd probs_debug = Eigen::ColMatrixXd::Zero(group_read_path_probs.rows(), 4);
 
-                probs_debug.col(1) = group_noise_probs;
-                probs_debug.col(2) = group_read_path_probs.col(29);
-                probs_debug.col(3) = group_read_path_probs.col(35);
-                probs_debug.col(4) = group_read_path_probs.col(44);
+                probs_debug.col(1) = group_read_path_probs.col(29);
+                probs_debug.col(2) = group_read_path_probs.col(35);
+                probs_debug.col(3) = group_read_path_probs.col(44);
+
+                cerr << endl;
+                cerr << group_read_counts.cast<double>() * (probs_debug.col(1) + probs_debug.col(2) + group_noise_probs).array().log().matrix() << endl;
+                cerr << group_read_counts.cast<double>() * (probs_debug.col(3) + probs_debug.col(3) + group_noise_probs).array().log().matrix() << endl;
+
+                addNoiseAndNormalizeProbabilityMatrix(&probs_debug, group_noise_probs);
 
                 Eigen::RowVectorXui read_counts_debug = group_read_counts;
                 collapseProbabilityMatrixReads(&probs_debug, &read_counts_debug);
@@ -353,28 +375,13 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 cerr << probs_debug << endl;
                 cerr << endl;
 
-                cerr << probs_debug.col(0) * (probs_debug.col(1) + probs_debug.col(2) + probs_debug.col(3)).array().log().matrix() << endl;
-                cerr << probs_debug.col(0) * (probs_debug.col(1) + probs_debug.col(4) + probs_debug.col(4)).array().log().matrix() << endl;
-
-
-                Eigen::ColMatrixXd probs_debug2 = Eigen::ColMatrixXd::Zero(read_path_probs.rows(), 5);
-
-                probs_debug2.col(1) = noise_probs;
-                probs_debug2.col(2) = read_path_probs.col(group.at(29));
-                probs_debug2.col(3) = read_path_probs.col(group.at(35));
-                probs_debug2.col(4) = read_path_probs.col(group.at(44));
-
-                Eigen::RowVectorXui read_counts_debug2 = read_counts;
-                collapseProbabilityMatrixReads(&probs_debug2, &read_counts_debug2);
-
-                probs_debug2.col(0) = read_counts_debug2.transpose().cast<double>();
+                cerr << probs_debug.col(0).transpose() * (probs_debug.col(1) + probs_debug.col(2) + probs_debug.col(4)).array().log().matrix() << endl;
+                cerr << probs_debug.col(0).transpose() * (probs_debug.col(3) + probs_debug.col(3) + probs_debug.col(4)).array().log().matrix() << endl;
 
                 cerr << endl;
-                cerr << probs_debug2 << endl;
-                cerr << endl;
 
-                cerr << probs_debug2.col(0) * (probs_debug2.col(1) + probs_debug2.col(2) + probs_debug2.col(3)).array().log().matrix() << endl;
-                cerr << probs_debug2.col(0) * (probs_debug2.col(1) + probs_debug2.col(4) + probs_debug2.col(4)).array().log().matrix() << endl;
+                cerr << read_counts.cast<double>() * (read_path_probs.col(group.at(29)) + read_path_probs.col(group.at(35)) + noise_probs).array().log().matrix() << endl;
+                cerr << read_counts.cast<double>() * (read_path_probs.col(group.at(44)) + read_path_probs.col(group.at(44)) + noise_probs).array().log().matrix() << endl;
 
                 cerr << endl;
                 cerr << "###" << endl;
