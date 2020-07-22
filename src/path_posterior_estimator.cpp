@@ -13,22 +13,16 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
         Eigen::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
+        assert(read_path_probs.rows() > 0);
 
-        if (read_path_probs.rows() == 0) {
+        noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
+        read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
 
-            path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size(), 1, true);
+        calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, 1);
 
-        } else {
-
-            noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
-            read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
-
-            calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, 1);
-
-            assert(path_cluster_estimates->posteriors.cols() == read_path_probs.cols());
-            assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->paths.size());
-            assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
-        }
+        assert(path_cluster_estimates->posteriors.cols() == read_path_probs.cols());
+        assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->paths.size());
+        assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
 
     } else {
 
@@ -50,27 +44,21 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
         Eigen::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
+        assert(read_path_probs.rows() > 0);
 
-        if (read_path_probs.rows() == 0) {
+        noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
+        read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
 
-            path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size(), ploidy, true);
+        if (use_exact) {
 
+            calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy);
+        
         } else {
 
-            noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
-            read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
-
-            if (use_exact) {
-
-                calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy);
-            
-            } else {
-
-                estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy, num_gibbs_its, &mt_rng);
-            }
-
-            assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
+            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy, num_gibbs_its, &mt_rng);
         }
+
+        assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
 
     } else {
 
