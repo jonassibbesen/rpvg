@@ -12,7 +12,7 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
         Eigen::ColVectorXd noise_probs;
         Eigen::RowVectorXui read_counts;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 0.002);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
 
         if (read_path_probs.rows() == 0) {
 
@@ -49,7 +49,7 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
         Eigen::ColVectorXd noise_probs;
         Eigen::RowVectorXui read_counts;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true, 0.002);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
 
         if (read_path_probs.rows() == 0) {
 
