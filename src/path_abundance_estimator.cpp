@@ -299,6 +299,13 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             Eigen::ColVectorXd group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
             group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
 
+            bool debug = false;
+
+            if (path_cluster_estimates->paths.at(group.front()).origin == "ENST00000461219.5") {
+
+                debug = true;
+            }
+
             PathClusterEstimates group_path_cluster_estimates;
 
             if (use_exact) {
@@ -307,7 +314,28 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             } else {
 
-                estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy, &mt_rng);
+                estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy, &mt_rng, debug);
+            }
+
+            if (debug) {
+
+                PathClusterEstimates group_path_cluster_estimates_test;
+                calculatePathGroupPosteriors(&group_path_cluster_estimates_test, group_read_path_probs, group_noise_probs, group_read_counts, ploidy);
+
+                for (size_t i = 0; i < group_path_cluster_estimates_test.path_groups.size(); i++) {
+
+                    if (group_path_cluster_estimates_test.posteriors(i) >= 0.000001) {
+
+                        cerr << group_path_cluster_estimates_test.posteriors(i) << " " << group_path_cluster_estimates_test.path_groups.at(i) << endl;
+                    }
+                }
+
+                for (auto & v: group_path_cluster_estimates.path_groups) {
+
+                    cerr << v << endl;
+                }
+
+                cerr << group_path_cluster_estimates.posteriors << endl;
             }
 
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);

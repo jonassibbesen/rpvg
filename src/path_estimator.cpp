@@ -281,7 +281,7 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
     }
 }
 
-void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, mt19937 * mt_rng) {
+void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, mt19937 * mt_rng, const bool debug) {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
@@ -289,7 +289,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
     assert(group_size > 0);
 
-    double subsampling_freq = 0.1;
+    double subsampling_freq = 0.2;
 
     vector<binomial_distribution<uint32_t> > read_count_binom_dists;
     read_count_binom_dists.reserve(read_counts.cols());
@@ -299,9 +299,9 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
         read_count_binom_dists.emplace_back(read_counts(0, i), subsampling_freq);
     }
 
-    uint32_t num_chains = 10;
-    uint32_t num_burn_its = 10 * (group_size - 1) * read_path_probs.cols();
-    uint32_t num_gibbs_its = 50 * group_size * read_path_probs.cols();
+    const uint32_t num_chains = 50;
+    const uint32_t num_burn_its = 50 * (group_size - 1);
+    const uint32_t num_gibbs_its = 500 * group_size;
 
     path_cluster_estimates->initEstimates(0, 0, true);
     assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
@@ -309,13 +309,19 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
     spp::sparse_hash_map<vector<uint32_t>, uint32_t> path_groups_indices;
     vector<uint32_t> path_group_sample_counts;   
 
-    for (uint32_t k = 0; k < num_chains; ++k) {
+    for (uint32_t c = 0; c < num_chains; ++c) {
 
         auto chain_read_counts = read_counts;
 
         for (size_t i = 0; i < chain_read_counts.cols(); ++i) {
 
             chain_read_counts(0, i) = read_count_binom_dists.at(i)(*mt_rng);
+        }
+
+        if (debug) {
+
+            cerr << read_counts << endl;
+            cerr << chain_read_counts << endl;
         }
 
         PathClusterEstimates marginal_path_cluster_estimates;
@@ -399,6 +405,16 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
                 }
             }
         }
+
+        if (debug) {
+    
+            cerr << path_group_sample_counts << endl;
+        }
+    }
+
+    if (debug) {
+    
+        cerr << path_group_sample_counts << endl;
     }
 
     path_cluster_estimates->posteriors = Eigen::RowVectorXd::Zero(1, path_group_sample_counts.size());
