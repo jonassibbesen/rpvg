@@ -53,7 +53,7 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
         
         } else {
 
-            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy, num_gibbs_its, &mt_rng);
+            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy, &mt_rng);
         }
 
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());

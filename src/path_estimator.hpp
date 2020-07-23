@@ -33,7 +33,7 @@ class PathEstimator {
         void collapseProbabilityMatrixPaths(Eigen::ColMatrixXd * read_path_probs);
 
         void calculatePathGroupPosteriors(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size);
-        void estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, const uint32_t num_gibbs_its, mt19937 * mt_rng);
+        void estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, mt19937 * mt_rng);
 
     private:
 

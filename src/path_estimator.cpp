@@ -281,7 +281,7 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
     }
 }
 
-void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, const uint32_t num_gibbs_its, mt19937 * mt_rng) {
+void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, mt19937 * mt_rng) {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
@@ -313,7 +313,8 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
     vector<uint32_t> path_group_sample_counts;
 
-    uint32_t num_burn_its = 10 * (group_size - 1);
+    uint32_t num_burn_its = 10 * read_path_probs.cols();
+    uint32_t num_gibbs_its = 100 * read_path_probs.cols();
 
     for (uint32_t i = 0; i < num_burn_its + num_gibbs_its; ++i) {
 
@@ -353,6 +354,13 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
                     prob = exp(prob - sum_log_group_probs);
                 }
+
+                // if (debug) {
+
+                //     cerr << j << endl;
+                //     cerr << cur_sampled_group_paths << endl;
+                //     cerr << group_probs << endl;
+                // }
 
                 group_path_sampler_cache_it.first->second = discrete_distribution<uint32_t>(group_probs.begin(), group_probs.end());
             }
