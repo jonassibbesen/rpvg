@@ -314,7 +314,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
     vector<uint32_t> path_group_sample_counts;
 
     uint32_t num_burn_its = 10 * read_path_probs.cols();
-    uint32_t num_gibbs_its = 100 * read_path_probs.cols();
+    uint32_t num_gibbs_its = 1000 * read_path_probs.cols();
 
     for (uint32_t i = 0; i < num_burn_its + num_gibbs_its; ++i) {
 
