@@ -355,13 +355,6 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
                     prob = exp(prob - sum_log_group_probs);
                 }
 
-                // if (debug) {
-
-                //     cerr << j << endl;
-                //     cerr << cur_sampled_group_paths << endl;
-                //     cerr << group_probs << endl;
-                // }
-
                 group_path_sampler_cache_it.first->second = discrete_distribution<uint32_t>(group_probs.begin(), group_probs.end());
             }
 
