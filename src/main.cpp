@@ -583,12 +583,29 @@ int main(int argc, char* argv[]) {
 
                 auto & cur_prob = read_path_cluster_probs_buffer->back().back();
 
-                if (cur_prob.probabilities().at(path_compare_ids.second) - cur_prob.probabilities().at(path_compare_ids.first) > 0.1 && cur_prob.noiseProbability() < 0.01) {
+                if (cur_prob.probabilities().at(path_compare_ids.second) / cur_prob.probabilities().at(path_compare_ids.first) > 2 && cur_prob.noiseProbability() < 0.001) {
 
                     cerr << endl;
                     cerr << align_paths->first;
                     cerr << cur_prob.probabilities().at(path_compare_ids.first) << " " << cur_prob.probabilities().at(path_compare_ids.second) << endl;
                     cerr << read_path_cluster_probs_buffer->back().back() << endl;
+
+                    for (size_t j = 0; j < align_paths_ids.size(); j++) {
+
+                        for (auto & pid: align_paths_ids.at(j)) {
+
+                            if (clustered_path_index.at(pid) == path_compare_ids.first) {
+
+                                cerr << "ENST00000331523.6: " << j << endl;
+                            
+                            } else if (clustered_path_index.at(pid) == path_compare_ids.second) {
+
+                                cerr << "ENST00000331523.6_30: " << j << endl;
+                            }
+                        }
+                    }
+
+                    cerr << align_paths->first.front().alignment << endl;
                 }
             }
         }

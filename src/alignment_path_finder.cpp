@@ -300,7 +300,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     for (auto & a: paired_align_paths) {
 
-        a.name = alignment_1.name();
+        a.alignment = pb2json(alignment_1);
     }
 
     return paired_align_paths;
