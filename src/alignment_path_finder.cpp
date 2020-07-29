@@ -298,6 +298,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
 #endif
 
+    for (auto & a: paired_align_paths) {
+
+        a.name = alignment_1.name();
+    }
+
     return paired_align_paths;
 }
 

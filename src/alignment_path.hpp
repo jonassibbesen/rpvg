@@ -23,6 +23,9 @@ class AlignmentPath {
         AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const gbwt::SearchState & search_state_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in);
 
+        string name;
+        vector<gbwt::node_type> path;
+
         uint32_t seq_length;
         uint32_t mapq_comb;
         uint32_t score_sum;

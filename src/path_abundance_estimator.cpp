@@ -347,22 +347,12 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 cerr << "### " << time2 - time1 << endl;
                 cerr << endl;
 
-                cerr << "Count" << " ";
-                cerr << path_cluster_estimates->paths.at(group.at(29)).name << " ";
-                cerr << path_cluster_estimates->paths.at(group.at(35)).name << " ";
-                cerr << path_cluster_estimates->paths.at(group.at(44)).name << " ";
-                cerr << "Noise";
-                cerr << endl;
-
-                Eigen::ColMatrixXd probs_debug = Eigen::ColMatrixXd::Zero(group_read_path_probs.rows(), 4);
+                Eigen::ColMatrixXd probs_debug = Eigen::ColMatrixXd::Zero(group_read_path_probs.rows(), 5);
 
                 probs_debug.col(1) = group_read_path_probs.col(29);
-                probs_debug.col(2) = group_read_path_probs.col(35);
-                probs_debug.col(3) = group_read_path_probs.col(44);
-
-                cerr << endl;
-                cerr << group_read_counts.cast<double>() * (probs_debug.col(1) + probs_debug.col(2) + group_noise_probs).array().log().matrix() << endl;
-                cerr << group_read_counts.cast<double>() * (probs_debug.col(3) + probs_debug.col(3) + group_noise_probs).array().log().matrix() << endl;
+                probs_debug.col(2) = group_read_path_probs.col(33);
+                probs_debug.col(3) = group_read_path_probs.col(35);
+                probs_debug.col(4) = group_read_path_probs.col(44);
 
                 addNoiseAndNormalizeProbabilityMatrix(&probs_debug, group_noise_probs);
 
@@ -371,17 +361,14 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
                 probs_debug.col(0) = read_counts_debug.transpose().cast<double>();
 
+                cerr << "Count" << " ";
+                cerr << path_cluster_estimates->paths.at(group.at(29)).name << " ";
+                cerr << path_cluster_estimates->paths.at(group.at(33)).name << " ";
+                cerr << path_cluster_estimates->paths.at(group.at(35)).name << " ";
+                cerr << path_cluster_estimates->paths.at(group.at(44)).name << " ";
+                cerr << "Noise";
                 cerr << endl;
                 cerr << probs_debug << endl;
-                cerr << endl;
-
-                cerr << probs_debug.col(0).transpose() * (probs_debug.col(1) + probs_debug.col(2) + probs_debug.col(4)).array().log().matrix() << endl;
-                cerr << probs_debug.col(0).transpose() * (probs_debug.col(3) + probs_debug.col(3) + probs_debug.col(4)).array().log().matrix() << endl;
-
-                cerr << endl;
-
-                cerr << read_counts.cast<double>() * (read_path_probs.col(group.at(29)) + read_path_probs.col(group.at(35)) + noise_probs).array().log().matrix() << endl;
-                cerr << read_counts.cast<double>() * (read_path_probs.col(group.at(44)) + read_path_probs.col(group.at(44)) + noise_probs).array().log().matrix() << endl;
 
                 cerr << endl;
                 cerr << "###" << endl;

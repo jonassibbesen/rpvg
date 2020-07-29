@@ -543,6 +543,26 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        bool print_debug = false; 
+        pair<int32_t, int32_t> path_compare_ids(-1, -1);
+
+        for (size_t j = 0; j < path_cluster_estimates->back().paths.size(); j++) {
+
+            if (path_cluster_estimates->back().paths.at(j).origin == "ENST00000331523.6") {
+
+                print_debug = true;
+            }
+
+            if (path_cluster_estimates->back().paths.at(j).name == "ENST00000331523.6") {
+
+                path_compare_ids.first = j;
+            
+            } else if (path_cluster_estimates->back().paths.at(j).name == "ENST00000331523.6_30") {
+
+                path_compare_ids.second = j;
+            }
+        }
+
         for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
             vector<vector<gbwt::size_type> > align_paths_ids;
@@ -555,6 +575,22 @@ int main(int argc, char* argv[]) {
 
             read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
             read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
+
+            if (print_debug) {
+
+                assert(path_compare_ids.first >= 0);
+                assert(path_compare_ids.second >= 0);
+
+                auto & cur_prob = read_path_cluster_probs_buffer->back().back();
+
+                if (cur_prob.probabilities().at(path_compare_ids.second) - cur_prob.probabilities().at(path_compare_ids.first) > 0.1 && cur_prob.noiseProbability() < 0.01) {
+
+                    cerr << endl;
+                    cerr << align_paths->first;
+                    cerr << cur_prob.probabilities().at(path_compare_ids.first) << " " << cur_prob.probabilities().at(path_compare_ids.second) << endl;
+                    cerr << read_path_cluster_probs_buffer->back().back() << endl;
+                }
+            }
         }
 
         sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
