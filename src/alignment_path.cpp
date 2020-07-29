@@ -38,6 +38,10 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
 
     if (lhs.path.size() != rhs.path.size()) {
 
+        return (lhs.path.size() < rhs.path.size());
+
+    } else {
+
         for (size_t i = 0; i < lhs.path.size(); ++i) {
 
             if (lhs.path.at(i) != rhs.path.at(i)) {
@@ -45,7 +49,7 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
                 return (lhs.path.at(i) < rhs.path.at(i));    
             } 
         }
-    } 
+    }
 
     if (lhs.seq_length != rhs.seq_length) {
 
