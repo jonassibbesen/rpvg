@@ -79,23 +79,6 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
 
         prev_abundances = path_cluster_estimates->abundances;
     }
-
-    double abundances_sum = 0;
-
-    for (size_t i = 0; i < path_cluster_estimates->abundances.cols(); ++i) {
-
-        if (path_cluster_estimates->abundances(0, i) < min_abundances) {
-
-            path_cluster_estimates->posteriors(0, i) = 0;
-            path_cluster_estimates->abundances(0, i) = 0;            
-        
-        } else {
-
-            abundances_sum += path_cluster_estimates->abundances(0, i);
-        }
-    }
-
-    path_cluster_estimates->abundances = path_cluster_estimates->abundances / abundances_sum;
 }
 
 void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(PathClusterEstimates * path_cluster_estimates) const {
@@ -307,7 +290,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             } else {
 
-                estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy, num_nested_its, &mt_rng);
+                estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, ploidy, &mt_rng);
             }
 
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);

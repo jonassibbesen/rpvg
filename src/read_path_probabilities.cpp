@@ -67,21 +67,19 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
             for (auto path_id: align_paths_ids.at(i)) {
 
                 auto clustered_path_index_it = clustered_path_index.find(path_id);
+                assert(clustered_path_index_it != clustered_path_index.end());
 
-                if (clustered_path_index_it != clustered_path_index.end()) {
+                uint32_t path_idx = clustered_path_index_it->second;
 
-                    uint32_t path_idx = clustered_path_index_it->second;
+                if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
 
-                    if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
+                    assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
+                    read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
 
-                        assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
-                        read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
+                } else {
 
-                    } else {
-
-                        // account for really rare cases when a mpmap alignment can have multiple alignments on the same path
-                        read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length));
-                    }
+                    // account for really rare cases when a mpmap alignment can have multiple alignments on the same path
+                    read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length));
                 }
             }
         }

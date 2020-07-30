@@ -1,6 +1,8 @@
 
 #include "path_estimator.hpp"
 
+static const uint32_t burn_it_scaling = 50;
+static const uint32_t gibbs_it_scaling = 5000; 
 
 bool probabilityCountRowSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, const pair<Eigen::RowVectorXd, uint32_t> & rhs) { 
 
@@ -281,7 +283,7 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
     }
 }
 
-void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, const uint32_t num_gibbs_its, mt19937 * mt_rng) {
+void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, mt19937 * mt_rng) {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
@@ -313,7 +315,8 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
     vector<uint32_t> path_group_sample_counts;
 
-    uint32_t num_burn_its = 10 * (group_size - 1);
+    const uint32_t num_burn_its = burn_it_scaling * group_size;
+    const uint32_t num_gibbs_its = gibbs_it_scaling * group_size;
 
     for (uint32_t i = 0; i < num_burn_its + num_gibbs_its; ++i) {
 
