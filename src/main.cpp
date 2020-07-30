@@ -37,7 +37,7 @@
 #include "path_estimates_writer.hpp"
 
 const uint32_t align_path_buffer_size = 10000;
-const uint32_t read_path_cluster_probs_buffer_size = 100;
+const uint32_t read_path_cluster_probs_buffer_size = 10;
 const double prob_precision = pow(10, -8);
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Abundance")
       ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("j,use-exact", "use slower exact likelihood inference for haplotyping", cxxopts::value<bool>())
-      ("n,num-hap-its", "number of haplotyping iterations", cxxopts::value<uint32_t>()->default_value("1000"))
+      ("n,num-hap-its", "number of haplotyping iterations in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
@@ -459,7 +459,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        path_estimator = new PathGroupPosteriorEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-exact"), rng_seed, prob_precision);
+        path_estimator = new PathGroupPosteriorEstimator(ploidy, option_results.count("use-exact"), rng_seed, prob_precision);
 
     } else if (inference_model == "transcripts") {
 

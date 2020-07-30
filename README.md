@@ -24,7 +24,7 @@ The number of threads can be given using `-t`.
 #### Inference models:
 The method currently contains four different inference models. Each model have been written with a particurlar path type and corresponding inference problem in mind:
 
-* `haplotypes`: Infers haplotype/diplotype/... posterior probabilities. By default it uses a Gibbs sampling scheme to infer the probabilities, however exact inference can be enabled using `-j`. The exact inference scales exponentially in the sample ploidy and it is therefore only recommended for when the number of haplotypes are low or the ploidy is 1. The ploidy can be given using `-y`.
+* `haplotypes`: Infers haplotype/diplotype/... posterior probabilities. By default it uses a Gibbs sampling scheme to infer the probabilities, however exact inference can be enabled using `-j`. The exact inference scales exponentially in the sample ploidy and it is therefore only recommended for when the number of haplotypes are low or the ploidy is 1 or 2. The ploidy can be given using `-y`.
 
 * `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm.
 

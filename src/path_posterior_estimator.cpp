@@ -29,7 +29,7 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
     }
 }
 
-PathGroupPosteriorEstimator::PathGroupPosteriorEstimator(const uint32_t num_gibbs_its_in, const uint32_t ploidy_in, const bool use_exact_in, const uint32_t rng_seed, const double prob_precision) : num_gibbs_its(num_gibbs_its_in), ploidy(ploidy_in), use_exact(use_exact_in), PathPosteriorEstimator(prob_precision) {
+PathGroupPosteriorEstimator::PathGroupPosteriorEstimator(const uint32_t ploidy_in, const bool use_exact_in, const uint32_t rng_seed, const double prob_precision) : ploidy(ploidy_in), use_exact(use_exact_in), PathPosteriorEstimator(prob_precision) {
 
     mt_rng = mt19937(rng_seed);
 }
@@ -53,7 +53,7 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
         
         } else {
 
-            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy, num_gibbs_its, &mt_rng);
+            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy, &mt_rng);
         }
 
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
