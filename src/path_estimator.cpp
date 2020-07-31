@@ -46,7 +46,7 @@ bool probabilityCountColSorter(const pair<Eigen::ColVectorXd, uint32_t> & lhs, c
 
 PathEstimator::PathEstimator(const double prob_precision_in) : prob_precision(prob_precision_in) {}
 
-void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const bool add_noise, const double max_noise_prob) {
+void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const bool add_noise) {
 
     assert(!cluster_probs.empty());
 
@@ -58,54 +58,51 @@ void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_pr
 
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
 
-        if (cluster_probs.at(i).noiseProbability() <= max_noise_prob) {
+        assert(cluster_probs.at(i).probabilities().size() + static_cast<uint32_t>(add_noise) == read_path_probs->cols());
 
-            assert(cluster_probs.at(i).probabilities().size() + static_cast<uint32_t>(add_noise) == read_path_probs->cols());
+        for (size_t j = 0; j < cluster_probs.at(i).probabilities().size(); ++j) {
 
-            for (size_t j = 0; j < cluster_probs.at(i).probabilities().size(); ++j) {
+            (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(j);
+        }
 
-                (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(j);
-            }
+        if (add_noise) {
 
-            if (add_noise) {
+            (*read_path_probs)(num_rows, cluster_probs.at(i).probabilities().size()) = cluster_probs.at(i).noiseProbability();
+        }
 
-                (*read_path_probs)(num_rows, cluster_probs.at(i).probabilities().size()) = cluster_probs.at(i).noiseProbability();
-            }
+        (*noise_probs)(num_rows, 0) = cluster_probs.at(i).noiseProbability();
+        (*read_counts)(0, num_rows) = cluster_probs.at(i).readCount();
 
-            (*noise_probs)(num_rows, 0) = cluster_probs.at(i).noiseProbability();
-            (*read_counts)(0, num_rows) = cluster_probs.at(i).readCount();
+        if (num_rows > 0) {
 
-            if (num_rows > 0) {
+            bool is_identical = true;
 
-                bool is_identical = true;
+            for (size_t j = 0; j < read_path_probs->cols(); ++j) {
 
-                for (size_t j = 0; j < read_path_probs->cols(); ++j) {
-
-                    if (abs((*read_path_probs)(num_rows - 1, j) - (*read_path_probs)(num_rows, j)) >= prob_precision) {
-
-                        is_identical = false;
-                        break;
-                    }
-                }
-
-                if (abs((*noise_probs)(num_rows - 1, 0) - (*noise_probs)(num_rows, 0)) >= prob_precision) {
+                if (abs((*read_path_probs)(num_rows - 1, j) - (*read_path_probs)(num_rows, j)) >= prob_precision) {
 
                     is_identical = false;
+                    break;
                 }
+            }
 
-                if (is_identical) {
+            if (abs((*noise_probs)(num_rows - 1, 0) - (*noise_probs)(num_rows, 0)) >= prob_precision) {
 
-                    (*read_counts)(0, num_rows - 1) += (*read_counts)(0, num_rows);
+                is_identical = false;
+            }
 
-                } else {
+            if (is_identical) {
 
-                    num_rows++;
-                }
+                (*read_counts)(0, num_rows - 1) += (*read_counts)(0, num_rows);
 
             } else {
 
                 num_rows++;
             }
+
+        } else {
+
+            num_rows++;
         }
     } 
 
