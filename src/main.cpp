@@ -439,8 +439,8 @@ int main(int argc, char* argv[]) {
     double time3 = gbwt::readTimer();
     cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    PathClusters path_clusters(num_threads);
-    auto node_to_path_index = path_clusters.findPathNodeClusters(paths_index);
+    PathClusters path_clusters(paths_index, num_threads);
+    path_clusters.addReadClusters(align_paths_index);
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
@@ -453,7 +453,7 @@ int main(int argc, char* argv[]) {
 
         auto node_id = gbwt::Node::id(align_paths_index_it->first.front().search_state.node);
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(node_to_path_index.at(node_id))).emplace_back(align_paths_index_it);
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(path_clusters.node_to_path_index.at(node_id))).emplace_back(align_paths_index_it);
         ++align_paths_index_it;
     }
 
