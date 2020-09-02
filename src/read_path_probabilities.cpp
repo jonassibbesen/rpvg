@@ -67,19 +67,6 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
             for (auto path_id: align_paths_ids.at(i)) {
 
                 auto clustered_path_index_it = clustered_path_index.find(path_id);
-
-                if (clustered_path_index_it == clustered_path_index.end()) {
-
-                    cerr << path_id << endl;
-                    cerr << align_paths_ids << endl;
-                
-                    for (auto & bla: clustered_path_index) {
-
-                        cerr << bla.first << " " << bla.second << endl;
-                    }
-                }
-
-
                 assert(clustered_path_index_it != clustered_path_index.end());
 
                 uint32_t path_idx = clustered_path_index_it->second;
