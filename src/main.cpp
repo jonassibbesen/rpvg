@@ -234,7 +234,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above value", cxxopts::value<double>()->default_value("0.002"))
+      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above value", cxxopts::value<double>()->default_value("0.01"))
       ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
 

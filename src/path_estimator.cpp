@@ -1,8 +1,9 @@
 
 #include "path_estimator.hpp"
 
+static const uint32_t num_gibbs_chains = 10;
 static const uint32_t burn_it_scaling = 50;
-static const uint32_t gibbs_it_scaling = 5000; 
+static const uint32_t gibbs_it_scaling = 500; 
 
 bool probabilityCountRowSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, const pair<Eigen::RowVectorXd, uint32_t> & rhs) { 
 
@@ -296,21 +297,10 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
     path_cluster_estimates->initEstimates(0, 0, true);
     assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
 
-    PathClusterEstimates marginal_path_cluster_estimates;
-    calculatePathGroupPosteriors(&marginal_path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
-
-    assert(marginal_path_cluster_estimates.posteriors.cols() == read_path_probs.cols());
-    assert(marginal_path_cluster_estimates.posteriors.cols() == marginal_path_cluster_estimates.path_groups.size());
-
-    discrete_distribution<uint32_t> marginal_path_sampler(marginal_path_cluster_estimates.posteriors.row(0).begin(), marginal_path_cluster_estimates.posteriors.row(0).end());
+    discrete_distribution<uint32_t> init_path_sampler(path_counts.begin(), path_counts.end());
 
     vector<uint32_t> cur_sampled_group_paths;
     cur_sampled_group_paths.reserve(group_size);
-
-    for (uint32_t i = 0; i < group_size; ++i) {
-
-        cur_sampled_group_paths.emplace_back(marginal_path_sampler(*mt_rng));
-    }
 
     spp::sparse_hash_map<vector<uint32_t>, discrete_distribution<uint32_t> > group_path_sampler_cache;
     spp::sparse_hash_map<vector<uint32_t>, uint32_t> path_groups_indices;
@@ -320,68 +310,78 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
     const uint32_t num_burn_its = burn_it_scaling * group_size;
     const uint32_t num_gibbs_its = gibbs_it_scaling * group_size;
 
-    for (uint32_t i = 0; i < num_burn_its + num_gibbs_its; ++i) {
+    for (uint32_t c = 0; c < num_gibbs_chains; ++c) {
 
-        for (uint32_t j = 0; j < group_size; ++j) {
+        cur_sampled_group_paths.clear();
 
-            vector<uint32_t> new_cur_sampled_group_paths = cur_sampled_group_paths;
+        for (uint32_t i = 0; i < group_size; ++i) {
 
-            new_cur_sampled_group_paths.at(j) = read_path_probs.cols();
-            sort(new_cur_sampled_group_paths.begin(), new_cur_sampled_group_paths.end());
-
-            auto group_path_sampler_cache_it = group_path_sampler_cache.emplace(new_cur_sampled_group_paths, discrete_distribution<uint32_t>());
-
-            if (group_path_sampler_cache_it.second) {
-
-                Eigen::ColVectorXd group_read_probs = noise_probs;
-
-                for (uint32_t k = 0; k < group_size; ++k) {
-
-                    if (j != k) {
-
-                        group_read_probs += read_path_probs.col(cur_sampled_group_paths.at(k));
-                    }
-                }
-
-                vector<double> group_probs;
-                group_probs.reserve(read_path_probs.cols());
-
-                double sum_log_group_probs = numeric_limits<double>::lowest();
-
-                for (uint32_t k = 0; k < read_path_probs.cols(); ++k) {
-
-                    group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + read_path_probs.col(k)).array().log().matrix());
-                    group_probs.back() += log(path_counts.at(k));
-
-                    sum_log_group_probs = add_log(sum_log_group_probs, group_probs.back());
-                }
-
-                for (auto & prob: group_probs) {
-
-                    prob = exp(prob - sum_log_group_probs);
-                }
-
-                group_path_sampler_cache_it.first->second = discrete_distribution<uint32_t>(group_probs.begin(), group_probs.end());
-            }
-
-            cur_sampled_group_paths.at(j) = group_path_sampler_cache_it.first->second(*mt_rng);
+            cur_sampled_group_paths.emplace_back(init_path_sampler(*mt_rng));
         }
 
-        if (i >= num_burn_its) {
+        for (uint32_t i = 0; i < num_burn_its + num_gibbs_its; ++i) {
 
-            vector<uint32_t> cur_sampled_group_paths_sort = cur_sampled_group_paths;
-            sort(cur_sampled_group_paths_sort.begin(), cur_sampled_group_paths_sort.end());
+            for (uint32_t j = 0; j < group_size; ++j) {
 
-            auto path_groups_indices_it = path_groups_indices.emplace(cur_sampled_group_paths_sort, path_cluster_estimates->path_groups.size());
+                vector<uint32_t> new_cur_sampled_group_paths = cur_sampled_group_paths;
 
-            if (path_groups_indices_it.second) {
+                new_cur_sampled_group_paths.at(j) = read_path_probs.cols();
+                sort(new_cur_sampled_group_paths.begin(), new_cur_sampled_group_paths.end());
 
-                path_cluster_estimates->path_groups.emplace_back(cur_sampled_group_paths_sort);
-                path_group_sample_counts.emplace_back(1);
+                auto group_path_sampler_cache_it = group_path_sampler_cache.emplace(new_cur_sampled_group_paths, discrete_distribution<uint32_t>());
 
-            } else {
+                if (group_path_sampler_cache_it.second) {
 
-                path_group_sample_counts.at(path_groups_indices_it.first->second)++;
+                    Eigen::ColVectorXd group_read_probs = noise_probs;
+
+                    for (uint32_t k = 0; k < group_size; ++k) {
+
+                        if (j != k) {
+
+                            group_read_probs += read_path_probs.col(cur_sampled_group_paths.at(k));
+                        }
+                    }
+
+                    vector<double> group_probs;
+                    group_probs.reserve(read_path_probs.cols());
+
+                    double sum_log_group_probs = numeric_limits<double>::lowest();
+
+                    for (uint32_t k = 0; k < read_path_probs.cols(); ++k) {
+
+                        group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + read_path_probs.col(k)).array().log().matrix());
+                        group_probs.back() += log(path_counts.at(k));
+
+                        sum_log_group_probs = add_log(sum_log_group_probs, group_probs.back());
+                    }
+
+                    for (auto & prob: group_probs) {
+
+                        prob = exp(prob - sum_log_group_probs);
+                    }
+
+                    group_path_sampler_cache_it.first->second = discrete_distribution<uint32_t>(group_probs.begin(), group_probs.end());
+                }
+
+                cur_sampled_group_paths.at(j) = group_path_sampler_cache_it.first->second(*mt_rng);
+            }
+
+            if (i >= num_burn_its) {
+
+                vector<uint32_t> cur_sampled_group_paths_sort = cur_sampled_group_paths;
+                sort(cur_sampled_group_paths_sort.begin(), cur_sampled_group_paths_sort.end());
+
+                auto path_groups_indices_it = path_groups_indices.emplace(cur_sampled_group_paths_sort, path_cluster_estimates->path_groups.size());
+
+                if (path_groups_indices_it.second) {
+
+                    path_cluster_estimates->path_groups.emplace_back(cur_sampled_group_paths_sort);
+                    path_group_sample_counts.emplace_back(1);
+
+                } else {
+
+                    path_group_sample_counts.at(path_groups_indices_it.first->second)++;
+                }
             }
         }
     }
@@ -390,7 +390,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
     for (size_t i = 0; i < path_group_sample_counts.size(); ++i) {
 
-        path_cluster_estimates->posteriors(0, i) = path_group_sample_counts.at(i) / static_cast<double>(num_gibbs_its);
+        path_cluster_estimates->posteriors(0, i) = path_group_sample_counts.at(i) / static_cast<double>(num_gibbs_chains * num_gibbs_its);
     }
 }
 

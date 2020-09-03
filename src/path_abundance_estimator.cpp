@@ -292,10 +292,8 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 group_path_counts.emplace_back(path_cluster_estimates->paths.at(group.at(i)).count);
             }
 
-            addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, noise_probs);
-
-            // group_read_path_probs->conservativeResize(group_read_path_probs->rows(), group_read_path_probs->cols() + 1);
-            // group_read_path_probs->col(group_read_path_probs->cols() - 1) = noise_probs;
+            group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() + 1);
+            group_read_path_probs.col(group_read_path_probs.cols() - 1) = noise_probs;
 
             Eigen::RowVectorXui group_read_counts = read_counts;
             collapseProbabilityMatrixReads(&group_read_path_probs, &group_read_counts);
