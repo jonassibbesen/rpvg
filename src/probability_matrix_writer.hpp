@@ -37,7 +37,7 @@ class ProbabilityMatrixWriter {
 
     	mutex writer_mutex;
 
-        void writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs, const bool write_zero);
+        void writeCollapsedProbabilities(const ReadPathProbabilities & probs, const bool write_zero);
 };
 
 

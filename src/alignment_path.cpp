@@ -4,11 +4,11 @@
 #include <algorithm>
 #include <numeric>
 
-AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const gbwt::SearchState & search_state_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), score_sum(score_sum_in), search_state(search_state_in) {}
+AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const bool has_multi_start_in, const gbwt::SearchState & search_state_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), has_multi_start(has_multi_start_in), score_sum(score_sum_in), search_state(search_state_in) {}
 
-AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), search_state(align_path_in.search_state) {}
+AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bool has_multi_start_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), search_state(align_path_in.search_state), has_multi_start(has_multi_start_in) {}
 
-vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths) {
+vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool has_multi_start) {
 
     vector<AlignmentPath> align_paths;
     align_paths.reserve(align_search_paths.size());
@@ -17,7 +17,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
         if (align_search_path.complete()) {
 
-            align_paths.emplace_back(align_search_path);
+            align_paths.emplace_back(align_search_path, has_multi_start);
         }
     }
 
@@ -26,7 +26,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.search_state == rhs.search_state);
+    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.has_multi_start == rhs.has_multi_start && lhs.search_state == rhs.search_state);
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -51,6 +51,11 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
         return (lhs.score_sum < rhs.score_sum);    
     } 
 
+    if (lhs.has_multi_start != rhs.has_multi_start) {
+
+        return (lhs.has_multi_start < rhs.has_multi_start);    
+    } 
+
     if (lhs.search_state.node != rhs.search_state.node) {
 
         return (lhs.search_state.node < rhs.search_state.node);    
@@ -69,6 +74,7 @@ ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
     os << align_path.seq_length;
     os << " | " << align_path.mapq_comb;
     os << " | " << align_path.score_sum;
+    os << " | " << align_path.has_multi_start;
     os << " | " << gbwt::Node::id(align_path.search_state.node);
     os << " | " << align_path.search_state.range.first << " " << align_path.search_state.range.second;
 

@@ -44,9 +44,11 @@ void ProbabilityMatrixWriter::unlockWriter() {
 	writer_mutex.unlock();
 }
 
-void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs, const bool write_zero) {
+void ProbabilityMatrixWriter::writeCollapsedProbabilities(const ReadPathProbabilities & probs, const bool write_zero) {
 
-    for (auto & prob: collpased_probs) {
+    *writer_stream << probs.readCount() << " " << probs.noiseProbability();
+
+    for (auto & prob: probs.collapsedProbabilities(prob_precision)) {
 
         if (write_zero || prob.first > 0) {
 
@@ -68,6 +70,8 @@ void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<doub
             }
         }
     }
+
+    *writer_stream << endl;
 }
 
 void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
@@ -89,14 +93,27 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadP
 
         *writer_stream << setprecision(prob_precision_digits);
 
-        for (auto & probs: cluster_probs) {
+        auto cluster_probs_it = cluster_probs.begin();
+        assert(cluster_probs_it != cluster_probs.end());
 
-            assert(probs.probabilities().size() == cluster_paths.size());
+        ReadPathProbabilities cur_unique_probs = *cluster_probs_it;
+        ++cluster_probs_it;
 
-            *writer_stream << probs.readCount() << " " << probs.noiseProbability() << " ";
-            writeCollapsedProbabilities(probs.collapsedProbabilities(prob_precision), false);
-            *writer_stream << endl;
+        while (cluster_probs_it != cluster_probs.end()) {
+
+            if (!cur_unique_probs.mergeIdenticalReadPathProbabilities(*cluster_probs_it, prob_precision)) {
+
+                assert(cur_unique_probs.probabilities().size() == cluster_paths.size());
+                writeCollapsedProbabilities(cur_unique_probs, false);
+
+                cur_unique_probs = *cluster_probs_it;
+            }
+
+            ++cluster_probs_it;
         }
+
+        assert(cur_unique_probs.probabilities().size() == cluster_paths.size());
+        writeCollapsedProbabilities(cur_unique_probs, false);
     }
 }
 

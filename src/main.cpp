@@ -440,7 +440,11 @@ int main(int argc, char* argv[]) {
     cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     PathClusters path_clusters(paths_index, num_threads);
+
+    cerr << path_clusters.cluster_to_paths_index.size() << endl;
     path_clusters.addReadClusters(align_paths_index);
+
+    cerr << path_clusters.cluster_to_paths_index.size() << endl;
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
