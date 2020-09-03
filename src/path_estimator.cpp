@@ -244,12 +244,12 @@ void PathEstimator::collapseProbabilityMatrixPaths(Eigen::ColMatrixXd * read_pat
     read_path_probs->conservativeResize(read_path_probs->rows(), prev_unique_probs_col + 1);
 }
 
-void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size) {
+void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
     assert(read_path_probs.rows() == read_counts.cols());
-
+    assert(read_path_probs.cols() == path_counts.size());
     assert(group_size > 0);
 
     path_cluster_estimates->initEstimates(read_path_probs.cols(), group_size, true);
@@ -271,6 +271,11 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
         path_cluster_estimates->posteriors(0, i) = read_counts.cast<double>() * group_read_probs.array().log().matrix();
         path_cluster_estimates->posteriors(0, i) += log(numPermutations(path_cluster_estimates->path_groups.at(i)));
 
+        for (auto & path_idx: path_cluster_estimates->path_groups.at(i)) {
+            
+            path_cluster_estimates->posteriors(0, i) += log(path_counts.at(path_idx));
+        }
+
         sum_log_posterior = add_log(sum_log_posterior, path_cluster_estimates->posteriors(0, i));
     }
 
@@ -280,19 +285,19 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
     }
 }
 
-void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const uint32_t group_size, mt19937 * mt_rng) {
+void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size, mt19937 * mt_rng) {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
     assert(read_path_probs.rows() == read_counts.cols());
-
+    assert(read_path_probs.cols() == path_counts.size());
     assert(group_size > 0);
 
     path_cluster_estimates->initEstimates(0, 0, true);
     assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
 
     PathClusterEstimates marginal_path_cluster_estimates;
-    calculatePathGroupPosteriors(&marginal_path_cluster_estimates, read_path_probs, noise_probs, read_counts, 1);
+    calculatePathGroupPosteriors(&marginal_path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
 
     assert(marginal_path_cluster_estimates.posteriors.cols() == read_path_probs.cols());
     assert(marginal_path_cluster_estimates.posteriors.cols() == marginal_path_cluster_estimates.path_groups.size());
@@ -346,6 +351,8 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
                 for (uint32_t k = 0; k < read_path_probs.cols(); ++k) {
 
                     group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + read_path_probs.col(k)).array().log().matrix());
+                    group_probs.back() += log(path_counts.at(k));
+
                     sum_log_group_probs = add_log(sum_log_group_probs, group_probs.back());
                 }
 

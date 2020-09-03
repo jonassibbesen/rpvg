@@ -161,18 +161,18 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
     }
 }
 
-spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & filename) {
+spp::sparse_hash_map<string, pair<string, uint32_t> > parseHaplotypeTranscriptInfo(const string & filename) {
 
-    spp::sparse_hash_map<string, string> path_transcript_origin;
+    spp::sparse_hash_map<string, pair<string, uint32_t> > haplotype_transcript_info;
 
-    ifstream origin_file(filename);
+    ifstream info_file(filename);
     
     string line;
     string element;
 
-    while (origin_file.good()) {
+    while (info_file.good()) {
 
-        getline(origin_file, line);
+        getline(info_file, line);
 
         if (line.empty()) {
 
@@ -188,20 +188,23 @@ spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & fi
             continue;
         }
 
-        auto path_transcript_origin_it = path_transcript_origin.emplace(element, "");
-        assert(path_transcript_origin_it.second);
+        auto haplotype_transcript_info_it = haplotype_transcript_info.emplace(element, make_pair("", 0));
+        assert(haplotype_transcript_info_it.second);
 
         getline(line_ss, element, '\t');        
         getline(line_ss, element, '\t');
 
-        path_transcript_origin_it.first->second = element;
+        haplotype_transcript_info_it.first->second.first = element;
 
+        getline(line_ss, element, '\t');
         getline(line_ss, element, '\n');
+
+        haplotype_transcript_info_it.first->second.second = count(element.begin(), element.end(), ',') + 1;
     }
 
-    origin_file.close();
+    info_file.close();
 
-    return path_transcript_origin;
+    return haplotype_transcript_info;
 }
 
 int main(int argc, char* argv[]) {
@@ -241,7 +244,7 @@ int main(int argc, char* argv[]) {
       ("n,num-hap-its", "number of haplotyping iterations in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
-      ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
     if (argc == 1) {
@@ -298,9 +301,9 @@ int main(int argc, char* argv[]) {
         return 1;        
     }
 
-    if (inference_model == "haplotype-transcripts" && !option_results.count("path-origin")) {
+    if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
 
-        cerr << "ERROR: Path transcript origin information file (--path-origin) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
+        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
         return 1;
     }
 
@@ -466,7 +469,7 @@ int main(int argc, char* argv[]) {
 
     ProbabilityMatrixWriter * prob_matrix_writer = nullptr;
 
-    spp::sparse_hash_map<string, string> path_transcript_origin;
+    spp::sparse_hash_map<string, pair<string, uint32_t> > haplotype_transcript_info;
    
     if (option_results.count("prob-output")) {
 
@@ -491,7 +494,7 @@ int main(int argc, char* argv[]) {
 
         path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-exact"), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
      
-        path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>());
 
     } else {
 
@@ -542,11 +545,13 @@ int main(int argc, char* argv[]) {
 
             path_cluster_estimates->back().paths.back().name = paths_index.pathName(path_id);
 
-            auto path_transcript_origin_it = path_transcript_origin.find(path_cluster_estimates->back().paths.back().name);
+            if (inference_model == "haplotype-transcripts") {
 
-            if (path_transcript_origin_it != path_transcript_origin.end()) {
+                auto haplotype_transcript_info_it = haplotype_transcript_info.find(path_cluster_estimates->back().paths.back().name);
+                assert(haplotype_transcript_info_it != haplotype_transcript_info.end());
 
-                path_cluster_estimates->back().paths.back().origin = path_transcript_origin_it->second;
+                path_cluster_estimates->back().paths.back().origin = haplotype_transcript_info_it->second.first;
+                path_cluster_estimates->back().paths.back().count = haplotype_transcript_info_it->second.second;
             }
 
             path_cluster_estimates->back().paths.back().length = paths_index.pathLength(path_id); 

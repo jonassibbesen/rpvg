@@ -17,7 +17,15 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
         noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
         read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
 
-        calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, 1);
+        vector<uint32_t> path_counts;
+        path_counts.reserve(path_cluster_estimates->paths.size());
+
+        for (auto & path: path_cluster_estimates->paths) {
+
+            path_counts.emplace_back(path.count);
+        }
+
+        calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
 
         assert(path_cluster_estimates->posteriors.cols() == read_path_probs.cols());
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->paths.size());
@@ -47,13 +55,21 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
         noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
         read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() - 1);
 
+        vector<uint32_t> path_counts;
+        path_counts.reserve(path_cluster_estimates->paths.size());
+
+        for (auto & path: path_cluster_estimates->paths) {
+
+            path_counts.emplace_back(path.count);
+        }
+
         if (use_exact) {
 
-            calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy);
+            calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy);
         
         } else {
 
-            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, ploidy, &mt_rng);
+            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy, &mt_rng);
         }
 
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());

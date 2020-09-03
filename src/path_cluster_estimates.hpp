@@ -15,6 +15,7 @@ struct PathInfo {
         
     string name;
     string origin;
+    uint32_t count;
     uint32_t length;
     double effective_length;
     
@@ -22,6 +23,7 @@ struct PathInfo {
 
         name = "";
         origin = "";
+        count = 0;
         length = 0;
         effective_length = 0;
     }
