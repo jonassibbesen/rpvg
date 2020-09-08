@@ -35,8 +35,9 @@ class PathClusters {
         const PathsIndex & paths_index;
         const uint32_t num_threads;
 
-        connected_paths_t findConnectedPaths() const;
     	void createPathClusters(const connected_paths_t & connected_paths);
+        void mergeClusters(const connected_paths_t & connected_clusters);
+
 };
 
 

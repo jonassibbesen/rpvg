@@ -20,17 +20,17 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const bool has_multi_start_in, const gbwt::SearchState & search_state_in);
-        AlignmentPath(const AlignmentSearchPath & align_path_in, const bool has_multi_start_in);
+        AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in);
+        AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
 
         uint32_t seq_length;
         uint32_t mapq_comb;
         uint32_t score_sum;
 
-        bool has_multi_start;
+        bool is_multimap;
         gbwt::SearchState search_state;
 
-        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool has_multi_start);
+        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
@@ -54,7 +54,7 @@ namespace std {
                 spp::hash_combine(seed, align_path.seq_length);
                 spp::hash_combine(seed, align_path.mapq_comb);
                 spp::hash_combine(seed, align_path.score_sum);
-                spp::hash_combine(seed, align_path.has_multi_start);
+                spp::hash_combine(seed, align_path.is_multimap);
                 spp::hash_combine(seed, align_path.search_state.node);
                 spp::hash_combine(seed, align_path.search_state.range.first);
                 spp::hash_combine(seed, align_path.search_state.range.second);

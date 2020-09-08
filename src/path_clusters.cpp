@@ -46,7 +46,7 @@ PathClusters::PathClusters(const PathsIndex & paths_index_in, const uint32_t num
                     if (anchor_path_id != path_id) {
 
                         auto thread_connected_paths_it = thread_connected_paths.emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
-                        
+                                                
                         if (thread_connected_paths_it.first->second.emplace(path_id).second) {
 
                             thread_connected_paths_it = thread_connected_paths.emplace(path_id, spp::sparse_hash_set<uint32_t>());
@@ -61,6 +61,9 @@ PathClusters::PathClusters(const PathsIndex & paths_index_in, const uint32_t num
 
         #pragma omp critical
         {
+
+            cerr << thread_connected_paths.size() << " " << thread_node_to_path_index.size() << endl;
+
             for (auto & paths: thread_connected_paths) {
 
                 auto connected_paths_it = connected_paths.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
@@ -79,11 +82,12 @@ PathClusters::PathClusters(const PathsIndex & paths_index_in, const uint32_t num
 
 void PathClusters::addReadClusters(const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index) {
 
-    auto connected_paths = findConnectedPaths();
+    connected_paths_t multimap_connected_clusters;
 
     #pragma omp parallel num_threads(num_threads)
     {
-        connected_paths_t thread_connected_paths;
+        uint32_t num_multimap = 0;
+        connected_paths_t threaded_multimap_connected_clusters;
 
         #pragma omp for schedule(static, 1)
         for (size_t i = 0; i < num_threads; ++i) {
@@ -92,37 +96,35 @@ void PathClusters::addReadClusters(const spp::sparse_hash_map<vector<AlignmentPa
 
             for (auto & align_paths: align_paths_index) {
 
-                if (cur_align_paths_index_pos % num_threads == i) { 
+                assert(!align_paths.first.empty());
 
-                    assert(!align_paths.first.empty());
+                if (align_paths.first.front().is_multimap && (cur_align_paths_index_pos % num_threads == i)) { 
 
-                    if (!align_paths.first.front().has_multi_start) {
-
-                        continue;
-                    }
-
-                    auto anchor_path_id = 0;
+                    num_multimap++;
+                    uint32_t anchor_path_cluster = 0;
 
                     for (size_t j = 0; j < align_paths.first.size(); ++j) {
 
-                        assert(align_paths.first.at(j).has_multi_start);
+                        assert(align_paths.first.at(j).is_multimap);
                         auto align_path_ids = paths_index.locatePathIds(align_paths.first.at(j).search_state);
 
                         if (j == 0) {
 
-                            anchor_path_id = align_path_ids.front();
+                            anchor_path_cluster = path_to_cluster_index.at(align_path_ids.front());
                         }
 
                         for (auto & path_id: align_path_ids) {
 
-                            if (anchor_path_id != path_id) {
+                            auto path_cluster = path_to_cluster_index.at(path_id);
 
-                                auto thread_connected_paths_it = thread_connected_paths.emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
+                            if (anchor_path_cluster != path_cluster) {
                                 
-                                if (thread_connected_paths_it.first->second.emplace(path_id).second) {
+                                auto threaded_multimap_connected_clusters_it = threaded_multimap_connected_clusters.emplace(anchor_path_cluster, spp::sparse_hash_set<uint32_t>());
+                                
+                                if (threaded_multimap_connected_clusters_it.first->second.emplace(path_cluster).second) {
 
-                                    thread_connected_paths_it = thread_connected_paths.emplace(path_id, spp::sparse_hash_set<uint32_t>());
-                                    thread_connected_paths_it.first->second.emplace(anchor_path_id);
+                                    threaded_multimap_connected_clusters_it = threaded_multimap_connected_clusters.emplace(path_cluster, spp::sparse_hash_set<uint32_t>());
+                                    threaded_multimap_connected_clusters_it.first->second.emplace(anchor_path_cluster);
                                 }
                             }
                         }
@@ -135,93 +137,68 @@ void PathClusters::addReadClusters(const spp::sparse_hash_map<vector<AlignmentPa
 
         #pragma omp critical
         {
-            for (auto & paths: thread_connected_paths) {
+            cerr << num_multimap << " " << threaded_multimap_connected_clusters.size() << endl;
 
-                auto connected_paths_it = connected_paths.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
-                connected_paths_it.first->second.insert(paths.second.begin(), paths.second.end());
+            for (auto & paths: threaded_multimap_connected_clusters) {
+
+                auto multimap_connected_clusters_it = multimap_connected_clusters.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
+                multimap_connected_clusters_it.first->second.insert(paths.second.begin(), paths.second.end());
             }
         }
     }
 
-    createPathClusters(connected_paths);
+    mergeClusters(multimap_connected_clusters);
 }
 
-void PathClusters::addCallTraversalClusters() {
+// void PathClusters::addCallTraversalClusters() {
 
-    spp::sparse_hash_map<string, vector<uint32_t> > connected_path_names;
+//     spp::sparse_hash_map<string, vector<uint32_t> > connected_path_names;
 
-    for (size_t i = 0; i < paths_index.index().sequences(); ++i) {
+//     for (size_t i = 0; i < paths_index.index().sequences(); ++i) {
 
-        auto path_id = i;
+//         auto path_id = i;
 
-        if (paths_index.index().bidirectional()) {
+//         if (paths_index.index().bidirectional()) {
 
-            path_id = gbwt::Path::id(i);
-        }
+//             path_id = gbwt::Path::id(i);
+//         }
 
-        auto call_path_name_split = splitString(paths_index.pathName(path_id), '_');
-        assert(call_path_name_split.size() == 4);
+//         auto call_path_name_split = splitString(paths_index.pathName(path_id), '_');
+//         assert(call_path_name_split.size() == 4);
 
-        stringstream call_path_name_ss;
-        call_path_name_ss << call_path_name_split.at(0);
-        call_path_name_ss << "_" << call_path_name_split.at(1);
-        call_path_name_ss << "_" << call_path_name_split.at(2);
+//         stringstream call_path_name_ss;
+//         call_path_name_ss << call_path_name_split.at(0);
+//         call_path_name_ss << "_" << call_path_name_split.at(1);
+//         call_path_name_ss << "_" << call_path_name_split.at(2);
 
-        auto connected_path_names_it = connected_path_names.emplace(call_path_name_ss.str(), vector<uint32_t>());
-        connected_path_names_it.first->second.emplace_back(path_id);
-    }
+//         auto connected_path_names_it = connected_path_names.emplace(call_path_name_ss.str(), vector<uint32_t>());
+//         connected_path_names_it.first->second.emplace_back(path_id);
+//     }
 
-    auto connected_paths = findConnectedPaths();
+//     auto connected_paths = findConnectedPaths();
 
-    for (auto & path_names: connected_path_names) {
+//     for (auto & path_names: connected_path_names) {
 
-        assert(!path_names.second.empty());
-        auto anchor_path_id = path_names.second.front();
+//         assert(!path_names.second.empty());
+//         auto anchor_path_id = path_names.second.front();
 
-        for (auto & path_id: path_names.second) {
+//         for (auto & path_id: path_names.second) {
 
-            if (anchor_path_id != path_id) {
+//             if (anchor_path_id != path_id) {
 
-                auto connected_paths_it = connected_paths.emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
+//                 auto connected_paths_it = connected_paths.emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
                 
-                if (connected_paths_it.first->second.emplace(path_id).second) {
+//                 if (connected_paths_it.first->second.emplace(path_id).second) {
 
-                    connected_paths_it = connected_paths.emplace(path_id, spp::sparse_hash_set<uint32_t>());
-                    connected_paths_it.first->second.emplace(anchor_path_id);
-                }
-            }
-        }
-    } 
+//                     connected_paths_it = connected_paths.emplace(path_id, spp::sparse_hash_set<uint32_t>());
+//                     connected_paths_it.first->second.emplace(anchor_path_id);
+//                 }
+//             }
+//         }
+//     } 
 
-    createPathClusters(connected_paths);
-}
-
-connected_paths_t PathClusters::findConnectedPaths() const {
-
-    connected_paths_t connected_paths;
-
-    for (auto & cluster_paths: cluster_to_paths_index) {
-
-        auto cluster_paths_it = cluster_paths.begin();
-        assert(cluster_paths_it != cluster_paths.end());
-
-        auto anchor_path_id = *cluster_paths_it;
-        ++cluster_paths_it;
-
-        while (cluster_paths_it != cluster_paths.end()) {
-
-            auto connected_paths_it = connected_paths.emplace(anchor_path_id, spp::sparse_hash_set<uint32_t>());
-            connected_paths_it.first->second.emplace(*cluster_paths_it);
-
-            connected_paths_it = connected_paths.emplace(*cluster_paths_it, spp::sparse_hash_set<uint32_t>());
-            connected_paths_it.first->second.emplace(anchor_path_id);
-
-            ++cluster_paths_it;
-        }
-    }
-
-    return connected_paths;
-}
+//     createPathClusters(connected_paths);
+// }
 
 void PathClusters::createPathClusters(const connected_paths_t & connected_paths) {
 
@@ -255,11 +232,11 @@ void PathClusters::createPathClusters(const connected_paths_t & connected_paths)
 
                     if (connected_paths_it != connected_paths.end()) {
 
-                        for (auto & path: connected_paths_it->second) {
+                        for (auto & next_path: connected_paths_it->second) {
 
-                            if (path_to_cluster_index.at(path) == -1) {
+                            if (path_to_cluster_index.at(next_path) == -1) {
 
-                                search_queue.push(path);
+                                search_queue.push(next_path);
                             }
                         }
                     }
@@ -271,5 +248,57 @@ void PathClusters::createPathClusters(const connected_paths_t & connected_paths)
             sort(cluster_to_paths_index.back().begin(), cluster_to_paths_index.back().end());
         }
     }
+}
+
+void PathClusters::mergeClusters(const connected_paths_t & connected_clusters) {
+
+    auto old_cluster_to_paths_index = cluster_to_paths_index;
+    cluster_to_paths_index.clear();
+
+    vector<bool> visited_old_clusters(old_cluster_to_paths_index.size(), false);
+
+    for (uint32_t i = 0; i < old_cluster_to_paths_index.size(); ++i) {
+
+        if (!visited_old_clusters.at(i)) {
+
+            queue<uint32_t> search_queue;
+            search_queue.push(i);
+
+            cluster_to_paths_index.emplace_back(vector<uint32_t>());
+
+            while (!search_queue.empty()) {
+
+                auto cur_cluster = search_queue.front();
+                
+                if (!visited_old_clusters.at(cur_cluster)) {
+
+                    visited_old_clusters.at(cur_cluster) = true;
+                    cluster_to_paths_index.back().insert(cluster_to_paths_index.back().end(), old_cluster_to_paths_index.at(cur_cluster).begin(), old_cluster_to_paths_index.at(cur_cluster).end());
+
+                    auto connected_clusters_it = connected_clusters.find(cur_cluster);
+
+                    if (connected_clusters_it != connected_clusters.end()) {
+
+                        for (auto & next_cluster: connected_clusters_it->second) {
+
+                            if (!visited_old_clusters.at(next_cluster)) {
+
+                                search_queue.push(next_cluster);
+                            }
+                        }
+                    }
+                }
+
+                search_queue.pop();
+            }
+
+            sort(cluster_to_paths_index.back().begin(), cluster_to_paths_index.back().end());
+
+            for (auto & path: cluster_to_paths_index.back()) {
+
+                path_to_cluster_index.at(path) = cluster_to_paths_index.size() - 1;
+            } 
+        }
+    } 
 }
 
