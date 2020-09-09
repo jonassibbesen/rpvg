@@ -18,7 +18,10 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
         Eigen::ColVectorXd noise_probs;
         Eigen::RowVectorXui read_counts;
 
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
+        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs);
+
+        read_path_probs.conservativeResize(read_path_probs.rows(), read_path_probs.cols() + 1);
+        read_path_probs.col(read_path_probs.cols() - 1) = noise_probs;
 
         path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size() + 1, 0, false);
 
@@ -262,13 +265,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
     if (!cluster_probs.empty()) {
 
-        Eigen::ColMatrixXd read_path_probs;
-        Eigen::ColVectorXd noise_probs;
-        Eigen::RowVectorXui read_counts;
-
-        constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, true);
-
-        noise_probs = read_path_probs.col(read_path_probs.cols() - 1);
+        // cerr << "\tDEBUG: Start " << cluster_probs.front().probabilities().size() << " " << cluster_probs.size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
         auto path_groups = findPathOriginGroups(path_cluster_estimates->paths);
 
@@ -279,30 +276,23 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             path_indices_samples.reserve(path_groups.size() * ploidy);
         }
 
-        for (auto & group: path_groups) {
+        // cerr << "\tDEBUG: Group start " << path_groups.size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
-            Eigen::ColMatrixXd group_read_path_probs = Eigen::ColMatrixXd(read_path_probs.rows(), group.size());
-            
+        Eigen::ColMatrixXd group_read_path_probs;
+        Eigen::ColVectorXd group_noise_probs;
+        Eigen::RowVectorXui group_read_counts;
+
+        for (auto & group: path_groups) {            
+
+            constructProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group);
+
             vector<uint32_t> group_path_counts;
             group_path_counts.reserve(group.size());
 
             for (size_t i = 0; i < group.size(); ++i) {
 
-                group_read_path_probs.col(i) = read_path_probs.col(group.at(i));     
                 group_path_counts.emplace_back(path_cluster_estimates->paths.at(group.at(i)).count);
             }
-
-            group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() + 1);
-            group_read_path_probs.col(group_read_path_probs.cols() - 1) = noise_probs;
-
-            Eigen::RowVectorXui group_read_counts = read_counts;
-            collapseProbabilityMatrixReads(&group_read_path_probs, &group_read_counts);
-            
-            assert(group_read_path_probs.cols() == group.size() + 1);
-            assert(group_read_counts.sum() == read_counts.sum());
-
-            Eigen::ColVectorXd group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
-            group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
 
             PathClusterEstimates group_path_cluster_estimates;
 
@@ -318,6 +308,8 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);
         }
 
+        // cerr << "\tDEBUG: Group end " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+
         unordered_map<vector<uint32_t>, uint32_t> collapsed_ploidy_path_indices_samples;
 
         for (auto & path_samples: ploidy_path_indices_samples) {
@@ -329,25 +321,28 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         }
 
         path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size() + 1, 0, true);
-        path_cluster_estimates->read_count = read_counts.sum();
+
+        // cerr << "\tDEBUG: EM start " << collapsed_ploidy_path_indices_samples.size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+
+        Eigen::ColMatrixXd ploidy_read_path_probs;
+        Eigen::ColVectorXd ploidy_noise_probs;
+        Eigen::RowVectorXui ploidy_read_counts;
+
+        bool is_first = true;
 
         for (auto & path_indices_sample: collapsed_ploidy_path_indices_samples) {
 
             assert(path_indices_sample.second > 0);
 
-            Eigen::ColMatrixXd ploidy_read_path_probs = Eigen::ColMatrixXd(read_path_probs.rows(), path_indices_sample.first.size());
+            constructProbabilityMatrix(&ploidy_read_path_probs, &ploidy_noise_probs, &ploidy_read_counts, cluster_probs, path_indices_sample.first);
 
-            for (size_t i = 0; i < path_indices_sample.first.size(); ++i) {
+            if (is_first) {
 
-                ploidy_read_path_probs.col(i) = read_path_probs.col(path_indices_sample.first.at(i));
-            }
+                path_cluster_estimates->read_count = ploidy_read_counts.sum();
+                is_first = false;
+            } 
 
-            addNoiseAndNormalizeProbabilityMatrix(&ploidy_read_path_probs, noise_probs);
-
-            auto ploidy_read_counts = read_counts;
-            collapseProbabilityMatrixReads(&ploidy_read_path_probs, &ploidy_read_counts);
-
-            assert(ploidy_read_counts.sum() == read_counts.sum());
+            addNoiseAndNormalizeProbabilityMatrix(&ploidy_read_path_probs, ploidy_noise_probs);
             assert(ploidy_read_path_probs.cols() >= 2);
 
             PathClusterEstimates ploidy_path_cluster_estimates;
@@ -368,6 +363,8 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         }
 
         removeNoiseAndRenormalizeAbundances(path_cluster_estimates);
+
+        // cerr << "\tDEBUG: EM end " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
     } else {
 

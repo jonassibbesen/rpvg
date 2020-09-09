@@ -526,6 +526,8 @@ int main(int argc, char* argv[]) {
 
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
 
+        // cerr << "DEBUG: Start " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+
         auto * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
         read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>());            
@@ -537,7 +539,9 @@ int main(int argc, char* argv[]) {
         path_cluster_estimates->emplace_back(PathClusterEstimates());
 
         path_cluster_estimates->back().paths.reserve(path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size());
-        
+    
+        // cerr << "DEBUG: Path info " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+    
         for (auto & path_id: path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx)) {
 
             assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
@@ -566,6 +570,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        // cerr << "DEBUG: Probs calc " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+
         for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
             vector<vector<gbwt::size_type> > align_paths_ids;
@@ -581,8 +587,12 @@ int main(int argc, char* argv[]) {
         }
 
         sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
-        
+      
+        // cerr << "DEBUG: Estimate " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+  
         path_estimator->estimate(&(path_cluster_estimates->back()), read_path_cluster_probs_buffer->back());
+
+        // cerr << "DEBUG: Probs out " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
         if (prob_matrix_writer) {
 
@@ -609,6 +619,8 @@ int main(int argc, char* argv[]) {
 
             read_path_cluster_probs_buffer->clear();
         }
+
+        // cerr << "DEBUG: End " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
     }
 
     if (prob_matrix_writer) {

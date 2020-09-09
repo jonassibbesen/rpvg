@@ -47,28 +47,42 @@ bool probabilityCountColSorter(const pair<Eigen::ColVectorXd, uint32_t> & lhs, c
 
 PathEstimator::PathEstimator(const double prob_precision_in) : prob_precision(prob_precision_in) {}
 
-void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const bool add_noise) {
+void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids) {
 
     assert(!cluster_probs.empty());
+    assert(!cluster_probs.front().probabilities().empty());
 
-    *read_path_probs = Eigen::ColMatrixXd(cluster_probs.size(), cluster_probs.front().probabilities().size() + static_cast<uint32_t>(add_noise));
-    *noise_probs = Eigen::ColVectorXd(cluster_probs.size());
-    *read_counts = Eigen::RowVectorXui(cluster_probs.size());
+    if (path_ids.empty()) {
+
+        read_path_probs->resize(cluster_probs.size(), cluster_probs.front().probabilities().size());
+    
+    } else {
+
+        read_path_probs->resize(cluster_probs.size(), path_ids.size());        
+    }
+
+    noise_probs->resize(cluster_probs.size());
+    read_counts->resize(cluster_probs.size());
 
     uint32_t num_rows = 0;
 
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
 
-        assert(cluster_probs.at(i).probabilities().size() + static_cast<uint32_t>(add_noise) == read_path_probs->cols());
+        if (path_ids.empty()) {
 
-        for (size_t j = 0; j < cluster_probs.at(i).probabilities().size(); ++j) {
+            assert(cluster_probs.at(i).probabilities().size() == read_path_probs->cols());
 
-            (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(j);
-        }
+            for (size_t j = 0; j < cluster_probs.at(i).probabilities().size(); ++j) {
 
-        if (add_noise) {
+                (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(j);
+            }
 
-            (*read_path_probs)(num_rows, cluster_probs.at(i).probabilities().size()) = cluster_probs.at(i).noiseProbability();
+        } else {
+
+            for (size_t j = 0; j < path_ids.size(); ++j) {
+
+                (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(path_ids.at(j));
+            }
         }
 
         (*noise_probs)(num_rows, 0) = cluster_probs.at(i).noiseProbability();
