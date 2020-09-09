@@ -44,29 +44,26 @@ void ProbabilityMatrixWriter::unlockWriter() {
 	writer_mutex.unlock();
 }
 
-void ProbabilityMatrixWriter::writeCollapsedProbabilities(const ReadPathProbabilities & probs, const bool write_zero) {
+void ProbabilityMatrixWriter::writeCollapsedProbabilities(const ReadPathProbabilities & probs) {
 
     *writer_stream << probs.readCount() << " " << probs.noiseProbability();
 
-    for (auto & prob: probs.collapsedProbabilities(prob_precision)) {
+    for (auto & prob: probs.collapsedProbabilities()) {
 
-        if (write_zero || prob.first > 0) {
+        *writer_stream << " " << prob.first << ":";
 
-            *writer_stream << " " << prob.first << ":";
+        bool is_first = true;
 
-            bool is_first = true;
+        for (auto idx: prob.second) {
 
-            for (auto idx: prob.second) {
+            if (is_first) {
 
-                if (is_first) {
+                *writer_stream << idx;
+                is_first = false;
 
-                    *writer_stream << idx;
-                    is_first = false;
+            } else {
 
-                } else {
-
-                    *writer_stream << "," << idx;
-                }
+                *writer_stream << "," << idx;
             }
         }
     }
@@ -101,10 +98,10 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadP
 
         while (cluster_probs_it != cluster_probs.end()) {
 
-            if (!cur_unique_probs.mergeIdenticalReadPathProbabilities(*cluster_probs_it, prob_precision)) {
+            if (!cur_unique_probs.mergeIdenticalReadPathProbabilities(*cluster_probs_it)) {
 
-                assert(cur_unique_probs.probabilities().size() == cluster_paths.size());
-                writeCollapsedProbabilities(cur_unique_probs, false);
+                assert(cur_unique_probs.probabilities().size() <= cluster_paths.size());
+                writeCollapsedProbabilities(cur_unique_probs);
 
                 cur_unique_probs = *cluster_probs_it;
             }
@@ -112,8 +109,8 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadP
             ++cluster_probs_it;
         }
 
-        assert(cur_unique_probs.probabilities().size() == cluster_paths.size());
-        writeCollapsedProbabilities(cur_unique_probs, false);
+        assert(cur_unique_probs.probabilities().size() <= cluster_paths.size());
+        writeCollapsedProbabilities(cur_unique_probs);
     }
 }
 

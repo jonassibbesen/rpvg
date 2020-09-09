@@ -50,38 +50,27 @@ PathEstimator::PathEstimator(const double prob_precision_in) : prob_precision(pr
 void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids) {
 
     assert(!cluster_probs.empty());
-    assert(!cluster_probs.front().probabilities().empty());
 
-    if (path_ids.empty()) {
+    vector<int32_t> path_id_idx(path_ids.back() + 1, -1);
 
-        read_path_probs->resize(cluster_probs.size(), cluster_probs.front().probabilities().size());
-    
-    } else {
+    for (size_t i = 0; i < path_ids.size(); ++i) {
 
-        read_path_probs->resize(cluster_probs.size(), path_ids.size());        
+        path_id_idx.at(path_ids.at(i)) = i;
     }
 
-    noise_probs->resize(cluster_probs.size());
-    read_counts->resize(cluster_probs.size());
+    *read_path_probs = Eigen::ColMatrixXd::Zero(cluster_probs.size(), path_ids.size());
+    *noise_probs = Eigen::ColVectorXd(cluster_probs.size());
+    *read_counts = Eigen::RowVectorXui(cluster_probs.size());
 
     uint32_t num_rows = 0;
 
-    for (size_t i = 0; i < read_path_probs->rows(); ++i) {
+    for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
-        if (path_ids.empty()) {
+        for (auto & prob: cluster_probs.at(i).probabilities()) {
 
-            assert(cluster_probs.at(i).probabilities().size() == read_path_probs->cols());
+            if (prob.first < path_id_idx.size() && path_id_idx.at(prob.first) >= 0) {
 
-            for (size_t j = 0; j < cluster_probs.at(i).probabilities().size(); ++j) {
-
-                (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(j);
-            }
-
-        } else {
-
-            for (size_t j = 0; j < path_ids.size(); ++j) {
-
-                (*read_path_probs)(num_rows, j) = cluster_probs.at(i).probabilities().at(path_ids.at(j));
+                (*read_path_probs)(num_rows, path_id_idx.at(prob.first)) = prob.second;
             }
         }
 
@@ -126,7 +115,7 @@ void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_pr
         read_path_probs->conservativeResize(num_rows, read_path_probs->cols());
         noise_probs->conservativeResize(num_rows, noise_probs->cols());
         read_counts->conservativeResize(read_counts->rows(), num_rows);  
-    }  
+    }
 }
 
 void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, const Eigen::ColVectorXd & noise_probs) {

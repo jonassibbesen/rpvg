@@ -387,7 +387,7 @@ int main(int argc, char* argv[]) {
     unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
     PathsIndex paths_index(*gbwt_index, *graph);
-    graph.reset(nullptr);
+    // graph.reset(nullptr);
 
     if (paths_index.index().metadata.paths() == 0) {
 
@@ -526,7 +526,7 @@ int main(int argc, char* argv[]) {
 
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
 
-        // cerr << "DEBUG: Start " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+        cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
         auto * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
@@ -539,9 +539,7 @@ int main(int argc, char* argv[]) {
         path_cluster_estimates->emplace_back(PathClusterEstimates());
 
         path_cluster_estimates->back().paths.reserve(path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size());
-    
-        // cerr << "DEBUG: Path info " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
-    
+        
         for (auto & path_id: path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx)) {
 
             assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
@@ -570,7 +568,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // cerr << "DEBUG: Probs calc " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+        cerr << "DEBUG: Probs calc " << omp_get_thread_num() << ": " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
         for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
@@ -582,17 +580,17 @@ int main(int argc, char* argv[]) {
                 align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
             }
 
-            read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
+            read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, prob_precision, score_log_base, fragment_length_dist));
             read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
         }
 
+        // cerr << "DEBUG: bla " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+
         sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
       
-        // cerr << "DEBUG: Estimate " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+        cerr << "DEBUG: Estimate " << omp_get_thread_num() << ": " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
   
         path_estimator->estimate(&(path_cluster_estimates->back()), read_path_cluster_probs_buffer->back());
-
-        // cerr << "DEBUG: Probs out " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
         if (prob_matrix_writer) {
 
@@ -620,7 +618,7 @@ int main(int argc, char* argv[]) {
             read_path_cluster_probs_buffer->clear();
         }
 
-        // cerr << "DEBUG: End " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+        cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
     }
 
     if (prob_matrix_writer) {
