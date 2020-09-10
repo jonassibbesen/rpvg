@@ -526,7 +526,7 @@ int main(int argc, char* argv[]) {
 
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
 
-        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 100 || align_paths_clusters.at(align_paths_cluster_idx).size()) {
+        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
 
             #pragma omp critical
             {
