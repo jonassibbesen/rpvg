@@ -62,59 +62,18 @@ void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_pr
     *noise_probs = Eigen::ColVectorXd(cluster_probs.size());
     *read_counts = Eigen::RowVectorXui(cluster_probs.size());
 
-    uint32_t num_rows = 0;
-
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
         for (auto & prob: cluster_probs.at(i).probabilities()) {
 
             if (prob.first < path_id_idx.size() && path_id_idx.at(prob.first) >= 0) {
 
-                (*read_path_probs)(num_rows, path_id_idx.at(prob.first)) = prob.second;
+                (*read_path_probs)(i, path_id_idx.at(prob.first)) = prob.second;
             }
         }
 
-        (*noise_probs)(num_rows, 0) = cluster_probs.at(i).noiseProbability();
-        (*read_counts)(0, num_rows) = cluster_probs.at(i).readCount();
-
-        if (num_rows > 0) {
-
-            bool is_identical = true;
-
-            for (size_t j = 0; j < read_path_probs->cols(); ++j) {
-
-                if (abs((*read_path_probs)(num_rows - 1, j) - (*read_path_probs)(num_rows, j)) >= prob_precision) {
-
-                    is_identical = false;
-                    break;
-                }
-            }
-
-            if (abs((*noise_probs)(num_rows - 1, 0) - (*noise_probs)(num_rows, 0)) >= prob_precision) {
-
-                is_identical = false;
-            }
-
-            if (is_identical) {
-
-                (*read_counts)(0, num_rows - 1) += (*read_counts)(0, num_rows);
-
-            } else {
-
-                num_rows++;
-            }
-
-        } else {
-
-            num_rows++;
-        }
-    } 
-
-    if (num_rows < cluster_probs.size()) {
-
-        read_path_probs->conservativeResize(num_rows, read_path_probs->cols());
-        noise_probs->conservativeResize(num_rows, noise_probs->cols());
-        read_counts->conservativeResize(read_counts->rows(), num_rows);  
+        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProbability();
+        (*read_counts)(0, i) = cluster_probs.at(i).readCount();
     }
 }
 
@@ -152,7 +111,7 @@ void PathEstimator::rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
     }    
 }
 
-void PathEstimator::collapseProbabilityMatrixReads(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
+void PathEstimator::readCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) {
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
@@ -214,7 +173,7 @@ void PathEstimator::colSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
     }    
 }
 
-void PathEstimator::collapseProbabilityMatrixPaths(Eigen::ColMatrixXd * read_path_probs) {
+void PathEstimator::pathCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs) {
 
     assert(read_path_probs->cols() > 0);    
     colSortProbabilityMatrix(read_path_probs);

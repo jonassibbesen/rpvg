@@ -537,8 +537,10 @@ int main(int argc, char* argv[]) {
 
         auto * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
-        read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>());            
-        read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
+        read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>()); 
+
+        auto cur_read_path_cluster_probs = &(read_path_cluster_probs_buffer->back());
+        cur_read_path_cluster_probs->reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
 
         unordered_map<uint32_t, uint32_t> clustered_path_index;
 
@@ -585,13 +587,33 @@ int main(int argc, char* argv[]) {
                 align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
             }
 
-            read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, prob_precision, score_log_base, fragment_length_dist));
-            read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
+            cur_read_path_cluster_probs->emplace_back(ReadPathProbabilities(align_paths->second, prob_precision, score_log_base));
+            cur_read_path_cluster_probs->back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, fragment_length_dist, is_single_end);
         }
 
-        sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
+        sort(cur_read_path_cluster_probs->begin(), cur_read_path_cluster_probs->end());
 
-        path_estimator->estimate(&(path_cluster_estimates->back()), read_path_cluster_probs_buffer->back());
+        if (!cur_read_path_cluster_probs->empty()) {        
+
+            uint32_t prev_unique_probs_idx = 0;
+
+            for (size_t i = 1; i < cur_read_path_cluster_probs->size(); ++i) {
+
+                if (!cur_read_path_cluster_probs->at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(cur_read_path_cluster_probs->at(i))) {
+
+                    if (prev_unique_probs_idx + 1 < i) {
+
+                        cur_read_path_cluster_probs->at(prev_unique_probs_idx + 1) = cur_read_path_cluster_probs->at(i);
+                    }
+
+                    prev_unique_probs_idx++;
+                }
+            }
+
+            cur_read_path_cluster_probs->resize(prev_unique_probs_idx + 1);
+        }
+
+        path_estimator->estimate(&(path_cluster_estimates->back()), *cur_read_path_cluster_probs);
 
         if (prob_matrix_writer) {
 

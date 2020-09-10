@@ -7,8 +7,16 @@
 #include <limits>
 #include <sstream>
 
+ReadPathProbabilities::ReadPathProbabilities() {
 
-ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in, const double score_log_base_in, const FragmentLengthDist & fragment_length_dist_in) : read_count(read_count_in), prob_precision(prob_precision_in), score_log_base(score_log_base_in), fragment_length_dist(fragment_length_dist_in) {
+    read_count = 0;
+    noise_prob = 1;
+
+    prob_precision = pow(10, -8);
+    score_log_base = 1;  
+}
+
+ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in, const double score_log_base_in) : read_count(read_count_in), prob_precision(prob_precision_in), score_log_base(score_log_base_in) {
 
     noise_prob = 1;
 }
@@ -33,7 +41,7 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end) {
+void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
 
     assert(!align_paths.empty());
     assert(align_paths.size() == align_paths_ids.size());

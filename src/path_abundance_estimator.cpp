@@ -285,6 +285,14 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             constructProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group);
 
+            group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() + 1);
+            group_read_path_probs.col(group_read_path_probs.cols() - 1) = group_noise_probs;
+
+            readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
+
+            group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
+            group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
+
             vector<uint32_t> group_path_counts;
             group_path_counts.reserve(group.size());
 
@@ -331,14 +339,16 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             constructProbabilityMatrix(&ploidy_read_path_probs, &ploidy_noise_probs, &ploidy_read_counts, cluster_probs, path_indices_sample.first);
 
+            addNoiseAndNormalizeProbabilityMatrix(&ploidy_read_path_probs, ploidy_noise_probs);
+            assert(ploidy_read_path_probs.cols() >= 2);
+
+            readCollapseProbabilityMatrix(&ploidy_read_path_probs, &ploidy_read_counts);
+
             if (is_first) {
 
                 path_cluster_estimates->read_count = ploidy_read_counts.sum();
                 is_first = false;
             } 
-
-            addNoiseAndNormalizeProbabilityMatrix(&ploidy_read_path_probs, ploidy_noise_probs);
-            assert(ploidy_read_path_probs.cols() >= 2);
 
             PathClusterEstimates ploidy_path_cluster_estimates;
             ploidy_path_cluster_estimates.initEstimates(ploidy_read_path_probs.cols(), 0, false);

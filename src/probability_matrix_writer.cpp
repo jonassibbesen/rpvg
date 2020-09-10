@@ -44,17 +44,17 @@ void ProbabilityMatrixWriter::unlockWriter() {
 	writer_mutex.unlock();
 }
 
-void ProbabilityMatrixWriter::writeCollapsedProbabilities(const ReadPathProbabilities & probs) {
+void ProbabilityMatrixWriter::writeCollapsedProbabilities(const ReadPathProbabilities & read_path_probs) {
 
-    *writer_stream << probs.readCount() << " " << probs.noiseProbability();
+    *writer_stream << read_path_probs.readCount() << " " << read_path_probs.noiseProbability();
 
-    for (auto & prob: probs.collapsedProbabilities()) {
+    for (auto & collapsed_probs: read_path_probs.collapsedProbabilities()) {
 
-        *writer_stream << " " << prob.first << ":";
+        *writer_stream << " " << collapsed_probs.first << ":";
 
         bool is_first = true;
 
-        for (auto idx: prob.second) {
+        for (auto idx: collapsed_probs.second) {
 
             if (is_first) {
 
@@ -90,27 +90,11 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadP
 
         *writer_stream << setprecision(prob_precision_digits);
 
-        auto cluster_probs_it = cluster_probs.begin();
-        assert(cluster_probs_it != cluster_probs.end());
+        for (auto & probs: cluster_probs) {
 
-        ReadPathProbabilities cur_unique_probs = *cluster_probs_it;
-        ++cluster_probs_it;
-
-        while (cluster_probs_it != cluster_probs.end()) {
-
-            if (!cur_unique_probs.mergeIdenticalReadPathProbabilities(*cluster_probs_it)) {
-
-                assert(cur_unique_probs.probabilities().size() <= cluster_paths.size());
-                writeCollapsedProbabilities(cur_unique_probs);
-
-                cur_unique_probs = *cluster_probs_it;
-            }
-
-            ++cluster_probs_it;
+            assert(probs.probabilities().size() <= cluster_paths.size());
+            writeCollapsedProbabilities(probs);
         }
-
-        assert(cur_unique_probs.probabilities().size() <= cluster_paths.size());
-        writeCollapsedProbabilities(cur_unique_probs);
     }
 }
 
