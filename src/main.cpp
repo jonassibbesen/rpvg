@@ -526,6 +526,8 @@ int main(int argc, char* argv[]) {
 
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
 
+        double debug_time = gbwt::readTimer();
+
         if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
 
             #pragma omp critical
@@ -639,6 +641,15 @@ int main(int argc, char* argv[]) {
         } else {
 
             read_path_cluster_probs_buffer->clear();
+        }
+
+        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << gbwt::readTimer() - debug_time << endl;
+            }
         }
     }
 
