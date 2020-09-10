@@ -387,7 +387,7 @@ int main(int argc, char* argv[]) {
     unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
     PathsIndex paths_index(*gbwt_index, *graph);
-    // graph.reset(nullptr);
+    graph.reset(nullptr);
 
     if (paths_index.index().metadata.paths() == 0) {
 
@@ -511,12 +511,12 @@ int main(int argc, char* argv[]) {
 
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
-    auto align_paths_clusters_indices = vector<pair<uint32_t, uint32_t> >();
+    auto align_paths_clusters_indices = vector<pair<uint64_t, uint32_t> >();
     align_paths_clusters_indices.reserve(align_paths_clusters.size());
 
     for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
 
-        align_paths_clusters_indices.emplace_back(path_clusters.cluster_to_paths_index.at(i).size(), i);
+        align_paths_clusters_indices.emplace_back(align_paths_clusters.at(i).size() * path_clusters.cluster_to_paths_index.at(i).size(), i);
     }
 
     sort(align_paths_clusters_indices.rbegin(), align_paths_clusters_indices.rend());
@@ -526,7 +526,14 @@ int main(int argc, char* argv[]) {
 
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
 
-        cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 100 || align_paths_clusters.at(align_paths_cluster_idx).size()) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+            }
+        }
 
         auto * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
@@ -568,8 +575,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        cerr << "DEBUG: Probs calc " << omp_get_thread_num() << ": " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
-
         for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
             vector<vector<gbwt::size_type> > align_paths_ids;
@@ -584,12 +589,8 @@ int main(int argc, char* argv[]) {
             read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
         }
 
-        // cerr << "DEBUG: bla " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
-
         sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
-      
-        cerr << "DEBUG: Estimate " << omp_get_thread_num() << ": " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
-  
+
         path_estimator->estimate(&(path_cluster_estimates->back()), read_path_cluster_probs_buffer->back());
 
         if (prob_matrix_writer) {
@@ -617,8 +618,6 @@ int main(int argc, char* argv[]) {
 
             read_path_cluster_probs_buffer->clear();
         }
-
-        cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
     }
 
     if (prob_matrix_writer) {

@@ -277,8 +277,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             path_indices_samples.reserve(path_groups.size() * ploidy);
         }
 
-        cerr << "\tDEBUG: Group start " << omp_get_thread_num() << ": " << path_groups.size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
-
         for (auto & group: path_groups) {    
 
             Eigen::ColMatrixXd group_read_path_probs;
@@ -286,21 +284,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             Eigen::RowVectorXui group_read_counts;        
 
             constructProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group);
-
-            double num_zeros = 0;
-
-            for (size_t i = 0; i < group_read_path_probs.rows(); ++i) {
-
-                for (size_t j = 0; j < group_read_path_probs.cols(); ++j) {
-
-                    if (doubleCompare(group_read_path_probs(i, j), 0)) {
-
-                        num_zeros++;
-                    }
-                }
-            }
-
-            cerr << "\tDEBUG: Zero " << omp_get_thread_num() << ": " << num_zeros / static_cast<double>(group_read_path_probs.rows() * group_read_path_probs.cols()) << " " << group_read_path_probs.cols() << " " << group_read_path_probs.rows() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
             vector<uint32_t> group_path_counts;
             group_path_counts.reserve(group.size());
@@ -324,8 +307,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);
         }
 
-        cerr << "\tDEBUG: Group end " << omp_get_thread_num() << ": " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
-
         unordered_map<vector<uint32_t>, uint32_t> collapsed_ploidy_path_indices_samples;
 
         for (auto & path_samples: ploidy_path_indices_samples) {
@@ -337,8 +318,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         }
 
         path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size() + 1, 0, true);
-
-        cerr << "\tDEBUG: EM start " << omp_get_thread_num() << ": " << collapsed_ploidy_path_indices_samples.size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
         bool is_first = true;
 
@@ -379,8 +358,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
         }
 
         removeNoiseAndRenormalizeAbundances(path_cluster_estimates);
-
-        cerr << "\tDEBUG: EM end " << omp_get_thread_num() << ": " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
 
     } else {
 
