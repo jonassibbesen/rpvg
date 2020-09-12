@@ -234,12 +234,12 @@ int main(int argc, char* argv[]) {
     options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above value", cxxopts::value<double>()->default_value("0.01"))
+      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above value", cxxopts::value<double>()->default_value("1"))
       ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
 
     options.add_options("Abundance")
-      ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
+      ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("j,use-exact", "use slower exact likelihood inference for haplotyping", cxxopts::value<bool>())
       ("n,num-hap-its", "number of haplotyping iterations in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))

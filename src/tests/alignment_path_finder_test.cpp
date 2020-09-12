@@ -7,6 +7,54 @@
 #include "../utils.hpp"
 
 
+TEST_CASE("Test") {
+
+    gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+    gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(8, true)));
+
+    gbwt::vector_type gbwt_thread_1(4);
+    gbwt::vector_type gbwt_thread_2(8);
+
+    gbwt_thread_1[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_1[1] = gbwt::Node::encode(2, false);
+    gbwt_thread_1[2] = gbwt::Node::encode(3, false);
+    gbwt_thread_1[3] = gbwt::Node::encode(4, false);
+
+    gbwt_thread_2[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_2[1] = gbwt::Node::encode(2, false);
+    gbwt_thread_2[2] = gbwt::Node::encode(2, false);
+    gbwt_thread_2[3] = gbwt::Node::encode(2, false);
+    gbwt_thread_2[4] = gbwt::Node::encode(3, false);
+    gbwt_thread_2[5] = gbwt::Node::encode(3, false);
+    gbwt_thread_2[6] = gbwt::Node::encode(4, false);
+
+    gbwt_builder.insert(gbwt_thread_1, true);    
+    gbwt_builder.insert(gbwt_thread_2, true);    
+
+    gbwt_builder.finish();
+
+    std::stringstream gbwt_stream;
+    gbwt_builder.index.serialize(gbwt_stream);
+
+    gbwt::GBWT gbwt_index;
+    gbwt_index.load(gbwt_stream);
+
+    auto bla = gbwt_index.find(gbwt::Node::encode(2, false));
+    auto bla2 = gbwt_index.find(gbwt::Node::encode(3, false));
+    auto bla3 = gbwt_index.find(gbwt::Node::encode(4, false));
+
+    cout << bla.size() << endl;
+    cout << bla2.size() << endl;
+    cout << bla3.size() << endl;
+
+    cout << gbwt_index.locate(bla) << endl;
+        cout << gbwt_index.locate(bla2) << endl;
+
+    cout << gbwt_index.locate(bla3) << endl;
+
+}
+
+
 TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
     
     const string graph_str = R"(
