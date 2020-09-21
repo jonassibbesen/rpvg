@@ -61,9 +61,6 @@ PathClusters::PathClusters(const PathsIndex & paths_index_in, const uint32_t num
 
         #pragma omp critical
         {
-
-            cerr << thread_connected_paths.size() << " " << thread_node_to_path_index.size() << endl;
-
             for (auto & paths: thread_connected_paths) {
 
                 auto connected_paths_it = connected_paths.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
@@ -137,8 +134,6 @@ void PathClusters::addReadClusters(const spp::sparse_hash_map<vector<AlignmentPa
 
         #pragma omp critical
         {
-            cerr << num_multimap << " " << threaded_multimap_connected_clusters.size() << endl;
-
             for (auto & paths: threaded_multimap_connected_clusters) {
 
                 auto multimap_connected_clusters_it = multimap_connected_clusters.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
