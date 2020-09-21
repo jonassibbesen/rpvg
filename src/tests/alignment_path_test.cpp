@@ -50,7 +50,7 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	alignment_search_path.scores.push_back(50);
 	alignment_search_path.scores.push_back(60);
 
-	AlignmentPath alignment_path(alignment_search_path);
+	AlignmentPath alignment_path(alignment_search_path, false);
 	
 	REQUIRE(alignment_path.seq_length == 100);
 	REQUIRE(alignment_path.mapq_comb == 10);

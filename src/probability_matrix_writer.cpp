@@ -44,30 +44,31 @@ void ProbabilityMatrixWriter::unlockWriter() {
 	writer_mutex.unlock();
 }
 
-void ProbabilityMatrixWriter::writeCollapsedProbabilities(const vector<pair<double, vector<uint32_t> > > & collpased_probs, const bool write_zero) {
+void ProbabilityMatrixWriter::writeCollapsedProbabilities(const ReadPathProbabilities & read_path_probs) {
 
-    for (auto & prob: collpased_probs) {
+    *writer_stream << read_path_probs.readCount() << " " << read_path_probs.noiseProbability();
 
-        if (write_zero || prob.first > 0) {
+    for (auto & collapsed_probs: read_path_probs.collapsedProbabilities()) {
 
-            *writer_stream << " " << prob.first << ":";
+        *writer_stream << " " << collapsed_probs.first << ":";
 
-            bool is_first = true;
+        bool is_first = true;
 
-            for (auto idx: prob.second) {
+        for (auto idx: collapsed_probs.second) {
 
-                if (is_first) {
+            if (is_first) {
 
-                    *writer_stream << idx;
-                    is_first = false;
+                *writer_stream << idx;
+                is_first = false;
 
-                } else {
+            } else {
 
-                    *writer_stream << "," << idx;
-                }
+                *writer_stream << "," << idx;
             }
         }
     }
+
+    *writer_stream << endl;
 }
 
 void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
@@ -91,11 +92,8 @@ void ProbabilityMatrixWriter::writeReadPathProbabilityCluster(const vector<ReadP
 
         for (auto & probs: cluster_probs) {
 
-            assert(probs.probabilities().size() == cluster_paths.size());
-
-            *writer_stream << probs.readCount() << " " << probs.noiseProbability() << " ";
-            writeCollapsedProbabilities(probs.collapsedProbabilities(prob_precision), false);
-            *writer_stream << endl;
+            assert(probs.probabilities().size() <= cluster_paths.size());
+            writeCollapsedProbabilities(probs);
         }
     }
 }

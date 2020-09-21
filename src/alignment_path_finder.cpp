@@ -78,7 +78,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         align_search_paths.insert(align_search_paths.end(), align_search_paths_rc.begin(), align_search_paths_rc.end());
     }  
 
-    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths);
+    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, isAlignmentDisconnected(alignment));
 
 #ifdef debug
 
@@ -287,7 +287,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc);
     }
 
-    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths);
+    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2));
 
 #ifdef debug
 
@@ -488,6 +488,31 @@ multimap<gbwt::node_type, uint32_t> AlignmentPathFinder<AlignmentType>::getAlign
     }
 
     return alignment_start_nodes_index;
+}
+
+template<class AlignmentType>
+bool AlignmentPathFinder<AlignmentType>::isAlignmentDisconnected(const vg::Alignment & alignment) const {
+
+    return false;
+}
+
+template<class AlignmentType>
+bool AlignmentPathFinder<AlignmentType>::isAlignmentDisconnected(const vg::MultipathAlignment & alignment) const {
+
+    bool is_connected = false;
+
+    if (alignment.has_annotation()) {
+
+        auto annotation_it = alignment.annotation().fields().find("disconnected");
+
+        if (annotation_it != alignment.annotation().fields().end()) {
+
+            assert(annotation_it->second.bool_value());
+            is_connected = true;
+        }
+    }
+
+    return is_connected;
 }
 
 template class AlignmentPathFinder<vg::Alignment>;

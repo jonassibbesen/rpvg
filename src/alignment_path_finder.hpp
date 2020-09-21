@@ -45,6 +45,9 @@ class AlignmentPathFinder {
 
 		multimap<gbwt::node_type, uint32_t> getAlignmentStartNodesIndex(const vg::Alignment & alignment) const;
 		multimap<gbwt::node_type, uint32_t> getAlignmentStartNodesIndex(const vg::MultipathAlignment & alignment) const;
+
+		bool isAlignmentDisconnected(const vg::Alignment & alignment) const;
+		bool isAlignmentDisconnected(const vg::MultipathAlignment & alignment) const;
 };
 
 

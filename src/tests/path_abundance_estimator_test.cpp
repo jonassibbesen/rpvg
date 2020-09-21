@@ -18,12 +18,12 @@ TEST_CASE("Weighted minimum path cover can be found") {
 	Eigen::RowVectorXd path_weights(1, 3);
 	path_weights << 1, 1, 1;
 
-	REQUIRE(path_abundance_estimator.weightedMinimumPathCover(read_path_cover, read_counts, path_weights) == vector<uint32_t>({1, 0}));
+	REQUIRE(path_abundance_estimator.weightedMinimumPathCover(read_path_cover, read_counts, path_weights) == vector<uint32_t>({0, 1}));
 
 	SECTION("Weights influence minimum path cover") {
 
 		path_weights(2) = 0.01;
-		REQUIRE(path_abundance_estimator.weightedMinimumPathCover(read_path_cover, read_counts, path_weights) == vector<uint32_t>({2, 1, 0}));
+		REQUIRE(path_abundance_estimator.weightedMinimumPathCover(read_path_cover, read_counts, path_weights) == vector<uint32_t>({0, 1, 2}));
 	}
 }
 

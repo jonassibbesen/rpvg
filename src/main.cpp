@@ -38,7 +38,6 @@
 
 const uint32_t align_paths_buffer_size = 10000;
 const uint32_t read_path_cluster_probs_buffer_size = 10;
-const double prob_precision = pow(10, -8);
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
 typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths_t;
@@ -161,18 +160,18 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
     }
 }
 
-spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & filename) {
+spp::sparse_hash_map<string, pair<string, uint32_t> > parseHaplotypeTranscriptInfo(const string & filename) {
 
-    spp::sparse_hash_map<string, string> path_transcript_origin;
+    spp::sparse_hash_map<string, pair<string, uint32_t> > haplotype_transcript_info;
 
-    ifstream origin_file(filename);
+    ifstream info_file(filename);
     
     string line;
     string element;
 
-    while (origin_file.good()) {
+    while (info_file.good()) {
 
-        getline(origin_file, line);
+        getline(info_file, line);
 
         if (line.empty()) {
 
@@ -188,20 +187,23 @@ spp::sparse_hash_map<string, string> parsePathTranscriptOrigin(const string & fi
             continue;
         }
 
-        auto path_transcript_origin_it = path_transcript_origin.emplace(element, "");
-        assert(path_transcript_origin_it.second);
+        auto haplotype_transcript_info_it = haplotype_transcript_info.emplace(element, make_pair("", 0));
+        assert(haplotype_transcript_info_it.second);
 
         getline(line_ss, element, '\t');        
         getline(line_ss, element, '\t');
 
-        path_transcript_origin_it.first->second = element;
+        haplotype_transcript_info_it.first->second.first = element;
 
+        getline(line_ss, element, '\t');
         getline(line_ss, element, '\n');
+
+        haplotype_transcript_info_it.first->second.second = count(element.begin(), element.end(), ',') + 1;
     }
 
-    origin_file.close();
+    info_file.close();
 
-    return path_transcript_origin;
+    return haplotype_transcript_info;
 }
 
 int main(int argc, char* argv[]) {
@@ -231,17 +233,18 @@ int main(int argc, char* argv[]) {
     options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above value", cxxopts::value<double>()->default_value("0.002"))
+      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above value", cxxopts::value<double>()->default_value("1"))
+      ("k,prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
 
     options.add_options("Abundance")
-      ("y,ploidy", "sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
+      ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("j,use-exact", "use slower exact likelihood inference for haplotyping", cxxopts::value<bool>())
       ("n,num-hap-its", "number of haplotyping iterations in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
-      ("f,path-origin", "path transcript origin filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
       ;
 
     if (argc == 1) {
@@ -298,9 +301,9 @@ int main(int argc, char* argv[]) {
         return 1;        
     }
 
-    if (inference_model == "haplotype-transcripts" && !option_results.count("path-origin")) {
+    if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
 
-        cerr << "ERROR: Path transcript origin information file (--path-origin) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
+        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
         return 1;
     }
 
@@ -439,8 +442,8 @@ int main(int argc, char* argv[]) {
     double time3 = gbwt::readTimer();
     cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    PathClusters path_clusters(num_threads);
-    auto node_to_path_index = path_clusters.findPathNodeClusters(paths_index);
+    PathClusters path_clusters(paths_index, num_threads);
+    path_clusters.addReadClusters(align_paths_index);
 
     double time6 = gbwt::readTimer();
     cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
@@ -453,16 +456,18 @@ int main(int argc, char* argv[]) {
 
         auto node_id = gbwt::Node::id(align_paths_index_it->first.front().search_state.node);
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(node_to_path_index.at(node_id))).emplace_back(align_paths_index_it);
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(path_clusters.node_to_path_index.at(node_id))).emplace_back(align_paths_index_it);
         ++align_paths_index_it;
     }
 
     double time7 = gbwt::readTimer();
     cerr << "Clustered alignment paths (" << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
+    const double prob_precision = option_results["prob-precision"].as<double>();
+
     ProbabilityMatrixWriter * prob_matrix_writer = nullptr;
 
-    spp::sparse_hash_map<string, string> path_transcript_origin;
+    spp::sparse_hash_map<string, pair<string, uint32_t> > haplotype_transcript_info;
    
     if (option_results.count("prob-output")) {
 
@@ -487,7 +492,7 @@ int main(int argc, char* argv[]) {
 
         path_estimator = new NestedPathAbundanceEstimator(option_results["num-hap-its"].as<uint32_t>(), ploidy, option_results.count("use-exact"), rng_seed, option_results["max-em-its"].as<uint32_t>(), option_results["min-em-conv"].as<double>(), prob_precision);
      
-        path_transcript_origin = parsePathTranscriptOrigin(option_results["path-origin"].as<string>());
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>());
 
     } else {
 
@@ -504,12 +509,12 @@ int main(int argc, char* argv[]) {
 
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
 
-    auto align_paths_clusters_indices = vector<pair<uint32_t, uint32_t> >();
+    auto align_paths_clusters_indices = vector<pair<uint64_t, uint32_t> >();
     align_paths_clusters_indices.reserve(align_paths_clusters.size());
 
     for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
 
-        align_paths_clusters_indices.emplace_back(path_clusters.cluster_to_paths_index.at(i).size(), i);
+        align_paths_clusters_indices.emplace_back(align_paths_clusters.at(i).size() * path_clusters.cluster_to_paths_index.at(i).size(), i);
     }
 
     sort(align_paths_clusters_indices.rbegin(), align_paths_clusters_indices.rend());
@@ -519,10 +524,23 @@ int main(int argc, char* argv[]) {
 
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
 
+        // double debug_time = gbwt::readTimer();
+
+        // if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
+
+        //     #pragma omp critical
+        //     {
+                
+        //         cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+        //     }
+        // }
+
         auto * read_path_cluster_probs_buffer = &(threaded_read_path_cluster_probs_buffer.at(omp_get_thread_num()));
 
-        read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>());            
-        read_path_cluster_probs_buffer->back().reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
+        read_path_cluster_probs_buffer->emplace_back(vector<ReadPathProbabilities>()); 
+
+        auto cur_read_path_cluster_probs = &(read_path_cluster_probs_buffer->back());
+        cur_read_path_cluster_probs->reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
 
         unordered_map<uint32_t, uint32_t> clustered_path_index;
 
@@ -538,11 +556,13 @@ int main(int argc, char* argv[]) {
 
             path_cluster_estimates->back().paths.back().name = paths_index.pathName(path_id);
 
-            auto path_transcript_origin_it = path_transcript_origin.find(path_cluster_estimates->back().paths.back().name);
+            if (inference_model == "haplotype-transcripts") {
 
-            if (path_transcript_origin_it != path_transcript_origin.end()) {
+                auto haplotype_transcript_info_it = haplotype_transcript_info.find(path_cluster_estimates->back().paths.back().name);
+                assert(haplotype_transcript_info_it != haplotype_transcript_info.end());
 
-                path_cluster_estimates->back().paths.back().origin = path_transcript_origin_it->second;
+                path_cluster_estimates->back().paths.back().origin = haplotype_transcript_info_it->second.first;
+                path_cluster_estimates->back().paths.back().count = haplotype_transcript_info_it->second.second;
             }
 
             path_cluster_estimates->back().paths.back().length = paths_index.pathLength(path_id); 
@@ -567,13 +587,33 @@ int main(int argc, char* argv[]) {
                 align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
             }
 
-            read_path_cluster_probs_buffer->back().emplace_back(ReadPathProbabilities(align_paths->second, clustered_path_index.size(), score_log_base, fragment_length_dist));
-            read_path_cluster_probs_buffer->back().back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, is_single_end);
+            cur_read_path_cluster_probs->emplace_back(ReadPathProbabilities(align_paths->second, prob_precision, score_log_base));
+            cur_read_path_cluster_probs->back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, fragment_length_dist, is_single_end);
         }
 
-        sort(read_path_cluster_probs_buffer->back().begin(), read_path_cluster_probs_buffer->back().end());
-        
-        path_estimator->estimate(&(path_cluster_estimates->back()), read_path_cluster_probs_buffer->back());
+        sort(cur_read_path_cluster_probs->begin(), cur_read_path_cluster_probs->end());
+
+        if (!cur_read_path_cluster_probs->empty()) {        
+
+            uint32_t prev_unique_probs_idx = 0;
+
+            for (size_t i = 1; i < cur_read_path_cluster_probs->size(); ++i) {
+
+                if (!cur_read_path_cluster_probs->at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(cur_read_path_cluster_probs->at(i))) {
+
+                    if (prev_unique_probs_idx + 1 < i) {
+
+                        cur_read_path_cluster_probs->at(prev_unique_probs_idx + 1) = cur_read_path_cluster_probs->at(i);
+                    }
+
+                    prev_unique_probs_idx++;
+                }
+            }
+
+            cur_read_path_cluster_probs->resize(prev_unique_probs_idx + 1);
+        }
+
+        path_estimator->estimate(&(path_cluster_estimates->back()), *cur_read_path_cluster_probs);
 
         if (prob_matrix_writer) {
 
@@ -600,6 +640,15 @@ int main(int argc, char* argv[]) {
 
             read_path_cluster_probs_buffer->clear();
         }
+
+        // if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
+
+        //     #pragma omp critical
+        //     {
+                
+        //         cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << gbwt::readTimer() - debug_time << endl;
+        //     }
+        // }
     }
 
     if (prob_matrix_writer) {
@@ -624,7 +673,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        path_estimates_writer.writeThreadedPathClusterPosteriors(threaded_path_cluster_estimates, ploidy); 
+        path_estimates_writer.writeThreadedPathClusterPosteriors(threaded_path_cluster_estimates, ploidy, prob_precision); 
 
     } else {
 

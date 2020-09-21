@@ -7,11 +7,18 @@
 #include <limits>
 #include <sstream>
 
+ReadPathProbabilities::ReadPathProbabilities() {
 
-ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const uint32_t num_paths, const double score_log_base_in, const FragmentLengthDist & fragment_length_dist_in) : read_count(read_count_in), score_log_base(score_log_base_in), fragment_length_dist(fragment_length_dist_in) {
+    read_count = 0;
+    noise_prob = 1;
+
+    prob_precision = pow(10, -8);
+    score_log_base = 1;  
+}
+
+ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in, const double score_log_base_in) : read_count(read_count_in), prob_precision(prob_precision_in), score_log_base(score_log_base_in) {
 
     noise_prob = 1;
-    read_path_probs = vector<double>(num_paths, 0);
 }
 
 uint32_t ReadPathProbabilities::readCount() const {
@@ -24,7 +31,7 @@ double ReadPathProbabilities::noiseProbability() const {
     return noise_prob;
 }
 
-const vector<double> & ReadPathProbabilities::probabilities() const {
+const vector<pair<uint32_t, double> > & ReadPathProbabilities::probabilities() const {
 
     return read_path_probs;
 }
@@ -34,13 +41,12 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const bool is_single_end) {
+void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
 
     assert(!align_paths.empty());
     assert(align_paths.size() == align_paths_ids.size());
 
-    assert(clustered_path_index.size() == read_path_probs.size());
-    assert(cluster_paths.size() == read_path_probs.size());
+    assert(clustered_path_index.size() == cluster_paths.size());
 
     if (align_paths.front().mapq_comb > 0) {
 
@@ -60,7 +66,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
             }
         }
         
-        vector<double> read_path_log_probs(read_path_probs.size(), numeric_limits<double>::lowest());
+        vector<double> read_path_log_probs(clustered_path_index.size(), numeric_limits<double>::lowest());
 
         for (size_t i = 0; i < align_paths.size(); ++i) {
 
@@ -91,26 +97,40 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
             read_path_log_probs_sum = add_log(read_path_log_probs_sum, log_prob);
         }
 
-        assert(read_path_probs.size() == read_path_log_probs.size());
         assert(read_path_log_probs_sum > numeric_limits<double>::lowest());
+
+        for (size_t i = 0; i < read_path_log_probs.size(); ++i) {
+
+            read_path_log_probs.at(i) = exp(read_path_log_probs.at(i) - read_path_log_probs_sum);
+            read_path_log_probs.at(i) *= (1 - noise_prob);
+
+            if (read_path_log_probs.at(i) >= prob_precision) {
+
+                read_path_probs.emplace_back(i, read_path_log_probs.at(i));
+            }
+        }
+    }
+
+    sort(read_path_probs.begin(), read_path_probs.end());
+}
+
+bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & probs_2) {
+
+    if (probabilities().size() != probs_2.probabilities().size()) {
+
+        return false;
+    }
+
+    if (abs(noise_prob - probs_2.noiseProbability()) < prob_precision) {
 
         for (size_t i = 0; i < read_path_probs.size(); ++i) {
 
-            read_path_probs.at(i) = exp(read_path_log_probs.at(i) - read_path_log_probs_sum);
-            read_path_probs.at(i) *= (1 - noise_prob);
-        }
-    }
-}
+            if (read_path_probs.at(i).first != probs_2.probabilities().at(i).first) {
 
-bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathProbabilities & probs_2, const double prob_precision) {
+                return false;
+            }  
 
-    assert(probabilities().size() == probs_2.probabilities().size());
-
-    if (abs(noiseProbability() - probs_2.noiseProbability()) < prob_precision) {
-
-        for (size_t i = 0; i < probabilities().size(); ++i) {
-
-            if (abs(probabilities().at(i) - probs_2.probabilities().at(i)) >= prob_precision) {
+            if (abs(read_path_probs.at(i).second - probs_2.probabilities().at(i).second) >= prob_precision) {
 
                 return false;
             }
@@ -123,19 +143,19 @@ bool ReadPathProbabilities::mergeIdenticalReadPathProbabilities(const ReadPathPr
     return false;
 }
 
-vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbabilities(const double precision) const {
+vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbabilities() const {
 
     vector<pair<double, vector<uint32_t> > > collapsed_probs;
 
-    for (size_t i = 0; i < read_path_probs.size(); ++i) {
+    for (auto & prob: read_path_probs) {
 
         auto collapsed_probs_it = collapsed_probs.begin();
 
         while (collapsed_probs_it != collapsed_probs.end()) {
 
-            if (abs(collapsed_probs_it->first - read_path_probs.at(i)) < precision) {
+            if (abs(collapsed_probs_it->first - prob.second) < prob_precision) {
 
-                collapsed_probs_it->second.emplace_back(i);
+                collapsed_probs_it->second.emplace_back(prob.first);
                 break;
             }
             
@@ -144,7 +164,7 @@ vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbabi
 
         if (collapsed_probs_it == collapsed_probs.end()) {
 
-            collapsed_probs.emplace_back(read_path_probs.at(i), vector<uint32_t>(1, i));
+            collapsed_probs.emplace_back(prob.second, vector<uint32_t>(1, prob.first));
         }
     }
 
@@ -160,7 +180,12 @@ bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities &
 
             for (size_t i = 0; i < lhs.probabilities().size(); ++i) {
 
-                if (!doubleCompare(lhs.probabilities().at(i), rhs.probabilities().at(i))) {
+                if (lhs.probabilities().at(i).first != rhs.probabilities().at(i).first) {
+
+                    return false;
+                }  
+
+                if (!doubleCompare(lhs.probabilities().at(i).second, rhs.probabilities().at(i).second)) {
 
                     return false;
                 }
@@ -185,15 +210,23 @@ bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & 
         return (lhs.noiseProbability() < rhs.noiseProbability());    
     } 
 
-    assert(lhs.probabilities().size() == rhs.probabilities().size());
+    if (lhs.probabilities().size() != rhs.probabilities().size()) {
+
+        return (lhs.probabilities().size() < rhs.probabilities().size());
+    }
 
     for (size_t i = 0; i < lhs.probabilities().size(); ++i) {
 
-        if (!doubleCompare(lhs.probabilities().at(i), rhs.probabilities().at(i))) {
+        if (lhs.probabilities().at(i).first != rhs.probabilities().at(i).first) {
 
-            return (lhs.probabilities().at(i) < rhs.probabilities().at(i));    
+            return (lhs.probabilities().at(i).first < rhs.probabilities().at(i).first);    
+        }  
+
+        if (!doubleCompare(lhs.probabilities().at(i).second, rhs.probabilities().at(i).second)) {
+
+            return (lhs.probabilities().at(i).second < rhs.probabilities().at(i).second);    
         }         
-    }   
+    }
 
     if (lhs.readCount() != rhs.readCount()) {
 
@@ -209,7 +242,7 @@ ostream & operator<<(ostream & os, const ReadPathProbabilities & read_path_probs
 
     for (auto & prob: read_path_probs.probabilities()) {
 
-        os << " " << prob;
+        os << " " << prob.first << "," << prob.second;
     }
 
     return os;

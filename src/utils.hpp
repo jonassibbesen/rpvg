@@ -12,6 +12,7 @@
 #include <cmath>
 
 #include "Eigen/Dense"
+#include "Eigen/Sparse"
 #include "google/protobuf/util/json_util.h"
 #include "vg/io/basic_stream.hpp"
 #include "gbwt/gbwt.h"
@@ -31,9 +32,8 @@ namespace Eigen {
     typedef Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXb;
     typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXd;
 
-    typedef Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXb;
-    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMatrixXd;
-
+    typedef Eigen::SparseMatrix<bool, Eigen::ColMajor> ColSparseMatrixXb;
+    typedef Eigen::SparseMatrix<double, Eigen::ColMajor> ColSparseMatrixXd;
 }
 
 //------------------------------------------------------------------------------

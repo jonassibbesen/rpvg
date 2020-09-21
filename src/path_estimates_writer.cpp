@@ -33,7 +33,7 @@ PathEstimatesWriter::~PathEstimatesWriter() {
     }
 }
 
-void PathEstimatesWriter::writeThreadedPathClusterPosteriors(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates, const uint32_t ploidy) {
+void PathEstimatesWriter::writeThreadedPathClusterPosteriors(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates, const uint32_t ploidy, const double prob_precision) {
 
     for (uint32_t i = 0; i < ploidy; ++i) {
 
@@ -56,14 +56,17 @@ void PathEstimatesWriter::writeThreadedPathClusterPosteriors(const vector<vector
 
                 assert(path_cluster_estimates.path_groups.at(i).size() == ploidy);
 
-                for (auto & path_idx: path_cluster_estimates.path_groups.at(i)) {
+                if (path_cluster_estimates.posteriors(0, i) >= prob_precision) {
 
-                    *writer_stream << path_cluster_estimates.paths.at(path_idx).name << "\t";
+                    for (auto & path_idx: path_cluster_estimates.path_groups.at(i)) {
+
+                        *writer_stream << path_cluster_estimates.paths.at(path_idx).name << "\t";
+                    }
+
+                    *writer_stream << cluster_id;
+                    *writer_stream << "\t" << path_cluster_estimates.posteriors(0, i);
+                    *writer_stream << endl;
                 }
-
-                *writer_stream << cluster_id;
-                *writer_stream << "\t" << path_cluster_estimates.posteriors(0, i);
-                *writer_stream << endl;
             }
         }
     }
