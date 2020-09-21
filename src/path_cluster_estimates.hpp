@@ -23,7 +23,7 @@ struct PathInfo {
 
         name = "";
         origin = "";
-        count = 0;
+        count = 1;
         length = 0;
         effective_length = 0;
     }
