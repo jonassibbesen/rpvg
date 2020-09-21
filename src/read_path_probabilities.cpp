@@ -104,7 +104,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
             read_path_log_probs.at(i) = exp(read_path_log_probs.at(i) - read_path_log_probs_sum);
             read_path_log_probs.at(i) *= (1 - noise_prob);
 
-            if (read_path_log_probs.at(i) > prob_precision) {
+            if (read_path_log_probs.at(i) >= prob_precision) {
 
                 read_path_probs.emplace_back(i, read_path_log_probs.at(i));
             }
