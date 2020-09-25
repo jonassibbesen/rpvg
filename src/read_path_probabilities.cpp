@@ -17,7 +17,7 @@ ReadPathProbabilities::ReadPathProbabilities() {
 }
 
 ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in, const double score_log_base_in) : read_count(read_count_in), prob_precision(prob_precision_in), score_log_base(score_log_base_in) {
-
+    
     noise_prob = 1;
 }
 
