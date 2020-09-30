@@ -93,7 +93,7 @@ FragmentLengthDist::FragmentLengthDist(const spp::sparse_hash_map<vector<Alignme
                             threaded_frag_length_count_buffer.resize(cur_frag_length + 1, 0);
                         }
 
-                        threaded_frag_length_count_buffer.at(cur_frag_length)++;
+                        threaded_frag_length_count_buffer.at(cur_frag_length) += align_paths.second;
                     }   
                 }
 
@@ -122,8 +122,14 @@ FragmentLengthDist::FragmentLengthDist(const spp::sparse_hash_map<vector<Alignme
 
         total_count += frag_length_count_buffer.at(i);
         sum_count += (i * frag_length_count_buffer.at(i));
+
+        if (frag_length_count_buffer.at(i) > 0) {
+
+            cerr << "(" << i << " " << frag_length_count_buffer.at(i) << ") ";
+        }
     }
 
+    cerr << endl;
     cerr << total_count << endl;
 
     mean_ = sum_count / static_cast<double>(total_count);

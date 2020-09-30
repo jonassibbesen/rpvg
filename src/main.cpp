@@ -61,12 +61,6 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
         if (!align_paths_buffer->back().empty()) {
 
-            if (align_paths_buffer->back().size() == 1) {
-
-                align_paths_buffer->back().front().seq_length = mean_fragment_length;
-                align_paths_buffer->back().front().score_sum = 1;
-            } 
-
             sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
 
         } else {
@@ -520,6 +514,8 @@ int main(int argc, char* argv[]) {
 
         assert(false);
     }
+
+    cerr << haplotype_transcript_info.size() << endl;
 
     vector<vector<vector<ReadPathProbabilities> > > threaded_read_path_cluster_probs_buffer(num_threads);
     vector<vector<PathClusterEstimates> > threaded_path_cluster_estimates(num_threads);
