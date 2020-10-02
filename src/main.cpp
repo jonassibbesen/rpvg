@@ -333,9 +333,13 @@ int main(int argc, char* argv[]) {
 
     FragmentLengthDist pre_fragment_length_dist; 
 
-    if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
+    if (is_long_reads) {
 
-        if (is_single_end && !is_long_reads) {
+        pre_fragment_length_dist = FragmentLengthDist(1, 1);
+
+    } else if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
+
+        if (is_single_end) {
 
             cerr << "ERROR: Both --frag-mean and --frag-sd needs to be given as input when using single-end, short read alignments." << endl;
             return 1;            
@@ -440,7 +444,11 @@ int main(int argc, char* argv[]) {
     double time_frag = gbwt::readTimer();
     FragmentLengthDist fragment_length_dist; 
 
-    if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
+    if (is_single_end && is_long_reads) {
+
+        fragment_length_dist = pre_fragment_length_dist;
+
+    } else {
 
         fragment_length_dist = FragmentLengthDist(align_paths_index, num_threads); 
 
@@ -454,11 +462,6 @@ int main(int argc, char* argv[]) {
 
         time_frag = gbwt::readTimer();
         cerr << "Estimated fragment length distribution parameters (" << time_frag - time_align << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
-
-    } else {
-
-        fragment_length_dist = pre_fragment_length_dist;
-
     }
 
     PathClusters path_clusters(paths_index, num_threads);
@@ -514,8 +517,6 @@ int main(int argc, char* argv[]) {
 
         assert(false);
     }
-
-    cerr << haplotype_transcript_info.size() << endl;
 
     vector<vector<vector<ReadPathProbabilities> > > threaded_read_path_cluster_probs_buffer(num_threads);
     vector<vector<PathClusterEstimates> > threaded_path_cluster_estimates(num_threads);

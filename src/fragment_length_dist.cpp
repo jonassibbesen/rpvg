@@ -122,15 +122,7 @@ FragmentLengthDist::FragmentLengthDist(const spp::sparse_hash_map<vector<Alignme
 
         total_count += frag_length_count_buffer.at(i);
         sum_count += (i * frag_length_count_buffer.at(i));
-
-        if (frag_length_count_buffer.at(i) > 0) {
-
-            cerr << "(" << i << " " << frag_length_count_buffer.at(i) << ") ";
-        }
     }
-
-    cerr << endl;
-    cerr << total_count << endl;
 
     mean_ = sum_count / static_cast<double>(total_count);
 
