@@ -335,6 +335,7 @@ int main(int argc, char* argv[]) {
 
     if (is_long_reads) {
 
+        assert(is_single_end);
         pre_fragment_length_dist = FragmentLengthDist(1, 1);
 
     } else if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
@@ -444,7 +445,7 @@ int main(int argc, char* argv[]) {
     double time_frag = gbwt::readTimer();
     FragmentLengthDist fragment_length_dist; 
 
-    if (is_single_end && is_long_reads) {
+    if (is_single_end || is_long_reads) {
 
         fragment_length_dist = pre_fragment_length_dist;
 
@@ -454,11 +455,20 @@ int main(int argc, char* argv[]) {
 
         if (!fragment_length_dist.isValid()) {
 
-            cerr << "Error: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Use --frag-mean and --frag-sd instead." << endl;
-            return 1;
-        }
+            if (option_results.count("frag-mean") && option_results.count("frag-sd")) {
 
-        cerr << "Fragment length distribution parameters re-estimated from alignment paths (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
+                cerr << "Warning: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Will use parameters given as input instead (mean: " << pre_fragment_length_dist.mean() << ", standard deviation: " << pre_fragment_length_dist.sd() << ")" << endl;
+
+            } else {
+
+                cerr << "Error: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Use --frag-mean and --frag-sd instead." << endl;
+                return 1;
+            }
+        
+        } else {
+
+            cerr << "Fragment length distribution parameters re-estimated from alignment paths (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
+        }
 
         time_frag = gbwt::readTimer();
         cerr << "Estimated fragment length distribution parameters (" << time_frag - time_align << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
