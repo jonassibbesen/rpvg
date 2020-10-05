@@ -6,9 +6,6 @@
 #include <fstream>
 
 #include "vg/io/basic_stream.hpp"
-#include "sparsepp/spp.h"
-
-#include "alignment_path.hpp"
 
 using namespace std;
 
