@@ -55,73 +55,15 @@ FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool 
     setLogProbBuffer(frag_length_buffer_size);
 }
 
-FragmentLengthDist::FragmentLengthDist(const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, const uint32_t num_threads) {
-
-    vector<uint32_t> frag_length_count_buffer;
-
-    #pragma omp parallel num_threads(num_threads)
-    {
-        vector<uint32_t> threaded_frag_length_count_buffer;
-
-        #pragma omp for schedule(static, 1)
-        for (size_t i = 0; i < num_threads; ++i) {
-
-            uint32_t cur_align_paths_index_pos = 0;
-
-            for (auto & align_paths: align_paths_index) {
-
-                if (cur_align_paths_index_pos % num_threads == i) { 
-
-                    assert(!align_paths.first.empty());
-
-                    uint32_t cur_frag_length = align_paths.first.front().seq_length;
-                    bool cur_frag_length_is_constant = true;
-
-                    for (size_t j = 1; j < align_paths.first.size(); ++j) {
-
-                        if (align_paths.first.at(j).seq_length != cur_frag_length) {
-
-                            cur_frag_length_is_constant = false;
-                            break;
-                        }
-                    }
-
-                    if (cur_frag_length_is_constant) {
-
-                        if (threaded_frag_length_count_buffer.size() <= cur_frag_length) {
-                            
-                            threaded_frag_length_count_buffer.resize(cur_frag_length + 1, 0);
-                        }
-
-                        threaded_frag_length_count_buffer.at(cur_frag_length) += align_paths.second;
-                    }   
-                }
-
-                ++cur_align_paths_index_pos;
-            }
-        }
-
-        #pragma omp critical
-        {
-            if (frag_length_count_buffer.size() < threaded_frag_length_count_buffer.size()) {
-                
-                frag_length_count_buffer.resize(threaded_frag_length_count_buffer.size(), 0);
-            }
-
-            for (size_t i = 0; i < threaded_frag_length_count_buffer.size(); ++i) {
-
-                frag_length_count_buffer.at(i) += threaded_frag_length_count_buffer.at(i);
-            }
-        }
-    }
+FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts) {
 
     uint32_t total_count = 0;
     uint64_t sum_count = 0; 
 
-    for (size_t i = 0; i < frag_length_count_buffer.size(); ++i) {
+    for (size_t i = 0; i < frag_length_counts.size(); ++i) {
 
-        total_count += frag_length_count_buffer.at(i);
-        sum_count += (i * frag_length_count_buffer.at(i));
+        total_count += frag_length_counts.at(i);
+        sum_count += (i * frag_length_counts.at(i));
     }
 
     mean_ = sum_count / static_cast<double>(total_count);
@@ -130,9 +72,9 @@ FragmentLengthDist::FragmentLengthDist(const spp::sparse_hash_map<vector<Alignme
 
         double sum_var = 0; 
 
-        for (size_t i = 0; i < frag_length_count_buffer.size(); ++i) {
+        for (size_t i = 0; i < frag_length_counts.size(); ++i) {
 
-            sum_var += (pow(static_cast<double>(i) - mean_, 2) * frag_length_count_buffer.at(i));
+            sum_var += (pow(static_cast<double>(i) - mean_, 2) * frag_length_counts.at(i));
         }    
 
         sd_ = sqrt(sum_var / static_cast<double>(total_count - 1));
@@ -145,7 +87,7 @@ FragmentLengthDist::FragmentLengthDist(const spp::sparse_hash_map<vector<Alignme
         assert(isValid());
 
         setMaxLength();
-        setLogProbBuffer(frag_length_count_buffer.size());
+        setLogProbBuffer(frag_length_counts.size());
 
     } else {
 

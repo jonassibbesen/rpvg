@@ -20,7 +20,7 @@ class FragmentLengthDist {
         FragmentLengthDist();
         FragmentLengthDist(const double mean_in, const double sd_in);
         FragmentLengthDist(istream * alignments_istream, const bool is_multipath);
-        FragmentLengthDist(const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, const uint32_t num_threads);
+        FragmentLengthDist(const vector<uint32_t> & frag_length_counts);
 
         double mean() const;
         double sd() const;
