@@ -277,7 +277,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             group_read_path_probs.col(group_read_path_probs.cols() - 1) = group_noise_probs;
 
             readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
-            group_read_counts = Eigen::RowVectorXui::Constant(group_read_counts.cols(), 1);
 
             group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
             group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
