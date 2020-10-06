@@ -45,7 +45,7 @@ typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connecte
 typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buffer_queue_t;
 
 
-void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const double min_mapq, const double mean_fragment_length) {
+void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const double min_mapq) {
 
     if (!align_paths.empty()) {
 
@@ -61,12 +61,6 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
         if (!align_paths_buffer->back().empty()) {
 
-            if (align_paths_buffer->back().size() == 1) {
-
-                align_paths_buffer->back().front().seq_length = mean_fragment_length;
-                align_paths_buffer->back().front().score_sum = 1;
-            } 
-
             sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
 
         } else {
@@ -77,9 +71,9 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 }
 
 template<class AlignmentType> 
-void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const double min_mapq, const uint32_t num_threads) {
+void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t num_threads) {
 
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, fragment_length_dist.maxLength());
+    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, max_fragment_length);
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -92,7 +86,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
     vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, min_mapq, fragment_length_dist.mean());
+        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, min_mapq);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -110,9 +104,9 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 }
 
 template<class AlignmentType> 
-void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const FragmentLengthDist & fragment_length_dist, const double min_mapq, const uint32_t num_threads) {
+void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t num_threads) {
 
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, fragment_length_dist.maxLength());
+    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, max_fragment_length);
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -125,7 +119,7 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, min_mapq, fragment_length_dist.mean());
+        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, min_mapq);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -142,9 +136,10 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     }
 }
 
-void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index) {
+void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * fragment_length_dist, const uint32_t mean_pre_fragment_length) {
 
     vector<vector<AlignmentPath> > * align_paths_buffer = nullptr;
+    vector<uint32_t> fragment_length_counts(1000, 0);
 
     while (align_paths_buffer_queue->pop(&align_paths_buffer)) {
 
@@ -152,12 +147,42 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
             assert(!align_paths.empty());
 
+            uint32_t cur_fragment_length = align_paths.front().seq_length;
+            bool cur_length_is_constant = true;
+
+            for (size_t j = 1; j < align_paths.size(); ++j) {
+
+                if (align_paths.at(j).seq_length != cur_fragment_length) {
+
+                    cur_length_is_constant = false;
+                    break;
+                }
+            }
+
+            if (cur_length_is_constant) {
+
+                if (fragment_length_counts.size() <= cur_fragment_length) {
+                    
+                    fragment_length_counts.resize(cur_fragment_length + 1, 0);
+                }
+
+                fragment_length_counts.at(cur_fragment_length)++;
+            }   
+
+            if (align_paths.size() == 1) {       
+
+                align_paths.front().seq_length = mean_pre_fragment_length;      
+                align_paths.front().score_sum = 1;       
+            } 
+
             auto threaded_align_paths_index_it = align_paths_index->emplace(align_paths, 0);
             threaded_align_paths_index_it.first->second++;
         } 
 
         delete align_paths_buffer;
     }
+
+    *fragment_length_dist = FragmentLengthDist(fragment_length_counts);
 }
 
 spp::sparse_hash_map<string, pair<string, uint32_t> > parseHaplotypeTranscriptInfo(const string & filename) {
@@ -337,49 +362,55 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    FragmentLengthDist fragment_length_dist; 
+    FragmentLengthDist pre_fragment_length_dist; 
 
-    if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
+    if (is_long_reads) {
 
-        if (is_single_end && !is_long_reads) {
+        assert(is_single_end);
+        pre_fragment_length_dist = FragmentLengthDist(1, 1);
 
-            cerr << "ERROR: Both --frag-mean and --frag-sd needs to be given as input when using single-end, non-long read alignments." << endl;
+    } else if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
+
+        if (is_single_end) {
+
+            cerr << "ERROR: Both --frag-mean and --frag-sd needs to be given as input when using single-end, short read alignments." << endl;
             return 1;            
         }
 
         ifstream frag_alignments_istream(option_results["alignments"].as<string>());
         assert(frag_alignments_istream.is_open());
 
-        fragment_length_dist = FragmentLengthDist(&frag_alignments_istream, is_multipath);
+        pre_fragment_length_dist = FragmentLengthDist(&frag_alignments_istream, is_multipath);
 
         frag_alignments_istream.close();
 
-        if (!fragment_length_dist.isValid()) {
+        if (!pre_fragment_length_dist.isValid()) {
 
             cerr << "ERROR: No fragment length distribution parameters found in alignments. Use --frag-mean and --frag-sd instead." << endl;
             return 1;
         
         } else {
 
-            cerr << "Fragment length distribution parameters found in alignment (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
+            cerr << "Fragment length distribution parameters found in alignment (mean: " << pre_fragment_length_dist.mean() << ", standard deviation: " << pre_fragment_length_dist.sd() << ")" << endl;
         }      
 
     } else {
 
-        fragment_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
-        cerr << "Fragment length distribution parameters given as input (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
+        pre_fragment_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
+
+        cerr << "Fragment length distribution parameters given as input (mean: " << pre_fragment_length_dist.mean() << ", standard deviation: " << pre_fragment_length_dist.sd() << ")" << endl;
     }
 
     cerr << endl;
 
-    assert(fragment_length_dist.isValid());
+    assert(pre_fragment_length_dist.isValid());
 
     const uint32_t num_threads = option_results["threads"].as<uint32_t>();
 
     assert(num_threads > 0);
     omp_set_num_threads(num_threads);
 
-    double time1 = gbwt::readTimer();
+    double time_init = gbwt::readTimer();
 
     assert(vg::io::register_libvg_io());
 
@@ -395,8 +426,8 @@ int main(int argc, char* argv[]) {
         return 1;        
     }
 
-    double time2 = gbwt::readTimer();
-    cerr << "Loaded graph and GBWT (" << time2 - time1 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+    double time_load = gbwt::readTimer();
+    cerr << "Loaded graph and GBWT (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
@@ -404,7 +435,9 @@ int main(int argc, char* argv[]) {
     align_paths_index_t align_paths_index;
     auto align_paths_buffer_queue = new align_paths_buffer_queue_t(num_threads * 3);
 
-    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index);
+    FragmentLengthDist fragment_length_dist;
+
+    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
 
     const double min_mapq = prob_to_phred(option_results["filt-mapq-prob"].as<double>());
 
@@ -412,22 +445,22 @@ int main(int argc, char* argv[]) {
 
         if (is_multipath) {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, min_mapq, num_threads);
+            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
 
         } else {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, min_mapq, num_threads);
+            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
         }
 
     } else {
 
         if (is_multipath) {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, min_mapq, num_threads);
+            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, fragment_length_dist, min_mapq, num_threads);
+            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
         }        
     }
 
@@ -439,14 +472,37 @@ int main(int argc, char* argv[]) {
 
     cerr << align_paths_index.size() << endl;
 
-    double time3 = gbwt::readTimer();
-    cerr << "Found alignment paths (" << time3 - time2 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+    if (is_single_end || is_long_reads) {
+
+        fragment_length_dist = pre_fragment_length_dist;
+
+    } else {
+
+        if (!fragment_length_dist.isValid()) {
+
+            if (option_results.count("frag-mean") && option_results.count("frag-sd")) {
+
+                cerr << "Warning: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Will use parameters given as input instead (mean: " << pre_fragment_length_dist.mean() << ", standard deviation: " << pre_fragment_length_dist.sd() << ")" << endl;
+
+                fragment_length_dist = pre_fragment_length_dist;
+
+            } else {
+
+                cerr << "Error: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Use --frag-mean and --frag-sd instead." << endl;
+                return 1;
+            }
+        
+        } else {
+
+            cerr << "Fragment length distribution parameters re-estimated from alignment paths (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
+        }
+    }
+
+    double time_align = gbwt::readTimer();
+    cerr << "Found alignment paths (" << time_align - time_load << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     PathClusters path_clusters(paths_index, num_threads);
     path_clusters.addReadClusters(align_paths_index);
-
-    double time6 = gbwt::readTimer();
-    cerr << "Created alignment path clusters (" << time6 - time3 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 
@@ -460,8 +516,8 @@ int main(int argc, char* argv[]) {
         ++align_paths_index_it;
     }
 
-    double time7 = gbwt::readTimer();
-    cerr << "Clustered alignment paths (" << time7 - time6 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+    double time_clust = gbwt::readTimer();
+    cerr << "Clustered alignment paths (" << time_clust - time_align << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     const double prob_precision = option_results["prob-precision"].as<double>();
 
@@ -680,8 +736,8 @@ int main(int argc, char* argv[]) {
         path_estimates_writer.writeThreadedPathClusterAbundances(threaded_path_cluster_estimates);    
     }
 
-    double time8 = gbwt::readTimer();
-    cerr << "Inferred path posterior probabilities" << ((inference_model != "haplotypes") ? " and abundances" : "") << " (" << time8 - time7 << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+    double time_end = gbwt::readTimer();
+    cerr << "Inferred path posterior probabilities" << ((inference_model != "haplotypes") ? " and abundances" : "") << " (" << time_end - time_clust << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
 	return 0;
 }

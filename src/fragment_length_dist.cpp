@@ -7,14 +7,21 @@
 #include "vg/io/protobuf_iterator.hpp"
 #include "utils.hpp"
 
-
+static const uint32_t frag_length_buffer_size = 1000;
 static const uint32_t max_length_sd_multiplicity = 10;
 
-FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(1) {}
-
-FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in): mean_(mean_in), sd_(sd_in) {
+FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(1) {
 
     assert(isValid());
+    setMaxLength();
+}
+
+FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in) : mean_(mean_in), sd_(sd_in) {
+
+    assert(isValid());
+
+    setMaxLength();
+    setLogProbBuffer(frag_length_buffer_size);
 }
 
 FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool is_multipath) {
@@ -43,6 +50,49 @@ FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool 
     }
 
     assert(isValid());
+
+    setMaxLength();
+    setLogProbBuffer(frag_length_buffer_size);
+}
+
+FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts) {
+
+    uint32_t total_count = 0;
+    uint64_t sum_count = 0; 
+
+    for (size_t i = 0; i < frag_length_counts.size(); ++i) {
+
+        total_count += frag_length_counts.at(i);
+        sum_count += (i * frag_length_counts.at(i));
+    }
+
+    mean_ = sum_count / static_cast<double>(total_count);
+
+    if (total_count > 1) {
+
+        double sum_var = 0; 
+
+        for (size_t i = 0; i < frag_length_counts.size(); ++i) {
+
+            sum_var += (pow(static_cast<double>(i) - mean_, 2) * frag_length_counts.at(i));
+        }    
+
+        sd_ = sqrt(sum_var / static_cast<double>(total_count - 1));
+
+        if (total_count < 1000) {
+
+            cerr << "WARNING: Only " << total_count << " unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Consider setting --frag-mean and --frag-sd instead." << endl;
+        }
+    
+        assert(isValid());
+
+        setMaxLength();
+        setLogProbBuffer(frag_length_counts.size());
+
+    } else {
+
+        sd_ = 0;
+    }
 }
 
 bool FragmentLengthDist::parseAlignment(const vg::Alignment & alignment) {
@@ -109,13 +159,40 @@ bool FragmentLengthDist::isValid() const {
 
 uint32_t FragmentLengthDist::maxLength() const {
 
-    assert(isValid());
-    return ceil(mean_ + sd_ * max_length_sd_multiplicity);
+    assert(max_length_ > 0);
+    return max_length_;
 }
 
 double FragmentLengthDist::logProb(const uint32_t value) const {
 
-    assert(isValid());
-    return log_normal_pdf<double>(value, mean_, sd_);
+    if (value < log_prob_buffer.size()) {
+
+        return log_prob_buffer.at(value);
+    
+    } else {
+
+        return log_normal_pdf<double>(value, mean_, sd_);
+    }
 }
+
+void FragmentLengthDist::setMaxLength() {
+
+    assert(isValid());
+
+    max_length_ = ceil(mean_ + sd_ * max_length_sd_multiplicity);
+    assert(max_length_ > 0);
+}
+
+void FragmentLengthDist::setLogProbBuffer(const uint32_t size) {
+
+    assert(isValid());
+
+    log_prob_buffer = vector<double>(size);
+
+    for (size_t i = 0; i < size; ++i) {
+
+        log_prob_buffer.at(i) = log_normal_pdf<double>(i, mean_, sd_);
+    }
+}
+
 

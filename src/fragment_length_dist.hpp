@@ -17,6 +17,7 @@ class FragmentLengthDist {
         FragmentLengthDist();
         FragmentLengthDist(const double mean_in, const double sd_in);
         FragmentLengthDist(istream * alignments_istream, const bool is_multipath);
+        FragmentLengthDist(const vector<uint32_t> & frag_length_counts);
 
         double mean() const;
         double sd() const;
@@ -29,9 +30,15 @@ class FragmentLengthDist {
         bool parseMultipathAlignment(const vg::MultipathAlignment & alignment);
 
     private:
-
+        
         double mean_;
         double sd_;
+        double max_length_;
+
+        vector<double> log_prob_buffer;
+
+        void setMaxLength();
+        void setLogProbBuffer(const uint32_t size); 
 };
 
 

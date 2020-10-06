@@ -8,7 +8,6 @@
 #include "sparsepp/spp.h"
 #include "vg/io/basic_stream.hpp"
 
-#include "paths_index.hpp"
 #include "utils.hpp"
 
 using namespace std;
