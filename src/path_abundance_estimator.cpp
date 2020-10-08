@@ -300,6 +300,22 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy, &mt_rng);
             }
 
+            // Debug start
+
+            if (path_cluster_estimates->paths.at(group.front()).origin == "ENST00000394667.7") {
+
+                cerr << "\n" << endl;
+
+                for (size_t i = 0; i < group.size(); ++i) {
+
+                    cerr << path_cluster_estimates->paths.at(group.at(i)).name << "\t" << path_cluster_estimates->paths.at(group.at(i)).count << "\t" << group_path_cluster_estimates.posteriors(i) << endl;
+                }
+
+                cerr << "\n" << endl;
+            }
+
+            // Debug end
+
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);
         }
 

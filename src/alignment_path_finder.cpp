@@ -253,6 +253,22 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
     }
 }
 
+// Debug start
+
+char quality_short_to_char(short i) {
+    return static_cast<char>(i + 33);
+}
+
+string string_quality_short_to_char(const string& quality) {
+    string buffer; buffer.resize(quality.size());
+    for (int i = 0; i < quality.size(); ++i) {
+        buffer[i] = quality_short_to_char(quality[i]);
+    }
+    return buffer;
+}
+
+// Debug end
+
 template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
@@ -288,6 +304,42 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
     }
 
     auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2));
+
+    // Debug start
+
+    for (auto & align_search_path: paired_align_search_paths) {
+
+        if (align_search_path.complete()) {
+
+            vector<string> debug_paths;
+
+            for (auto & path_id: paths_index.locatePathIds(align_search_path.search_state)) {
+
+                if (paths_index.pathName(path_id) == "ENST00000394667.7") {
+
+                    debug_paths.emplace_back("ENST00000394667.7");
+                
+                } else if (paths_index.pathName(path_id) == "ENST00000394667.7_2") {
+
+                    debug_paths.emplace_back("ENST00000394667.7_2");
+                }
+            }
+
+            if (debug_paths.size() == 1) {
+
+                cerr << "\n" << endl;
+                cerr << debug_paths.front() << endl;
+                cerr << paired_align_search_paths.size() << endl;
+                cerr << align_search_path << endl;
+                cerr << pb2json(alignment_1) << endl;
+                cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+                cerr << pb2json(alignment_2) << endl;
+                cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+            }
+        }
+    }
+
+    // Debug end
 
 #ifdef debug
 

@@ -9,6 +9,7 @@
 #include "vg/io/basic_stream.hpp"
 
 #include "utils.hpp"
+#include "paths_index.hpp"
 
 using namespace std;
 
