@@ -302,13 +302,27 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             // Debug start
 
-            if (path_cluster_estimates->paths.at(group.front()).origin == "ENST00000394667.7") {
+            if (path_cluster_estimates->paths.at(group.front()).origin == "ENST00000394667.7" || path_cluster_estimates->paths.at(group.front()).origin == "ENST00000646664.1") {
 
                 cerr << "\n" << endl;
 
                 for (size_t i = 0; i < group.size(); ++i) {
 
-                    cerr << path_cluster_estimates->paths.at(group.at(i)).name << "\t" << path_cluster_estimates->paths.at(group.at(i)).count << "\t" << group_path_cluster_estimates.posteriors(i) << endl;
+                    cerr << path_cluster_estimates->paths.at(group.at(i)).name << "\t" << path_cluster_estimates->paths.at(group.at(i)).count << endl;
+                }
+
+                cerr << endl;
+
+                assert(group_path_cluster_estimates.path_groups.size() == group_path_cluster_estimates.posteriors.cols());
+
+                for (size_t i = 0; i < group_path_cluster_estimates.path_groups.size(); ++i) {
+
+                    for (auto & path_id: group_path_cluster_estimates.path_groups.at(i)) {
+
+                        cerr << path_cluster_estimates->paths.at(path_id).name << ",";
+                    }                    
+
+                    cerr << "\t" << group_path_cluster_estimates.posteriors(i) << endl;
                 }
 
                 cerr << "\n" << endl;

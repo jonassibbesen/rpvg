@@ -307,37 +307,37 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     // Debug start
 
-    for (auto & align_search_path: paired_align_search_paths) {
+    // for (auto & align_search_path: paired_align_search_paths) {
 
-        if (align_search_path.complete()) {
+    //     if (align_search_path.complete()) {
 
-            vector<string> debug_paths;
+    //         vector<string> debug_paths;
 
-            for (auto & path_id: paths_index.locatePathIds(align_search_path.search_state)) {
+    //         for (auto & path_id: paths_index.locatePathIds(align_search_path.search_state)) {
 
-                if (paths_index.pathName(path_id) == "ENST00000394667.7") {
+    //             auto path_name = paths_index.pathName(path_id);
 
-                    debug_paths.emplace_back("ENST00000394667.7");
-                
-                } else if (paths_index.pathName(path_id) == "ENST00000394667.7_2") {
+    //             if (path_name == "ENST00000486741.5_289" || path_name == "ENST00000486741.5_291") {
 
-                    debug_paths.emplace_back("ENST00000394667.7_2");
-                }
-            }
+    //                 debug_paths.emplace_back(path_name);              
+    //             }
+    //         }
 
-            if (debug_paths.size() == 1) {
+    //         if (debug_paths.size() == 1) {
 
-                cerr << "\n" << endl;
-                cerr << debug_paths.front() << endl;
-                cerr << paired_align_search_paths.size() << endl;
-                cerr << align_search_path << endl;
-                cerr << pb2json(alignment_1) << endl;
-                cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-                cerr << pb2json(alignment_2) << endl;
-                cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
-            }
-        }
-    }
+    //             cerr << "\n\n" << endl;
+    //             cerr << debug_paths.front() << endl;
+    //             cerr << paired_align_search_paths.size() << endl;
+    //             cerr << align_search_path << endl;
+    //             cerr << endl;
+    //             cerr << pb2json(alignment_1) << endl;
+    //             cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+    //             cerr << endl;
+    //             cerr << pb2json(alignment_2) << endl;
+    //             cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+    //         }
+    //     }
+    // }
 
     // Debug end
 
