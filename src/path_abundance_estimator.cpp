@@ -302,30 +302,34 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             // Debug start
 
-            if (path_cluster_estimates->paths.at(group.front()).origin == "ENST00000394667.7" || path_cluster_estimates->paths.at(group.front()).origin == "ENST00000646664.1") {
+            if (path_cluster_estimates->paths.at(group.front()).origin == "ENST00000646664.1" || path_cluster_estimates->paths.at(group.front()).origin == "ENST00000227378.7" || path_cluster_estimates->paths.at(group.front()).origin == "ENST00000514057.1" || path_cluster_estimates->paths.at(group.front()).origin == "ENST00000394667.7" || path_cluster_estimates->paths.at(group.front()).origin == "ENST00000253788.11" || path_cluster_estimates->paths.at(group.front()).origin == "ENST00000397854.7") {
 
-                cerr << "\n" << endl;
+                stringstream debug_stream;
+                debug_stream << "\n######\n" << endl;
 
                 for (size_t i = 0; i < group.size(); ++i) {
 
-                    cerr << path_cluster_estimates->paths.at(group.at(i)).name << "\t" << path_cluster_estimates->paths.at(group.at(i)).count << endl;
+                    debug_stream << path_cluster_estimates->paths.at(group.at(i)).name << "\t" << path_cluster_estimates->paths.at(group.at(i)).count << endl;
                 }
 
-                cerr << endl;
+                debug_stream << endl;
 
                 assert(group_path_cluster_estimates.path_groups.size() == group_path_cluster_estimates.posteriors.cols());
 
                 for (size_t i = 0; i < group_path_cluster_estimates.path_groups.size(); ++i) {
 
-                    for (auto & path_id: group_path_cluster_estimates.path_groups.at(i)) {
+                    if (group_path_cluster_estimates.posteriors(i) > 0) {
 
-                        cerr << path_cluster_estimates->paths.at(path_id).name << ",";
-                    }                    
+                        for (auto & id: group_path_cluster_estimates.path_groups.at(i)) {
 
-                    cerr << "\t" << group_path_cluster_estimates.posteriors(i) << endl;
+                            debug_stream << path_cluster_estimates->paths.at(group.at(id)).name << ",";
+                        }                    
+
+                        debug_stream << "\t" << group_path_cluster_estimates.posteriors(i) << endl;
+                    }
                 }
 
-                cerr << "\n" << endl;
+                cerr << debug_stream.str() << endl;
             }
 
             // Debug end
