@@ -307,39 +307,17 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     // Debug start
 
-    if (alignment_1.name() == "SRR1153470.4136673") {
+    if (alignment_1.name() == "SRR1153470.268028" || alignment_1.name() == "SRR1153470.29785800" || alignment_1.name() == "SRR1153470.4136673") {
 
-        for (auto & align_search_path: paired_align_search_paths) {
-
-            if (align_search_path.complete()) {
-
-                vector<string> debug_paths;
-
-                for (auto & path_id: paths_index.locatePathIds(align_search_path.search_state)) {
-
-                    auto path_name = paths_index.pathName(path_id);
-
-                    if (path_name == "ENST00000486741.5_289" || path_name == "ENST00000486741.5_291") {
-
-                        debug_paths.emplace_back(path_name);              
-                    }
-                }
-
-                if (debug_paths.size() == 1) {
-
-                    cerr << "\n\n" << endl;
-                    cerr << debug_paths.front() << endl;
-                    cerr << paired_align_search_paths.size() << endl;
-                    cerr << align_search_path << endl;
-                    cerr << endl;
-                    cerr << pb2json(alignment_1) << endl;
-                    cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-                    cerr << endl;
-                    cerr << pb2json(alignment_2) << endl;
-                    cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
-                }
-            }
-        }
+        cerr << "\n" << endl;
+        cerr << paired_align_search_paths << endl;
+        cerr << endl;
+        cerr << pb2json(alignment_1) << endl;
+        cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+        cerr << endl;
+        cerr << pb2json(alignment_2) << endl;
+        cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+        cerr << "\n" << endl;
     }
 
     // Debug end
