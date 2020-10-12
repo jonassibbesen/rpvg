@@ -37,6 +37,7 @@
 #include "path_estimates_writer.hpp"
 
 const uint32_t align_paths_buffer_size = 10000;
+const uint32_t score_diff_filter_threshold = 12;
 const uint32_t read_path_cluster_probs_buffer_size = 10;
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
@@ -45,33 +46,43 @@ typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connecte
 typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buffer_queue_t;
 
 
-void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const double min_mapq) {
+void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const double min_mapq, const uint32_t max_score_diff) {
 
     if (!align_paths.empty()) {
 
-        align_paths_buffer->emplace_back(vector<AlignmentPath>());
+        uint32_t max_score_sum = 0;
 
         for (auto & align_path: align_paths) {
 
-            if (align_path.mapq_comb >= min_mapq) {
-
-                align_paths_buffer->back().emplace_back(align_path);
-            }
+            max_score_sum = max(max_score_sum, align_path.score_sum);
         }
 
-        if (!align_paths_buffer->back().empty()) {
+        if (max_score_sum >= 202 - max_score_diff) {
 
-            sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
+            align_paths_buffer->emplace_back(vector<AlignmentPath>());
 
-        } else {
+            for (auto & align_path: align_paths) {
 
-            align_paths_buffer->pop_back();
+                if (align_path.mapq_comb >= min_mapq && max_score_sum - align_path.score_sum <= score_diff_filter_threshold) {
+
+                    align_paths_buffer->back().emplace_back(align_path);
+                }
+            }
+
+            if (!align_paths_buffer->back().empty()) {
+
+                sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
+
+            } else {
+
+                align_paths_buffer->pop_back();
+            }
         }
     }
 }
 
 template<class AlignmentType> 
-void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t num_threads) {
+void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t max_score_diff, const uint32_t num_threads) {
 
     AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, max_fragment_length);
 
@@ -86,7 +97,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
     vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, min_mapq);
+        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, min_mapq, max_score_diff);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -104,7 +115,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 }
 
 template<class AlignmentType> 
-void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t num_threads) {
+void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t max_score_diff, const uint32_t num_threads) {
 
     AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, max_fragment_length);
 
@@ -119,7 +130,7 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, min_mapq);
+        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, min_mapq, max_score_diff);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -258,7 +269,8 @@ int main(int argc, char* argv[]) {
     options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above value", cxxopts::value<double>()->default_value("1"))
+      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
+      ("w,filt-score-diff", "filter alignments with a score that is <value> below max possible", cxxopts::value<uint32_t>()->default_value("10"))
       ("k,prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
@@ -440,27 +452,28 @@ int main(int argc, char* argv[]) {
     thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
 
     const double min_mapq = prob_to_phred(option_results["filt-mapq-prob"].as<double>());
+    const uint32_t max_score_diff = option_results["filt-score-diff"].as<uint32_t>();
 
     if (is_single_end) {
 
         if (is_multipath) {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
+            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, max_score_diff, num_threads);
 
         } else {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
+            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, max_score_diff, num_threads);
         }
 
     } else {
 
         if (is_multipath) {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
+            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, max_score_diff, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, num_threads);
+            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, max_score_diff, num_threads);
         }        
     }
 
@@ -564,6 +577,8 @@ int main(int argc, char* argv[]) {
     }
 
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
+
+    cerr << score_log_base << endl;
 
     auto align_paths_clusters_indices = vector<pair<uint64_t, uint32_t> >();
     align_paths_clusters_indices.reserve(align_paths_clusters.size());
