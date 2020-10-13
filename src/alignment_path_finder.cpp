@@ -307,18 +307,52 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     // Debug start
 
-    if (alignment_1.name() == "SRR1153470.268028" || alignment_1.name() == "SRR1153470.29785800" || alignment_1.name() == "SRR1153470.4136673") {
+    string debug_paths = "";
+    uint32_t debug_idx = 0;
 
-        cerr << "\n" << endl;
-        cerr << paired_align_search_paths << endl;
-        cerr << endl;
-        cerr << pb2json(alignment_1) << endl;
-        cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-        cerr << endl;
-        cerr << pb2json(alignment_2) << endl;
-        cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
-        cerr << "\n" << endl;
+    string debug_paths2 = "";
+    uint32_t debug_idx2 = 0;
+
+    for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+
+        if (paired_align_search_paths.at(i).complete()) {
+
+            for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).search_state)) {
+
+                auto path_name = paths_index.pathName(path_id);
+
+                if (path_name == "ENST00000471269.1" || path_name == "ENST00000646664.1_74" || path_name == "ENST00000227378.7_51" || path_name == "ENST00000514057.1_60" || path_name == "ENST00000394667.7_2" || path_name == "ENST00000253788.11_9") {
+
+                    debug_paths = path_name; 
+                    debug_idx = i;         
+                
+                } else if (path_name == "ENST00000471269.1_18" || path_name == "ENST00000646664.1_7" || path_name == "ENST00000227378.7" || path_name == "ENST00000514057.1" || path_name == "ENST00000514057.1_538" || path_name == "ENST00000394667.7" || path_name == "ENST00000253788.11_21") {
+
+                    debug_paths2 = path_name; 
+                    debug_idx2 = i;         
+                }                
+            }
+        }
     }
+
+    if (!debug_paths.empty()) {
+
+        if (debug_paths2.empty() || debug_idx != debug_idx2) {
+
+            cerr << "\n\n" << endl;
+            cerr << debug_paths << endl;
+            cerr << debug_idx << endl;
+            cerr << debug_paths2 << endl;
+            cerr << debug_idx2 << endl;
+            cerr << paired_align_search_paths << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_1) << endl;
+            cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_2) << endl;
+            cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+        } 
+    }   
 
     // Debug end
 
