@@ -321,12 +321,21 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
                 auto path_name = paths_index.pathName(path_id);
 
-                if (path_name == "ENST00000471269.1" || path_name == "ENST00000646664.1_74" || path_name == "ENST00000227378.7_51" || path_name == "ENST00000514057.1_60" || path_name == "ENST00000394667.7_2" || path_name == "ENST00000253788.11_9") {
+                if (path_name == "ENST00000646664.1_74" || 
+                    path_name == "ENST00000227378.7_51" || 
+                    path_name == "ENST00000514057.1_60" || 
+                    path_name == "ENST00000394667.7_2" || 
+                    path_name == "ENST00000253788.11_9") {
 
                     debug_paths = path_name; 
                     debug_idx = i;         
                 
-                } else if (path_name == "ENST00000471269.1_18" || path_name == "ENST00000646664.1_7" || path_name == "ENST00000227378.7" || path_name == "ENST00000514057.1" || path_name == "ENST00000514057.1_538" || path_name == "ENST00000394667.7" || path_name == "ENST00000253788.11_21") {
+                } else if (path_name == "ENST00000646664.1_7" || 
+                            path_name == "ENST00000227378.7" || 
+                            path_name == "ENST00000514057.1" || 
+                            path_name == "ENST00000514057.1_538" || 
+                            path_name == "ENST00000394667.7" || 
+                            path_name == "ENST00000253788.11_21") {
 
                     debug_paths2 = path_name; 
                     debug_idx2 = i;         
@@ -335,15 +344,15 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         }
     }
 
-    if (!debug_paths.empty()) {
+    if (!debug_paths.empty() && debug_paths2.empty()) {
 
-        if (debug_paths2.empty() || debug_idx != debug_idx2) {
-
+        #pragma omp critical
+        {
             cerr << "\n\n" << endl;
             cerr << debug_paths << endl;
             cerr << debug_idx << endl;
-            cerr << debug_paths2 << endl;
-            cerr << debug_idx2 << endl;
+            // cerr << debug_paths2 << endl;
+            // cerr << debug_idx2 << endl;
             cerr << paired_align_search_paths << endl;
             cerr << endl;
             cerr << pb2json(alignment_1) << endl;
@@ -351,7 +360,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
             cerr << endl;
             cerr << pb2json(alignment_2) << endl;
             cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
-        } 
+        }
     }   
 
     // Debug end

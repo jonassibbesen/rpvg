@@ -37,7 +37,7 @@
 #include "path_estimates_writer.hpp"
 
 const uint32_t align_paths_buffer_size = 10000;
-const uint32_t score_diff_filter_threshold = 12;
+const uint32_t score_diff_filter_threshold = 16;
 const uint32_t read_path_cluster_probs_buffer_size = 10;
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
@@ -270,7 +270,7 @@ int main(int argc, char* argv[]) {
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("q,filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("w,filt-score-diff", "filter alignments with a score that is <value> below max possible", cxxopts::value<uint32_t>()->default_value("10"))
+      ("w,filt-score-diff", "filter alignments with a score that is <value> below max possible", cxxopts::value<uint32_t>()->default_value("16"))
       ("k,prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
