@@ -46,7 +46,7 @@ typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connecte
 typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buffer_queue_t;
 
 
-void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const uint32_t align_length, const double min_mapq, const uint32_t max_score_diff) {
+bool addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const uint32_t align_length, const double min_mapq, const uint32_t max_score_diff) {
 
     if (!align_paths.empty()) {
 
@@ -55,6 +55,14 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
         for (auto & align_path: align_paths) {
 
             max_score_sum = max(max_score_sum, align_path.score_sum);
+        }
+
+        if (align_length < max_score_sum) {
+
+            cerr << align_length << endl;
+            cerr << max_score_sum << endl;
+
+            return false;
         }
 
         assert(align_length >= max_score_sum);
@@ -83,6 +91,8 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
             }
         }
     }
+
+    return true;
 }
 
 template<class AlignmentType> 
@@ -134,7 +144,11 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, alignment_1.sequence().size() + alignment_2.sequence().size(), min_mapq, max_score_diff);
+        if (!addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, alignment_1.sequence().size() + alignment_2.sequence().size(), min_mapq, max_score_diff)) {
+
+            cerr << pb2json(alignment_1) << endl;
+            cerr << pb2json(alignment_2) << endl;
+        }
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
