@@ -59,6 +59,7 @@ bool addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
         if (align_length < max_score_sum) {
 
+            cerr << align_paths << endl;
             cerr << align_length << endl;
             cerr << max_score_sum << endl;
 
