@@ -127,7 +127,7 @@ uint32_t AlignmentSearchPath::mapqComb() const {
 
 uint32_t AlignmentSearchPath::scoreSum() const {
 
-    return accumulate(scores.begin(), scores.end(), 0);
+    return max(0, accumulate(scores.begin(), scores.end(), 0));
 }
 
 bool AlignmentSearchPath::complete() const {

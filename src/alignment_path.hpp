@@ -82,7 +82,7 @@ class AlignmentSearchPath {
         uint32_t seq_length;
 
         vector<uint32_t> mapqs;
-        vector<uint32_t> scores;
+        vector<int32_t> scores;
 
         double mapqProb() const;
         uint32_t mapqComb() const;
