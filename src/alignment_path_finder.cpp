@@ -313,38 +313,40 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
     string debug_paths2 = "";
     uint32_t debug_idx2 = 0;
 
-    for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+    // for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
 
-        if (paired_align_search_paths.at(i).complete()) {
+    //     if (paired_align_search_paths.at(i).complete()) {
 
-            for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).search_state)) {
+    //         for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).search_state)) {
 
-                auto path_name = paths_index.pathName(path_id);
+    //             auto path_name = paths_index.pathName(path_id);
 
-                if (path_name == "ENST00000646664.1_74" || 
-                    path_name == "ENST00000227378.7_51" || 
-                    path_name == "ENST00000514057.1_60" || 
-                    path_name == "ENST00000394667.7_2" || 
-                    path_name == "ENST00000253788.11_9") {
+    //             if (path_name == "ENST00000646664.1_74" || 
+    //                 path_name == "ENST00000227378.7_51" || 
+    //                 path_name == "ENST00000514057.1_60" || 
+    //                 path_name == "ENST00000394667.7_2" || 
+    //                 path_name == "ENST00000253788.11_9") {
 
-                    debug_paths = path_name; 
-                    debug_idx = i;         
+    //                 debug_paths = path_name; 
+    //                 debug_idx = i;         
                 
-                } else if (path_name == "ENST00000646664.1_7" || 
-                            path_name == "ENST00000227378.7" || 
-                            path_name == "ENST00000514057.1" || 
-                            path_name == "ENST00000514057.1_538" || 
-                            path_name == "ENST00000394667.7" || 
-                            path_name == "ENST00000253788.11_21") {
+    //             } else if (path_name == "ENST00000646664.1_7" || 
+    //                         path_name == "ENST00000227378.7" || 
+    //                         path_name == "ENST00000514057.1" || 
+    //                         path_name == "ENST00000514057.1_538" || 
+    //                         path_name == "ENST00000394667.7" || 
+    //                         path_name == "ENST00000253788.11_21") {
 
-                    debug_paths2 = path_name; 
-                    debug_idx2 = i;         
-                }                
-            }
-        }
-    }
+    //                 debug_paths2 = path_name; 
+    //                 debug_idx2 = i;         
+    //             }                
+    //         }
+    //     }
+    // }
 
-    if (!debug_paths.empty() && debug_paths2.empty()) {
+    // if (!debug_paths.empty() && debug_paths2.empty()) {
+
+    if (alignment_1.name() == "SRR1153470.291024") {
 
         #pragma omp critical
         {
@@ -360,6 +362,9 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
             cerr << endl;
             cerr << pb2json(alignment_2) << endl;
             cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_2_rc) << endl;
+            cerr << string_quality_short_to_char(alignment_2_rc.quality()) << endl;
         }
     }   
 
