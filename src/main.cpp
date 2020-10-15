@@ -37,7 +37,7 @@
 #include "path_estimates_writer.hpp"
 
 const uint32_t align_paths_buffer_size = 10000;
-const uint32_t score_diff_filter_threshold = 16;
+const uint32_t score_diff_filter_threshold = 24;
 const uint32_t read_path_cluster_probs_buffer_size = 10;
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
@@ -46,7 +46,7 @@ typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connecte
 typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buffer_queue_t;
 
 
-void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const double min_mapq, const uint32_t max_score_diff) {
+void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const uint32_t align_length, const double min_mapq, const uint32_t max_score_diff) {
 
     if (!align_paths.empty()) {
 
@@ -57,11 +57,15 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
             max_score_sum = max(max_score_sum, align_path.score_sum);
         }
 
-        if (max_score_sum >= 202 - max_score_diff) {
+        assert(align_length >= max_score_sum);
+
+        if (align_length < max_score_diff || max_score_sum >= align_length - max_score_diff) {
 
             align_paths_buffer->emplace_back(vector<AlignmentPath>());
 
             for (auto & align_path: align_paths) {
+
+                assert(max_score_sum >= align_path.score_sum);
 
                 if (align_path.mapq_comb >= min_mapq && max_score_sum - align_path.score_sum <= score_diff_filter_threshold) {
 
@@ -97,7 +101,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
     vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, min_mapq, max_score_diff);
+        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, alignment.sequence().size(), min_mapq, max_score_diff);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -130,7 +134,7 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, min_mapq, max_score_diff);
+        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, alignment_1.sequence().size() + alignment_2.sequence().size(), min_mapq, max_score_diff);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -270,7 +274,7 @@ int main(int argc, char* argv[]) {
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("q,filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("w,filt-score-diff", "filter alignments with a score that is <value> below max possible", cxxopts::value<uint32_t>()->default_value("16"))
+      ("w,filt-score-diff", "filter alignments with a score that is <value> below max possible", cxxopts::value<uint32_t>()->default_value("24"))
       ("k,prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
