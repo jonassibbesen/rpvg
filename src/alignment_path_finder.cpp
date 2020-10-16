@@ -307,11 +307,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     // Debug start
 
-    string debug_paths = "";
-    uint32_t debug_idx = 0;
+    // string debug_paths = "";
+    // uint32_t debug_idx = 0;
 
-    string debug_paths2 = "";
-    uint32_t debug_idx2 = 0;
+    // string debug_paths2 = "";
+    // uint32_t debug_idx2 = 0;
 
     // for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
 
@@ -346,27 +346,25 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     // if (!debug_paths.empty() && debug_paths2.empty()) {
 
-    if (alignment_1.name() == "SRR1153470.291024") {
-
-        #pragma omp critical
-        {
-            cerr << "\n\n" << endl;
-            cerr << debug_paths << endl;
-            cerr << debug_idx << endl;
-            // cerr << debug_paths2 << endl;
-            // cerr << debug_idx2 << endl;
-            cerr << paired_align_search_paths << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_1) << endl;
-            cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_2) << endl;
-            cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_2_rc) << endl;
-            cerr << string_quality_short_to_char(alignment_2_rc.quality()) << endl;
-        }
-    }   
+    //     #pragma omp critical
+    //     {
+    //         cerr << "\n\n" << endl;
+    //         cerr << debug_paths << endl;
+    //         cerr << debug_idx << endl;
+    //         // cerr << debug_paths2 << endl;
+    //         // cerr << debug_idx2 << endl;
+    //         cerr << paired_align_search_paths << endl;
+    //         cerr << endl;
+    //         cerr << pb2json(alignment_1) << endl;
+    //         cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+    //         cerr << endl;
+    //         cerr << pb2json(alignment_2) << endl;
+    //         cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+    //         cerr << endl;
+    //         cerr << pb2json(alignment_2_rc) << endl;
+    //         cerr << string_quality_short_to_char(alignment_2_rc.quality()) << endl;
+    //     }
+    // }   
 
     // Debug end
 
@@ -462,7 +460,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
             }
         }
            
-        if (cur_paired_align_search_path->seq_length > max_pair_seq_length) {
+        if (cur_paired_align_search_path->seq_length + end_alignment.sequence().size() > max_pair_seq_length) {
 
             paired_align_search_path_queue.pop();
             continue;
