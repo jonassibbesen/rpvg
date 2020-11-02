@@ -48,9 +48,9 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
     assert(clustered_path_index.size() == cluster_paths.size());
 
-    if (align_paths.front().mapq_comb > 0) {
+    if (align_paths.front().min_mapq > 0) {
 
-        noise_prob = phred_to_prob(align_paths.front().mapq_comb);
+        noise_prob = phred_to_prob(align_paths.front().min_mapq);
         assert(noise_prob < 1);
 
         vector<double> align_paths_log_probs;

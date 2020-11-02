@@ -63,7 +63,7 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
             assert(max_score_sum >= align_path.score_sum);
 
-            if (align_path.mapq_comb >= min_mapq && max_score_sum - align_path.score_sum <= best_score_diff) {
+            if (align_path.min_mapq >= min_mapq && max_score_sum - align_path.score_sum <= best_score_diff) {
 
                 align_paths_buffer->back().emplace_back(align_path);
             }
@@ -157,12 +157,15 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
             assert(!align_paths.empty());
 
-            if (align_paths.front().mapq_comb >= fragment_length_min_mapq) {
+            if (align_paths.front().min_mapq >= fragment_length_min_mapq && !align_paths.front().is_multimap) {
 
                 uint32_t cur_fragment_length = align_paths.front().seq_length;
                 bool cur_length_is_constant = true;
 
                 for (size_t j = 1; j < align_paths.size(); ++j) {
+
+                    assert(align_paths.at(j).min_mapq >= fragment_length_min_mapq);
+                    assert(!align_paths.at(j).is_multimap);
 
                     if (align_paths.at(j).seq_length != cur_fragment_length) {
 
@@ -263,7 +266,7 @@ int main(int argc, char* argv[]) {
       ;
 
     options.add_options("Alignment")
-      ("u,multipath", "alignment input is multipath gamp format (default: gam)", cxxopts::value<bool>())
+      ("u,single-path", "alignment input is single-path gam format (default: multipath gamp)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
       ;
@@ -272,7 +275,7 @@ int main(int argc, char* argv[]) {
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("q,filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("w,filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("16"))
+      ("w,filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("24"))
       ("k,prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
       ;
@@ -363,7 +366,7 @@ int main(int argc, char* argv[]) {
 
     bool is_single_end = option_results.count("single-end");
     bool is_long_reads = option_results.count("long-reads");
-    bool is_multipath = option_results.count("multipath");
+    bool is_single_path = option_results.count("single-path");
 
     if (is_long_reads) {
 
@@ -394,7 +397,7 @@ int main(int argc, char* argv[]) {
         ifstream frag_alignments_istream(option_results["alignments"].as<string>());
         assert(frag_alignments_istream.is_open());
 
-        pre_fragment_length_dist = FragmentLengthDist(&frag_alignments_istream, is_multipath);
+        pre_fragment_length_dist = FragmentLengthDist(&frag_alignments_istream, !is_single_path);
 
         frag_alignments_istream.close();
 
@@ -458,24 +461,24 @@ int main(int argc, char* argv[]) {
 
     if (is_single_end) {
 
-        if (is_multipath) {
+        if (is_single_path) {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
 
         } else {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
         }
 
     } else {
 
-        if (is_multipath) {
+        if (is_single_path) {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
         }        
     }
 
