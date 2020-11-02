@@ -37,6 +37,7 @@
 #include "path_estimates_writer.hpp"
 
 const uint32_t align_paths_buffer_size = 10000;
+const uint32_t fragment_length_min_mapq = 40;
 const uint32_t read_path_cluster_probs_buffer_size = 10;
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
@@ -156,27 +157,30 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
             assert(!align_paths.empty());
 
-            uint32_t cur_fragment_length = align_paths.front().seq_length;
-            bool cur_length_is_constant = true;
+            if (align_paths.front().mapq_comb >= fragment_length_min_mapq) {
 
-            for (size_t j = 1; j < align_paths.size(); ++j) {
+                uint32_t cur_fragment_length = align_paths.front().seq_length;
+                bool cur_length_is_constant = true;
 
-                if (align_paths.at(j).seq_length != cur_fragment_length) {
+                for (size_t j = 1; j < align_paths.size(); ++j) {
 
-                    cur_length_is_constant = false;
-                    break;
+                    if (align_paths.at(j).seq_length != cur_fragment_length) {
+
+                        cur_length_is_constant = false;
+                        break;
+                    }
                 }
+
+                if (cur_length_is_constant) {
+
+                    if (fragment_length_counts.size() <= cur_fragment_length) {
+                        
+                        fragment_length_counts.resize(cur_fragment_length + 1, 0);
+                    }
+
+                    fragment_length_counts.at(cur_fragment_length)++;
+                }   
             }
-
-            if (cur_length_is_constant) {
-
-                if (fragment_length_counts.size() <= cur_fragment_length) {
-                    
-                    fragment_length_counts.resize(cur_fragment_length + 1, 0);
-                }
-
-                fragment_length_counts.at(cur_fragment_length)++;
-            }   
 
             if (align_paths.size() == 1) {       
 
@@ -575,8 +579,6 @@ int main(int argc, char* argv[]) {
     }
 
     const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
-
-    cerr << score_log_base << endl;
 
     auto align_paths_clusters_indices = vector<pair<uint64_t, uint32_t> >();
     align_paths_clusters_indices.reserve(align_paths_clusters.size());
