@@ -300,44 +300,6 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
                 estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy, &mt_rng);
             }
 
-            // Debug start
-
-            if (path_cluster_estimates->paths.at(group.front()).origin == "ENST00000646664.1" || 
-                path_cluster_estimates->paths.at(group.front()).origin == "ENST00000227378.7" || 
-                path_cluster_estimates->paths.at(group.front()).origin == "ENST00000514057.1" || 
-                path_cluster_estimates->paths.at(group.front()).origin == "ENST00000394667.7" || 
-                path_cluster_estimates->paths.at(group.front()).origin == "ENST00000253788.11") {
-
-                stringstream debug_stream;
-                debug_stream << "\n######\n" << endl;
-
-                for (size_t i = 0; i < group.size(); ++i) {
-
-                    debug_stream << path_cluster_estimates->paths.at(group.at(i)).name << "\t" << path_cluster_estimates->paths.at(group.at(i)).count << endl;
-                }
-
-                debug_stream << endl;
-
-                assert(group_path_cluster_estimates.path_groups.size() == group_path_cluster_estimates.posteriors.cols());
-
-                for (size_t i = 0; i < group_path_cluster_estimates.path_groups.size(); ++i) {
-
-                    if (group_path_cluster_estimates.posteriors(i) > 0) {
-
-                        for (auto & id: group_path_cluster_estimates.path_groups.at(i)) {
-
-                            debug_stream << path_cluster_estimates->paths.at(group.at(id)).name << ",";
-                        }                    
-
-                        debug_stream << "\t" << group_path_cluster_estimates.posteriors(i) << endl;
-                    }
-                }
-
-                cerr << debug_stream.str() << endl;
-            }
-
-            // Debug end
-
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group);
         }
 
