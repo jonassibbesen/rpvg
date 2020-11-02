@@ -48,9 +48,9 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
     assert(clustered_path_index.size() == cluster_paths.size());
 
-    if (align_paths.front().mapq_comb > 0) {
+    if (align_paths.front().min_mapq > 0) {
 
-        noise_prob = phred_to_prob(align_paths.front().mapq_comb);
+        noise_prob = phred_to_prob(align_paths.front().min_mapq);
         assert(noise_prob < 1);
 
         vector<double> align_paths_log_probs;
@@ -85,7 +85,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
                 } else {
 
                     // account for really rare cases when a mpmap alignment can have multiple alignments on the same path
-                    read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length));
+                    read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(align_paths_ids.size()) - log(cluster_paths.at(path_idx).effective_length));
                 }
             }
         }

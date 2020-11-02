@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <numeric>
 
-AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in) : seq_length(seq_length_in), mapq_comb(mapq_comb_in), is_multimap(is_multimap_in), score_sum(score_sum_in), search_state(search_state_in) {}
+AlignmentPath::AlignmentPath(const uint32_t seq_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in) : seq_length(seq_length_in), min_mapq(min_mapq_in), is_multimap(is_multimap_in), score_sum(score_sum_in), search_state(search_state_in) {}
 
-AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in) : seq_length(align_path_in.seq_length), mapq_comb(align_path_in.mapqComb()), score_sum(align_path_in.scoreSum()), search_state(align_path_in.search_state), is_multimap(is_multimap_in) {}
+AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in) : seq_length(align_path_in.seq_length), min_mapq(align_path_in.min_mapq), score_sum(align_path_in.scoreSum()), search_state(align_path_in.search_state), is_multimap(is_multimap_in) {}
 
 vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap) {
 
@@ -26,7 +26,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    return (lhs.seq_length == rhs.seq_length && lhs.mapq_comb == rhs.mapq_comb && lhs.score_sum == rhs.score_sum && lhs.is_multimap == rhs.is_multimap && lhs.search_state == rhs.search_state);
+    return (lhs.seq_length == rhs.seq_length && lhs.min_mapq == rhs.min_mapq && lhs.score_sum == rhs.score_sum && lhs.is_multimap == rhs.is_multimap && lhs.search_state == rhs.search_state);
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -41,9 +41,9 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
         return (lhs.seq_length < rhs.seq_length);    
     } 
 
-    if (lhs.mapq_comb != rhs.mapq_comb) {
+    if (lhs.min_mapq != rhs.min_mapq) {
 
-        return (lhs.mapq_comb < rhs.mapq_comb);    
+        return (lhs.min_mapq < rhs.min_mapq);    
     } 
 
     if (lhs.score_sum != rhs.score_sum) {
@@ -72,7 +72,7 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
 ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
 
     os << align_path.seq_length;
-    os << " | " << align_path.mapq_comb;
+    os << " | " << align_path.min_mapq;
     os << " | " << align_path.score_sum;
     os << " | " << align_path.is_multimap;
     os << " | " << gbwt::Node::id(align_path.search_state.node);
@@ -99,35 +99,12 @@ AlignmentSearchPath::AlignmentSearchPath() {
     seq_start_offset = 0;
     seq_end_offset = 0;
     seq_length = 0;
-}
-
-double AlignmentSearchPath::mapqProb() const {
-
-    double prob = 1;
-
-    for (auto & mapq: mapqs) {
-
-        if (mapq > 0) {
-
-            prob *= (1 - phred_to_prob(mapq));
-
-        } else {
-
-            return 1;        
-        }
-    }
-
-    return (1 - prob);
-}
-
-uint32_t AlignmentSearchPath::mapqComb() const {
-
-    return round(prob_to_phred(mapqProb()));
+    min_mapq = std::numeric_limits<uint32_t>::max();
 }
 
 uint32_t AlignmentSearchPath::scoreSum() const {
 
-    return accumulate(scores.begin(), scores.end(), 0);
+    return max(0, accumulate(scores.begin(), scores.end(), 0));
 }
 
 bool AlignmentSearchPath::complete() const {
@@ -151,7 +128,7 @@ ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path
     os << " | " << gbwt::Node::id(align_search_path.search_state.node);
     os << " | " << align_search_path.search_state.size();
     os << " | " << align_search_path.seq_length;
-    os << " | (" << align_search_path.mapqs << ")";
+    os << " | (" << align_search_path.min_mapq << ")";
     os << " | (" << align_search_path.scores << ")";
 
     return os;
