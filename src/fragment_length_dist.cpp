@@ -8,7 +8,7 @@
 #include "utils.hpp"
 
 static const uint32_t frag_length_buffer_size = 1000;
-static const uint32_t max_length_sd_multiplicity = 10;
+static const uint32_t max_length_sd_multiplicity = 5;
 
 FragmentLengthDist::FragmentLengthDist() : mean_(0), sd_(1) {
 
@@ -65,6 +65,8 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
         total_count += frag_length_counts.at(i);
         sum_count += (i * frag_length_counts.at(i));
     }
+
+    cerr << total_count << endl;
 
     mean_ = sum_count / static_cast<double>(total_count);
 

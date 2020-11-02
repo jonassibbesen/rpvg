@@ -19,11 +19,11 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const uint32_t seq_length_in, const uint32_t mapq_comb_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in);
+        AlignmentPath(const uint32_t seq_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
 
         uint32_t seq_length;
-        uint32_t mapq_comb;
+        uint32_t min_mapq;
         uint32_t score_sum;
 
         bool is_multimap;
@@ -51,7 +51,7 @@ namespace std {
             for (auto & align_path: align_paths) {
 
                 spp::hash_combine(seed, align_path.seq_length);
-                spp::hash_combine(seed, align_path.mapq_comb);
+                spp::hash_combine(seed, align_path.min_mapq);
                 spp::hash_combine(seed, align_path.score_sum);
                 spp::hash_combine(seed, align_path.is_multimap);
                 spp::hash_combine(seed, align_path.search_state.node);
@@ -80,13 +80,10 @@ class AlignmentSearchPath {
 
         uint32_t seq_length;
 
-        vector<uint32_t> mapqs;
-        vector<uint32_t> scores;
+        uint32_t min_mapq;
+        vector<int32_t> scores;
 
-        double mapqProb() const;
-        uint32_t mapqComb() const;
         uint32_t scoreSum() const;
-
         bool complete() const;
 };
 

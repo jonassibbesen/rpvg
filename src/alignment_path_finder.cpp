@@ -102,7 +102,7 @@ template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const uint32_t subpath_start_idx) const {
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
-    extended_align_search_path.front().mapqs.emplace_back(alignment.mapping_quality());
+    extended_align_search_path.front().min_mapq = min(extended_align_search_path.front().min_mapq, static_cast<uint32_t>(alignment.mapping_quality()));
     extended_align_search_path.front().scores.emplace_back(alignment.score());
     
     extendAlignmentPath(&extended_align_search_path.front(), alignment.path());
@@ -204,7 +204,7 @@ template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t subpath_start_idx) const {
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
-    extended_align_search_path.front().mapqs.emplace_back(alignment.mapping_quality());
+    extended_align_search_path.front().min_mapq = min(extended_align_search_path.front().min_mapq, static_cast<uint32_t>(alignment.mapping_quality()));
     extended_align_search_path.front().scores.emplace_back(0);
 
     extendAlignmentPaths(&extended_align_search_path, alignment.subpath(), subpath_start_idx);
@@ -364,43 +364,24 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
 
                 AlignmentSearchPath cur_paired_align_search_path_end = *cur_paired_align_search_path;
 
-                while (true) {
+                assert(cur_paired_align_search_path_end.path_end_pos == cur_paired_align_search_path_end.path.size());
+                --cur_paired_align_search_path_end.path_end_pos;
 
-                    assert(cur_paired_align_search_path_end.path_end_pos == cur_paired_align_search_path_end.path.size());
-                    --cur_paired_align_search_path_end.path_end_pos;
+                auto complete_paired_align_search_paths = extendAlignmentPath(cur_paired_align_search_path_end, end_alignment, end_alignment_start_nodes_index_itp.first->second);
 
-                    auto complete_paired_align_search_paths = extendAlignmentPath(cur_paired_align_search_path_end, end_alignment, end_alignment_start_nodes_index_itp.first->second);
+                for (auto & complete_align_search_path: complete_paired_align_search_paths) {
 
-                    for (auto & complete_align_search_path: complete_paired_align_search_paths) {
+                    if (!complete_align_search_path.search_state.empty() && complete_align_search_path.seq_length <= max_pair_seq_length) {
 
-                        if (!complete_align_search_path.search_state.empty() && complete_align_search_path.seq_length <= max_pair_seq_length) {
-
-                            paired_align_search_paths->emplace_back(complete_align_search_path);                         
-                        }
-                    }
-
-                    cur_paired_align_search_path_end.search_state = paths_index.index().extend(cur_paired_align_search_path_end.search_state, cur_paired_align_search_path_end.search_state.node);
-
-                    if (!cur_paired_align_search_path_end.search_state.empty()) { 
-
-                        cur_paired_align_search_path_end.path.emplace_back(cur_paired_align_search_path_end.search_state.node);
-                        cur_paired_align_search_path_end.path_end_pos = cur_paired_align_search_path_end.path.size();
-                        cur_paired_align_search_path_end.seq_length += cur_paired_align_search_path_end.seq_end_offset;
-                    
-                    } else {
-
-                        break;
+                        paired_align_search_paths->emplace_back(complete_align_search_path);                         
                     }
                 }
 
                 ++end_alignment_start_nodes_index_itp.first;
             }
-
-            paired_align_search_path_queue.pop();
-            continue;
         }
            
-        if (cur_paired_align_search_path->seq_length > max_pair_seq_length) {
+        if (cur_paired_align_search_path->seq_length + end_alignment.sequence().size() > max_pair_seq_length) {
 
             paired_align_search_path_queue.pop();
             continue;

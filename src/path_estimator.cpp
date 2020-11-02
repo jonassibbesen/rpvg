@@ -207,6 +207,22 @@ void PathEstimator::pathCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path
     read_path_probs->conservativeResize(read_path_probs->rows(), prev_unique_probs_col + 1);
 }
 
+vector<double> PathEstimator::calcPathFrequences(const vector<uint32_t> & path_counts) {
+
+    vector<double> path_freqs;
+    path_freqs.reserve(path_counts.size());
+
+    uint32_t count_sum = accumulate(path_counts.begin(), path_counts.end(), 0);
+    assert(count_sum > 0);
+
+    for (auto & count: path_counts) {
+
+        path_freqs.emplace_back(count / static_cast<double>(count_sum));
+    }
+
+    return path_freqs;
+}
+
 void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) {
 
     assert(read_path_probs.rows() > 0);
@@ -214,6 +230,9 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
     assert(read_path_probs.rows() == read_counts.cols());
     assert(read_path_probs.cols() == path_counts.size());
     assert(group_size > 0);
+
+    auto path_freqs = calcPathFrequences(path_counts);
+    assert(path_freqs.size() == path_counts.size());
 
     path_cluster_estimates->initEstimates(read_path_probs.cols(), group_size, true);
     assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
@@ -232,12 +251,13 @@ void PathEstimator::calculatePathGroupPosteriors(PathClusterEstimates * path_clu
         }
 
         path_cluster_estimates->posteriors(0, i) = read_counts.cast<double>() * group_read_probs.array().log().matrix();
-        path_cluster_estimates->posteriors(0, i) += log(numPermutations(path_cluster_estimates->path_groups.at(i)));
 
         for (auto & path_idx: path_cluster_estimates->path_groups.at(i)) {
             
-            path_cluster_estimates->posteriors(0, i) += log(path_counts.at(path_idx));
+            path_cluster_estimates->posteriors(0, i) += log(path_freqs.at(path_idx));
         }
+
+        path_cluster_estimates->posteriors(0, i) += log(numPermutations(path_cluster_estimates->path_groups.at(i)));
 
         sum_log_posterior = add_log(sum_log_posterior, path_cluster_estimates->posteriors(0, i));
     }
@@ -256,10 +276,13 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
     assert(read_path_probs.cols() == path_counts.size());
     assert(group_size > 0);
 
+    auto path_freqs = calcPathFrequences(path_counts);
+    assert(path_freqs.size() == path_counts.size());
+
     path_cluster_estimates->initEstimates(0, 0, true);
     assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
 
-    discrete_distribution<uint32_t> init_path_sampler(path_counts.begin(), path_counts.end());
+    discrete_distribution<uint32_t> init_path_sampler(path_freqs.begin(), path_freqs.end());
 
     vector<uint32_t> cur_sampled_group_paths;
     cur_sampled_group_paths.reserve(group_size);
@@ -312,7 +335,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
                     for (uint32_t k = 0; k < read_path_probs.cols(); ++k) {
 
                         group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + read_path_probs.col(k)).array().log().matrix());
-                        group_probs.back() += log(path_counts.at(k));
+                        group_probs.back() += log(path_freqs.at(k));
 
                         sum_log_group_probs = add_log(sum_log_group_probs, group_probs.back());
                     }

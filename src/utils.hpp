@@ -153,6 +153,8 @@ inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
     // TODO: should we/can we do this in place?
     
     vg::Alignment aln_rc;
+
+    aln_rc.set_sequence(aln.sequence());
     aln_rc.set_score(aln.score());
     aln_rc.set_mapping_quality(aln.mapping_quality());
 
@@ -162,11 +164,13 @@ inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
 }
 
 
-// Reverse complements multipath alignment. Note that edit sequences, paths and edit sequences 
+// Reverse complements multipath alignment. Note that sequences, paths and edit sequences 
 // are not reverse complemented. Original name in vg repo: rev_comp_multipath_alignment().
 inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::MultipathAlignment& multipath_aln, const function<int64_t(int64_t)>& node_length) {
     
     vg::MultipathAlignment multipath_aln_rc;
+
+    multipath_aln_rc.set_sequence(multipath_aln.sequence());
     multipath_aln_rc.set_mapping_quality(multipath_aln.mapping_quality());
 
     vector< vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());

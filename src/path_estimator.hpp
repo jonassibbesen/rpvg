@@ -39,6 +39,8 @@ class PathEstimator {
 
         void rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts);
         void colSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs);
+
+        vector<double> calcPathFrequences(const vector<uint32_t> & path_counts);
 };
 
 namespace std {
