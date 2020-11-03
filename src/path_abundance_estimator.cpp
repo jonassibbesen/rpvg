@@ -108,13 +108,18 @@ void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(PathClusterEsti
 
     const double noise_read_count = path_cluster_estimates->abundances(0, path_cluster_estimates->abundances.cols() - 1) * path_cluster_estimates->read_count;
 
+    // Debug start
+
     if (!(noise_read_count <= path_cluster_estimates->read_count)) {
 
         cerr << noise_read_count << endl;
         cerr << path_cluster_estimates->read_count << endl;
+        cerr << path_cluster_estimates->posteriors << endl;
         cerr << path_cluster_estimates->abundances << endl;
     }
     
+    // Debug end
+
     assert(noise_read_count <= path_cluster_estimates->read_count);
 
     path_cluster_estimates->posteriors.conservativeResize(1, path_cluster_estimates->posteriors.cols() - 1);
@@ -391,6 +396,30 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
             EMAbundanceEstimator(&ploidy_path_cluster_estimates, ploidy_read_path_probs, ploidy_read_counts);
             updateEstimates(path_cluster_estimates, ploidy_path_cluster_estimates, path_indices_sample.first, path_indices_sample.second);
         }
+
+        // Debug start
+
+        for (size_t i = 0; i < path_cluster_estimates->abundances.cols(); ++i) {
+
+            if (!(isfinite(path_cluster_estimates->posteriors(0, i))) || !(isfinite(path_cluster_estimates->abundances(0, i)))) {
+
+                cerr << "\n" << endl;
+                cerr << path_cluster_estimates->paths.front().origin << endl;
+
+                for (auto & bla: cluster_probs) {
+
+                    cerr << bla << endl;
+                }
+
+                cerr << path_cluster_estimates->read_count << endl;
+                cerr << path_cluster_estimates->posteriors << endl;
+                cerr << path_cluster_estimates->abundances << endl;
+
+                break;
+            }
+        }
+
+        // Debug end
 
         for (size_t i = 0; i < path_cluster_estimates->abundances.cols(); ++i) {
 
