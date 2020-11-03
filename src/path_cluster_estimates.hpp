@@ -36,9 +36,14 @@ struct PathClusterEstimates {
     Eigen::RowVectorXd posteriors;
     Eigen::RowVectorXd abundances;
 
-    uint32_t read_count;
+    double read_count;
 
     vector<vector<uint32_t> > path_groups;
+
+    PathClusterEstimates() {
+
+        read_count = 0;
+    }
 
     void generateGroupsRecursive(const uint32_t num_components, const uint32_t group_size, vector<uint32_t> cur_group) {
 
