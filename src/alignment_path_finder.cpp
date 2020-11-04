@@ -307,6 +307,20 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     // Debug start
 
+    for (auto & paired_align_path: paired_align_paths) {
+
+        if (paired_align_path.min_mapq > 60) {
+
+            cerr << "\n\n" << endl;
+            cerr << paired_align_search_paths << endl;
+            cerr << paired_align_paths << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_1) << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_2) << endl;
+        }
+    }
+
     // string debug_paths = "";
     // uint32_t debug_idx = 0;
 

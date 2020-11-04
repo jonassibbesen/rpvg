@@ -53,11 +53,19 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
         noise_prob = phred_to_prob(align_paths.front().min_mapq);
         assert(noise_prob < 1);
 
+        if (!(noise_prob > 0)) {
+
+            cerr << align_paths << endl;
+        }
+
+        assert(noise_prob > 0);
+
         vector<double> align_paths_log_probs;
         align_paths_log_probs.reserve(align_paths.size());
 
         for (auto & align_path: align_paths) {
 
+            assert(align_paths.front().min_mapq == align_path.min_mapq);
             align_paths_log_probs.emplace_back(score_log_base * align_path.score_sum);
 
             if (!is_single_end) {
