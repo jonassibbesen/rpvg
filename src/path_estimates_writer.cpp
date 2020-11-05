@@ -74,7 +74,7 @@ void PathEstimatesWriter::writeThreadedPathClusterPosteriors(const vector<vector
 
 void PathEstimatesWriter::writeThreadedPathClusterAbundances(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates) {
 
-    *writer_stream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypePosterior\tClusterRelativeExpression\tReadCount\tTPM" << endl;
+    *writer_stream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypeFraction\tClusterRelativeExpression\tReadCount\tTPM" << endl;
 
     double transcript_count_sum = 0;
 
