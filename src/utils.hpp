@@ -189,7 +189,7 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
         *(rc_subpath->mutable_path()) = lazy_reverse_complement_path(subpath.path(), node_length);
         rc_subpath->set_score(subpath.score());
 
-        if (subpath.next_size() > 0 || subpath.connection_size() > 0)) {
+        if (subpath.next_size() > 0 || subpath.connection_size() > 0) {
             // collect edges by their target (for reversing)
             for (size_t j = 0; j < subpath.next_size(); j++) {
                 reverse_edge_lists[subpath.next(j)].push_back(i);
@@ -213,7 +213,7 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
         }
         vector<pair<size_t, int32_t> >& reverse_connection_list = reverse_connection_lists[multipath_aln.subpath_size() - i - 1];
         for (size_t j = 0; j < reverse_connection_list.size(); ++j) {
-            connection_t* connection = rc_subpath->add_connection();
+            vg::Connection* connection = rc_subpath->add_connection();
             connection->set_next(multipath_aln.subpath_size() - reverse_connection_list[j].first - 1);
             connection->set_score(reverse_connection_list[j].second);
         }
