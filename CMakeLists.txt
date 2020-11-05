@@ -88,6 +88,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/gssw/src 
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
+  ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/include
   ${PROJECT_SOURCE_DIR}/deps/libhandlegraph/src/include
   ${PROJECT_SOURCE_DIR}/deps/eigen
   ${PROJECT_SOURCE_DIR}/deps/xg/src
