@@ -107,14 +107,16 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
 void PathAbundanceEstimator::removeNoiseAndRenormalizeAbundances(PathClusterEstimates * path_cluster_estimates) const {
 
     const double noise_read_count = path_cluster_estimates->abundances(0, path_cluster_estimates->abundances.cols() - 1) * path_cluster_estimates->read_count;
-    assert(path_cluster_estimates->read_count >= noise_read_count);
+    assert(noise_read_count <= path_cluster_estimates->read_count);
 
     path_cluster_estimates->posteriors.conservativeResize(1, path_cluster_estimates->posteriors.cols() - 1);
     path_cluster_estimates->abundances.conservativeResize(1, path_cluster_estimates->abundances.cols() - 1);
 
-    if (path_cluster_estimates->abundances.sum() > 0) {
+    const double abundances_sum = path_cluster_estimates->abundances.sum();
+    
+    if (abundances_sum > 0) {
 
-        path_cluster_estimates->abundances = path_cluster_estimates->abundances / path_cluster_estimates->abundances.sum();
+        path_cluster_estimates->abundances = path_cluster_estimates->abundances / abundances_sum;
     } 
 
     path_cluster_estimates->read_count -= noise_read_count;
