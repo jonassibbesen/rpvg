@@ -74,7 +74,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/include
   ${PROJECT_SOURCE_DIR}/deps/eigen
   ${PROJECT_SOURCE_DIR}/deps/xg/src
-  ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmultimap/src
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmulti/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/ips4o
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src/tinyFA
@@ -104,6 +104,9 @@ target_link_libraries(${PROJECT_NAME}
   divsufsort
   divsufsort64
 )
+
+add_dependencies(xg sdsl-lite-proj)
+add_dependencies(xg libvgio-proj)
 
 add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
 add_dependencies(${PROJECT_NAME} gbwt-proj)
