@@ -981,31 +981,36 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
         REQUIRE(alignment_paths_sc == alignment_paths);
     }
 
-    // SECTION("Single-end multipath read alignment finds forward alignment path(s) in bidirectional index") {
+    SECTION("Single-end multipath read alignment finds forward alignment path(s) in bidirectional index") {
 
-    //     gbwt::GBWTBuilder gbwt_builder_bd(gbwt::bit_length(gbwt::Node::encode(6, true)));
+        gbwt::GBWTBuilder gbwt_builder_bd(gbwt::bit_length(gbwt::Node::encode(6, true)));
 
-    //     gbwt_builder_bd.insert(gbwt_thread_1, true);
-    //     gbwt_builder_bd.insert(gbwt_thread_2, true);
+        gbwt_builder_bd.insert(gbwt_thread_1, true);
+        gbwt_builder_bd.insert(gbwt_thread_2, true);
 
-    //     gbwt_builder_bd.finish();
+        gbwt_builder_bd.finish();
 
-    //     std::stringstream gbwt_stream_bd;
-    //     gbwt_builder_bd.index.serialize(gbwt_stream_bd);
+        std::stringstream gbwt_stream_bd;
+        gbwt_builder_bd.index.serialize(gbwt_stream_bd);
 
-    //     gbwt::GBWT gbwt_index_bd;
-    //     gbwt_index_bd.load(gbwt_stream_bd);
+        gbwt::GBWT gbwt_index_bd;
+        gbwt_index_bd.load(gbwt_stream_bd);
 
-    //     PathsIndex paths_index_bd(gbwt_index_bd, graph);
-    //     REQUIRE(paths_index_bd.index().bidirectional() == true);
+        PathsIndex paths_index_bd(gbwt_index_bd, graph);
+        REQUIRE(paths_index_bd.index().bidirectional() == true);
 
-    //     AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, 1000);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000);
     
-    //     auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
-    //     REQUIRE(alignment_paths_bd.size() == 2);
+        auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths_bd.size() == 2);
 
-    //     REQUIRE(alignment_paths_bd == alignment_paths);
-    // }
+        REQUIRE(alignment_paths_bd.front() == alignment_paths.front());
+        REQUIRE(alignment_paths_bd.back().seq_length == alignment_paths.back().seq_length);
+        REQUIRE(alignment_paths_bd.back().min_mapq == alignment_paths.back().min_mapq);
+        REQUIRE(alignment_paths_bd.back().score_sum == alignment_paths.back().score_sum);
+        REQUIRE(gbwt::Node::id(alignment_paths_bd.back().search_state.node) == 6);
+        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.back().search_state) == paths_index.locatePathIds(alignment_paths.back().search_state));
+    }
 }
 
 TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment") {
@@ -1369,5 +1374,23 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
         alignment_paths_len = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_len.empty());
+    }
+
+    SECTION("Strand-specific paired-end multipath read alignment finds unidirectional alignment path(s)") {
+
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_fr(paths_index, "fr", 1000);
+
+        auto alignment_paths_fr = alignment_path_finder_fr.findPairedAlignmentPaths(alignment_1, alignment_2);
+        REQUIRE(alignment_paths_fr.size() == 2);
+
+        assert(alignment_paths_fr.front() == alignment_paths.front());
+        assert(alignment_paths_fr.at(1) == alignment_paths.at(1));
+
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_rf(paths_index, "rf", 1000);
+
+        auto alignment_paths_rf = alignment_path_finder_rf.findPairedAlignmentPaths(alignment_1, alignment_2);
+        REQUIRE(alignment_paths_rf.size() == 1);
+
+        assert(alignment_paths_rf.front() == alignment_paths.back());
     }
 }
