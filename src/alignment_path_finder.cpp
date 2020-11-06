@@ -9,7 +9,7 @@
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const uint32_t max_pair_seq_length_in) : paths_index(paths_index_in), max_pair_seq_length(max_pair_seq_length_in) {}
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_seq_length_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_seq_length(max_pair_seq_length_in) {}
 
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::setMaxPairSeqLength(const uint32_t max_pair_seq_length_in) {
@@ -65,18 +65,33 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         return vector<AlignmentPath>();
     }
 
-    auto align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment);
+    vector<AlignmentSearchPath> align_search_paths;
 
-    if (!paths_index.index().bidirectional()) {
+    function<size_t(const uint32_t)> node_length_func = [&](const uint32_t node_id) { return paths_index.nodeLength(node_id); };
 
-        function<size_t(const uint32_t)> node_length_func = [&](const uint32_t node_id) { return paths_index.nodeLength(node_id); };
+    if (library_type == "fr") {
+
+        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment);
+
+    } else if (library_type == "rf") {
+
         AlignmentType alignment_rc = lazy_reverse_complement_alignment(alignment, node_length_func);
+        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment_rc);
 
-        auto align_search_paths_rc = extendAlignmentPath(AlignmentSearchPath(), alignment_rc);
+    } else {
 
-        align_search_paths.reserve(align_search_paths.size() + align_search_paths_rc.size());
-        align_search_paths.insert(align_search_paths.end(), align_search_paths_rc.begin(), align_search_paths_rc.end());
-    }  
+        assert(library_type == "unstranded");
+        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment);
+
+        if (!paths_index.index().bidirectional()) {
+
+            AlignmentType alignment_rc = lazy_reverse_complement_alignment(alignment, node_length_func);
+            auto align_search_paths_rc = extendAlignmentPath(AlignmentSearchPath(), alignment_rc);
+
+            align_search_paths.reserve(align_search_paths.size() + align_search_paths_rc.size());
+            align_search_paths.insert(align_search_paths.end(), align_search_paths_rc.begin(), align_search_paths_rc.end());
+        }  
+    }
 
     auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, isAlignmentDisconnected(alignment));
 
@@ -287,12 +302,27 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
     function<size_t(const uint32_t)> node_length_func = [&](const uint32_t node_id) { return paths_index.nodeLength(node_id); };
     AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_length_func);
 
-    pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_2_rc);
+    if (library_type == "fr") {
 
-    if (!paths_index.index().bidirectional()) {
+        pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_2_rc);
+
+    } else if (library_type == "rf") {
 
         AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_length_func);
         pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc);
+
+    } else {
+
+        assert(library_type == "unstranded");
+
+        AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_length_func);
+        pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_2_rc);
+
+        if (!paths_index.index().bidirectional()) {
+
+            AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_length_func);
+            pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc);
+        }
     }
 
     auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2));

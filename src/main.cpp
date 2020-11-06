@@ -80,9 +80,7 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 }
 
 template<class AlignmentType> 
-void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
-
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, max_fragment_length);
+void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -113,9 +111,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 }
 
 template<class AlignmentType> 
-void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const PathsIndex & paths_index, const uint32_t max_fragment_length, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
-
-    AlignmentPathFinder<AlignmentType> align_path_finder(paths_index, max_fragment_length);
+void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -268,6 +264,7 @@ int main(int argc, char* argv[]) {
       ("u,single-path", "alignment input is single-path gam format (default: multipath gamp)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
+      ("strand-specific", "strand-specific library type (fr: read1 forward, rf: read1 reverse)", cxxopts::value<string>()->default_value("unstranded"))
       ;
 
     options.add_options("Probability")
@@ -333,7 +330,15 @@ int main(int argc, char* argv[]) {
         cerr << "ERROR: Inference model provided (--inference-model) not supported. Options: haplotypes, transcripts, strains or haplotype-transcripts." << endl;
         return 1;
     }
-    
+
+    const string library_type = option_results["strand-specific"].as<string>();
+
+    if (library_type != "unstranded" && library_type != "fr" && library_type != "rf") {
+
+        cerr << "ERROR: Strand-specific library type provided (--strand-specific) not supported. Options: unstranded, fr or rf." << endl;
+        return 1;
+    }
+
     const uint32_t ploidy = option_results["ploidy"].as<uint32_t>();
 
     if (ploidy == 0) {
@@ -445,6 +450,8 @@ int main(int argc, char* argv[]) {
     double time_load = gbwt::readTimer();
     cerr << "Loaded graph and GBWT (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
+    cerr << paths_index.index().bidirectional() << endl;
+
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
@@ -458,26 +465,30 @@ int main(int argc, char* argv[]) {
     const double min_mapq = prob_to_phred(option_results["filt-mapq-prob"].as<double>());
     const uint32_t best_score_diff = option_results["filt-score-diff"].as<uint32_t>();
 
-    if (is_single_end) {
+    if (is_single_path) {
+        
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength());
 
-        if (is_single_path) {
+        if (is_single_end) {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
 
         } else {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
         }
 
     } else {
 
-        if (is_single_path) {
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength());
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+        if (is_single_end) {
+
+            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, paths_index, pre_fragment_length_dist.maxLength(), min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
         }        
     }
 
@@ -488,6 +499,15 @@ int main(int argc, char* argv[]) {
     delete align_paths_buffer_queue;
 
     cerr << align_paths_index.size() << endl;
+
+    uint64_t num_reads = 0;
+
+    for (auto & align_path: align_paths_index) {
+
+        num_reads += align_path.second;
+    }
+
+    cerr << num_reads << endl;
 
     if (is_single_end || is_long_reads) {
 
