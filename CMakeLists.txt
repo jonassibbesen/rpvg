@@ -75,6 +75,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/eigen
   ${PROJECT_SOURCE_DIR}/deps/xg/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmulti/src
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/atomic_queue
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/ips4o
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src/tinyFA
