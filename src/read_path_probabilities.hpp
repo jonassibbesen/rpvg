@@ -19,7 +19,7 @@ class ReadPathProbabilities {
     public: 
 
         ReadPathProbabilities();
-    	ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in, const double score_log_base_in);
+    	ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in);
 
         uint32_t readCount() const;
         double noiseProbability() const;
@@ -38,7 +38,6 @@ class ReadPathProbabilities {
         vector<pair<uint32_t, double> > read_path_probs;
         
         double prob_precision;
-        double score_log_base;
 };
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs);

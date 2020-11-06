@@ -31,27 +31,11 @@ ExternalProject_Add(gbwt-proj
   DEPENDS sdsl-lite-proj
 )
 
-ExternalProject_Add(gssw-proj
-  SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/gssw"
-  BUILD_IN_SOURCE TRUE
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ""
-  INSTALL_COMMAND ""
-)
-
 ExternalProject_Add(libvgio-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio .
-  INSTALL_COMMAND ""
-)
-
-ExternalProject_Add(libhandlegraph-proj
-  SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/libhandlegraph"
-  BUILD_IN_SOURCE TRUE
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libhandlegraph .
   INSTALL_COMMAND ""
 )
 
@@ -85,11 +69,9 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/sparsepp
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/deps/gbwt/include 
-  ${PROJECT_SOURCE_DIR}/deps/gssw/src 
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/include
-  ${PROJECT_SOURCE_DIR}/deps/libhandlegraph/src/include
   ${PROJECT_SOURCE_DIR}/deps/eigen
   ${PROJECT_SOURCE_DIR}/deps/xg/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmultimap/src
@@ -100,10 +82,9 @@ include_directories(
 
 link_directories(
   ${PROJECT_SOURCE_DIR}/deps/gbwt 
-  ${PROJECT_SOURCE_DIR}/deps/gssw/lib 
-  ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib
-  ${PROJECT_SOURCE_DIR}/deps/libhandlegraph
+  ${PROJECT_SOURCE_DIR}/deps/libvgio
+  ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/lib
 )
 
 target_link_libraries(xg
@@ -115,8 +96,7 @@ target_link_libraries(xg
 
 target_link_libraries(${PROJECT_NAME}
   protobuf 
-  gbwt 
-  gssw 
+  gbwt  
   vgio
   sdsl
   handlegraph
@@ -125,14 +105,9 @@ target_link_libraries(${PROJECT_NAME}
   divsufsort64
 )
 
-add_dependencies(xg sdsl-lite-proj)
-add_dependencies(xg libhandlegraph-proj)
-
 add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
 add_dependencies(${PROJECT_NAME} gbwt-proj)
-add_dependencies(${PROJECT_NAME} gssw-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
-add_dependencies(${PROJECT_NAME} libhandlegraph-proj)
 add_dependencies(${PROJECT_NAME} xg)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

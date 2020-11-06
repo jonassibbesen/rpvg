@@ -7,16 +7,17 @@
 #include <limits>
 #include <sstream>
 
+static const double score_log_base = 1.383325268738;
+
 ReadPathProbabilities::ReadPathProbabilities() {
 
     read_count = 0;
     noise_prob = 1;
 
     prob_precision = pow(10, -8);
-    score_log_base = 1;  
 }
 
-ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in, const double score_log_base_in) : read_count(read_count_in), prob_precision(prob_precision_in), score_log_base(score_log_base_in) {
+ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in) : read_count(read_count_in), prob_precision(prob_precision_in) {
     
     noise_prob = 1;
 }

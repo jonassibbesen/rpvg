@@ -19,7 +19,6 @@
 #include "vg/io/basic_stream.hpp"
 #include "io/register_libvg_io.hpp"
 #include "handlegraph/handle_graph.hpp"
-#include "gssw.h"
 
 #include "utils.hpp"
 #include "fragment_length_dist.hpp"
@@ -581,8 +580,6 @@ int main(int argc, char* argv[]) {
         threaded_path_cluster_estimates.at(i).reserve(ceil(align_paths_clusters.size()) / static_cast<float>(num_threads));
     }
 
-    const double score_log_base = gssw_dna_recover_log_base(1, 4, 0.5, double_precision);
-
     auto align_paths_clusters_indices = vector<pair<uint64_t, uint32_t> >();
     align_paths_clusters_indices.reserve(align_paths_clusters.size());
 
@@ -661,7 +658,7 @@ int main(int argc, char* argv[]) {
                 align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
             }
 
-            cur_read_path_cluster_probs->emplace_back(ReadPathProbabilities(align_paths->second, prob_precision, score_log_base));
+            cur_read_path_cluster_probs->emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
             cur_read_path_cluster_probs->back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, fragment_length_dist, is_single_end);
         }
 
