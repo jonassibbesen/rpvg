@@ -388,9 +388,10 @@ vector<vector<uint32_t> > NestedPathAbundanceEstimator::findPathOriginGroups(con
 
 void NestedPathAbundanceEstimator::samplePloidyPathIndices(vector<vector<uint32_t> > * ploidy_path_indices_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<uint32_t> & group) {
 
-    discrete_distribution<uint32_t> group_ploidy_path_sampler(group_path_cluster_estimates.posteriors.row(0).begin(), group_path_cluster_estimates.posteriors.row(0).end());
+    const Eigen::RowVectorXd & posteriors = group_path_cluster_estimates.posteriors;
+    assert(posteriors.cols() == group_path_cluster_estimates.path_groups.size());
 
-    assert(group_path_cluster_estimates.posteriors.cols() == group_path_cluster_estimates.path_groups.size());
+    discrete_distribution<uint32_t> group_ploidy_path_sampler(posteriors.row(0).data(), posteriors.row(0).data() + posteriors.row(0).size());
 
     for (size_t i = 0; i < num_nested_its; ++i) {
 
