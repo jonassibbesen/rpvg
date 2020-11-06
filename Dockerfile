@@ -7,7 +7,7 @@ WORKDIR /home
 ### Install essential tools (including protobuf)
 
 RUN apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wget git autoconf automake make cmake gcc g++ pkg-config protobuf-compiler libprotoc-dev libprotobuf-dev && \
+	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wget git autoconf automake make cmake gcc g++ pkg-config protobuf-compiler libprotoc-dev libprotobuf-dev libjansson-dev && \
     rm -rf /var/lib/apt/lists/*
 
 ### Install htslib 
