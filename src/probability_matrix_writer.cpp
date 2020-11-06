@@ -4,7 +4,7 @@
 #include <iomanip>
 
 
-ProbabilityMatrixWriter::ProbabilityMatrixWriter(const bool use_stdout_in, const string filename, const double prob_precision_in) : use_stdout(use_stdout_in), prob_precision(prob_precision_in), prob_precision_digits(ceil(-1 * log10(prob_precision))) {
+ProbabilityMatrixWriter::ProbabilityMatrixWriter(const bool use_stdout_in, const string filename_prefix, const double prob_precision_in) : use_stdout(use_stdout_in), prob_precision(prob_precision_in), prob_precision_digits(ceil(-1 * log10(prob_precision))) {
 
     streambuf * writer_buffer;
 
@@ -14,7 +14,7 @@ ProbabilityMatrixWriter::ProbabilityMatrixWriter(const bool use_stdout_in, const
     
     } else {
 
-        writer_file.open(filename);
+        writer_file.open(filename_prefix + "_probs.txt");
         assert(writer_file.is_open());
 
         writer_buffer = writer_file.rdbuf();

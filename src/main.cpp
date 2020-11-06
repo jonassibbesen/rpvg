@@ -250,44 +250,47 @@ int main(int argc, char* argv[]) {
       ("g,graph", "xg graph filename", cxxopts::value<string>())
       ("p,paths", "GBWT index filename", cxxopts::value<string>())
       ("a,alignments", "gam(p) alignment filename", cxxopts::value<string>())
+      ("o,output-prefix", "prefix used for output filenames (e.g. <prefix>_quant.txt)", cxxopts::value<string>())
       ("i,inference-model", "inference model to use (haplotypes, transcripts, strains or haplotype-transcripts)", cxxopts::value<string>())
       ;
 
     options.add_options("General")
-      ("o,output", "output filename", cxxopts::value<string>()->default_value("stdout"))    
       ("t,threads", "number of compute threads (+= 1 thread)", cxxopts::value<uint32_t>()->default_value("1"))
       ("r,rng-seed", "seed for random number generator (default: unix time)", cxxopts::value<uint64_t>())
       ("h,help", "print help", cxxopts::value<bool>())
       ;
 
     options.add_options("Alignment")
+      ("e,strand-specific", "strand-specific library type (fr: read1 forward, rf: read1 reverse)", cxxopts::value<string>()->default_value("unstranded"))
       ("u,single-path", "alignment input is single-path gam format (default: multipath gamp)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
-      ("strand-specific", "strand-specific library type (fr: read1 forward, rf: read1 reverse)", cxxopts::value<string>()->default_value("unstranded"))
       ;
 
     options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("q,filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("w,filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("24"))
-      ("k,prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
-      ("b,prob-output", "write read path probabilities to file", cxxopts::value<string>())
+      ("filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("24"))
+      ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
+      ("write-probs", "write read path probabilities to file (<prefix>_probs.txt)", cxxopts::value<bool>())
       ;
 
-    options.add_options("Abundance")
+    options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
-      ("j,use-exact", "use slower exact likelihood inference for haplotyping", cxxopts::value<bool>())
-      ("n,num-hap-its", "number of haplotyping iterations in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
-      ("e,max-em-its", "maximum number of EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
-      ("c,min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
+      ("j,use-exact", "use slower more accucate exact likelihood inference for haplotyping", cxxopts::value<bool>())
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("num-hap-its", "number of haplotyping iterations in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
+      ;
+
+    options.add_options("Quantification")
+      ("n,max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
+      ("min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ;
 
     if (argc == 1) {
 
-        cerr << options.help({"Required", "General", "Alignment", "Probability", "Abundance"}) << endl;
+        cerr << options.help({"Required", "General", "Alignment", "Probability", "Haplotyping", "Quantification"}) << endl;
         return 1;
     }
 
@@ -295,7 +298,7 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("help")) {
 
-        cerr << options.help({"Required", "General", "Alignment", "Probability", "Abundance"}) << endl;
+        cerr << options.help({"Required", "General", "Alignment", "Probability", "Haplotyping", "Quantification"}) << endl;
         return 1;
     }
 
@@ -314,6 +317,12 @@ int main(int argc, char* argv[]) {
     if (!option_results.count("alignments")) {
 
         cerr << "ERROR: Alignments (gam or gamp format) input required (--alignments)." << endl;
+        return 1;
+    }
+
+    if (!option_results.count("output-prefix")) {
+
+        cerr << "ERROR: Prefix used for output filenames required (--output-prefix)." << endl;
         return 1;
     }
 
@@ -450,8 +459,6 @@ int main(int argc, char* argv[]) {
     double time_load = gbwt::readTimer();
     cerr << "Loaded graph and GBWT (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    cerr << paths_index.index().bidirectional() << endl;
-
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
 
@@ -499,15 +506,6 @@ int main(int argc, char* argv[]) {
     delete align_paths_buffer_queue;
 
     cerr << align_paths_index.size() << endl;
-
-    uint64_t num_reads = 0;
-
-    for (auto & align_path: align_paths_index) {
-
-        num_reads += align_path.second;
-    }
-
-    cerr << num_reads << endl;
 
     if (is_single_end || is_long_reads) {
 
@@ -562,9 +560,9 @@ int main(int argc, char* argv[]) {
 
     spp::sparse_hash_map<string, pair<string, uint32_t> > haplotype_transcript_info;
    
-    if (option_results.count("prob-output")) {
+    if (option_results.count("write-probs")) {
 
-        prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["prob-output"].as<string>(), prob_precision);
+        prob_matrix_writer = new ProbabilityMatrixWriter(false, option_results["output-prefix"].as<string>(), prob_precision);
     }
 
     PathEstimator * path_estimator;
@@ -760,7 +758,7 @@ int main(int argc, char* argv[]) {
     delete prob_matrix_writer;
     delete path_estimator;
 
-    PathEstimatesWriter path_estimates_writer(option_results["output"].as<string>() == "stdout", option_results["output"].as<string>());
+    PathEstimatesWriter path_estimates_writer(false, option_results["output-prefix"].as<string>());
 
     if (inference_model == "haplotypes") {
 

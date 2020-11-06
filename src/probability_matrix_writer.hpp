@@ -18,7 +18,7 @@ class ProbabilityMatrixWriter {
 
     public: 
     	
-    	ProbabilityMatrixWriter(const bool use_stdout_in, const string filename, const double prob_precision_in);
+    	ProbabilityMatrixWriter(const bool use_stdout_in, const string filename_prefix, const double prob_precision_in);
     	~ProbabilityMatrixWriter();
 
     	void lockWriter();

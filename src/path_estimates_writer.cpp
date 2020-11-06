@@ -4,7 +4,7 @@
 #include <iomanip>
 
 
-PathEstimatesWriter::PathEstimatesWriter(const bool use_stdout_in, const string filename) : use_stdout(use_stdout_in) {
+PathEstimatesWriter::PathEstimatesWriter(const bool use_stdout_in, const string filename_prefix) : use_stdout(use_stdout_in) {
 
     streambuf * writer_buffer;
 
@@ -14,7 +14,7 @@ PathEstimatesWriter::PathEstimatesWriter(const bool use_stdout_in, const string 
     
     } else {
 
-        writer_file.open(filename);
+        writer_file.open(filename_prefix + "_quant.txt");
         assert(writer_file.is_open());
 
         writer_buffer = writer_file.rdbuf();

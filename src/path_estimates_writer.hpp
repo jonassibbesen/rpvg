@@ -17,7 +17,7 @@ class PathEstimatesWriter {
 
     public: 
     	
-    	PathEstimatesWriter(const bool use_stdout_in, const string filename);
+    	PathEstimatesWriter(const bool use_stdout_in, const string filename_prefix);
     	~PathEstimatesWriter();
 
         void writeThreadedPathClusterPosteriors(const vector<vector<PathClusterEstimates> > & threaded_path_cluster_estimates, const uint32_t ploidy, const double prob_precision);
