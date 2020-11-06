@@ -173,7 +173,9 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
     multipath_aln_rc.set_sequence(multipath_aln.sequence());
     multipath_aln_rc.set_mapping_quality(multipath_aln.mapping_quality());
 
-    vector< vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());
+    vector<vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());
+    vector<vector<pair<size_t, int32_t> > > reverse_connection_lists(multipath_aln.subpath_size());
+
     vector<size_t> reverse_starts;
     
     // remove subpaths to avoid duplicating
@@ -187,10 +189,13 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
         *(rc_subpath->mutable_path()) = lazy_reverse_complement_path(subpath.path(), node_length);
         rc_subpath->set_score(subpath.score());
 
-        if (subpath.next_size() > 0) {
+        if (subpath.next_size() > 0 || subpath.connection_size() > 0) {
             // collect edges by their target (for reversing)
             for (size_t j = 0; j < subpath.next_size(); j++) {
                 reverse_edge_lists[subpath.next(j)].push_back(i);
+            }
+            for (auto & connection: subpath.connection()) {
+                reverse_connection_lists[connection.next()].emplace_back(i, connection.score());
             }
         }
         else {
@@ -205,6 +210,12 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
         vector<size_t>& reverse_edge_list = reverse_edge_lists[multipath_aln.subpath_size() - i - 1];
         for (size_t j = 0; j < reverse_edge_list.size(); j++) {
             rc_subpath->add_next(multipath_aln.subpath_size() - reverse_edge_list[j] - 1);
+        }
+        vector<pair<size_t, int32_t> >& reverse_connection_list = reverse_connection_lists[multipath_aln.subpath_size() - i - 1];
+        for (size_t j = 0; j < reverse_connection_list.size(); ++j) {
+            vg::Connection* connection = rc_subpath->add_connection();
+            connection->set_next(multipath_aln.subpath_size() - reverse_connection_list[j].first - 1);
+            connection->set_score(reverse_connection_list[j].second);
         }
     }
     

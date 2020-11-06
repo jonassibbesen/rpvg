@@ -7,16 +7,17 @@
 #include <limits>
 #include <sstream>
 
+static const double score_log_base = 1.383325268738;
+
 ReadPathProbabilities::ReadPathProbabilities() {
 
     read_count = 0;
     noise_prob = 1;
 
     prob_precision = pow(10, -8);
-    score_log_base = 1;  
 }
 
-ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in, const double score_log_base_in) : read_count(read_count_in), prob_precision(prob_precision_in), score_log_base(score_log_base_in) {
+ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in) : read_count(read_count_in), prob_precision(prob_precision_in) {
     
     noise_prob = 1;
 }
@@ -51,13 +52,14 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
     if (align_paths.front().min_mapq > 0) {
 
         noise_prob = phred_to_prob(align_paths.front().min_mapq);
-        assert(noise_prob < 1);
+        assert(noise_prob < 1 && noise_prob > 0);
 
         vector<double> align_paths_log_probs;
         align_paths_log_probs.reserve(align_paths.size());
 
         for (auto & align_path: align_paths) {
 
+            assert(align_paths.front().min_mapq == align_path.min_mapq);
             align_paths_log_probs.emplace_back(score_log_base * align_path.score_sum);
 
             if (!is_single_end) {

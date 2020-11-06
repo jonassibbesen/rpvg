@@ -236,11 +236,19 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
 
         if (cur_align_search_path.first.path.empty() || !cur_align_search_path.first.search_state.empty()) {
 
-            if (subpath.next_size() > 0) {
+            if (subpath.next_size() > 0 || subpath.connection_size() > 0) {
 
                 for (auto & next_subpath_idx: subpath.next()) {
 
                     align_search_paths_queue.push(make_pair(cur_align_search_path.first, next_subpath_idx));
+                }
+
+                for (auto & connection: subpath.connection()) {
+
+                    assert(connection.score() <= 0);
+                    cur_align_search_path.first.scores.back() += connection.score();
+
+                    align_search_paths_queue.push(make_pair(cur_align_search_path.first, connection.next()));
                 }
 
             } else {
