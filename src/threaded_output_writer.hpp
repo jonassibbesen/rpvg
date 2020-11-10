@@ -21,7 +21,7 @@ class ThreadedOutputWriter {
     public: 
 
         ThreadedOutputWriter(const string & filename, const string & compression_mode);
-        ~ThreadedOutputWriter() {};
+        virtual ~ThreadedOutputWriter() {};
 
         void close();
 

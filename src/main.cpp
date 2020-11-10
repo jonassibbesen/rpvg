@@ -285,7 +285,7 @@ int main(int argc, char* argv[]) {
       ("n,max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("b,num-gibbs-samples", "number of Gibbs samples per haplotype sample (written to <prefix>_gibbs.txt.gz)", cxxopts::value<uint32_t>()->default_value("1"))
       ("min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
-      ("gibbs-thin-its", "number of Gibbs iterations between samples", cxxopts::value<uint32_t>()->default_value("10"))      
+      ("gibbs-thin-its", "number of Gibbs iterations between samples", cxxopts::value<uint32_t>()->default_value("25"))      
       ;
 
     if (argc == 1) {
@@ -745,8 +745,15 @@ int main(int argc, char* argv[]) {
 
     delete path_estimator;
 
-    prob_cluster_writer->close();
-    gibbs_samples_writer->close();
+    if (prob_cluster_writer) {
+
+        prob_cluster_writer->close();
+    } 
+
+    if (gibbs_samples_writer) {
+
+        gibbs_samples_writer->close();
+    }
 
     delete prob_cluster_writer;
     delete gibbs_samples_writer;
@@ -776,7 +783,7 @@ int main(int argc, char* argv[]) {
 
                     if (path_cluster_estimates.paths.at(i).effective_length > 0) {
 
-                        total_transcript_count += path_cluster_estimates.abundances(0, i) * path_cluster_estimates.total_read_count / path_cluster_estimates.paths.at(i).effective_length;
+                        total_transcript_count += (path_cluster_estimates.abundances(0, i) * path_cluster_estimates.total_read_count / path_cluster_estimates.paths.at(i).effective_length);
                     }
                 }
             }

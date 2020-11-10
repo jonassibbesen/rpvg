@@ -34,13 +34,13 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
 
         if (num_gibbs_samples > 0) {
 
-            vector<AbundanceSamples> & gibbs_abundance_samples = path_cluster_estimates->gibbs_abundance_samples;
-            gibbs_abundance_samples.emplace_back(AbundanceSamples());
+            vector<AbundanceSamples> * gibbs_abundance_samples = &(path_cluster_estimates->gibbs_abundance_samples);
+            gibbs_abundance_samples->emplace_back(AbundanceSamples());
 
-            gibbs_abundance_samples.back().path_ids = vector<uint32_t>(path_cluster_estimates->abundances.cols());
-            iota(gibbs_abundance_samples.back().path_ids.begin(), gibbs_abundance_samples.back().path_ids.end(), 0);
+            gibbs_abundance_samples->back().path_ids = vector<uint32_t>(path_cluster_estimates->abundances.cols());
+            iota(gibbs_abundance_samples->back().path_ids.begin(), gibbs_abundance_samples->back().path_ids.end(), 0);
 
-            gibbs_abundance_samples.back().samples = vector<vector<double> >(path_cluster_estimates->abundances.cols(), vector<double>());
+            gibbs_abundance_samples->back().samples = vector<vector<double> >(path_cluster_estimates->abundances.cols(), vector<double>());
 
             gibbsAbundanceSampler(path_cluster_estimates, read_path_probs, read_counts, 1, mt_rng);
         }
@@ -314,13 +314,13 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
 
             if (num_gibbs_samples > 0) {
 
-                vector<AbundanceSamples> & gibbs_abundance_samples = min_path_cluster_estimates.gibbs_abundance_samples;
-                gibbs_abundance_samples.emplace_back(AbundanceSamples());
+                vector<AbundanceSamples> * gibbs_abundance_samples = &(min_path_cluster_estimates.gibbs_abundance_samples);
+                gibbs_abundance_samples->emplace_back(AbundanceSamples());
 
-                gibbs_abundance_samples.back().path_ids = min_path_cover;
-                gibbs_abundance_samples.back().path_ids.emplace_back(path_cluster_estimates->abundances.cols() - 1);
+                gibbs_abundance_samples->back().path_ids = min_path_cover;
+                gibbs_abundance_samples->back().path_ids.emplace_back(path_cluster_estimates->abundances.cols() - 1);
                 
-                gibbs_abundance_samples.back().samples = vector<vector<double> >(min_path_cluster_estimates.abundances.cols(), vector<double>());
+                gibbs_abundance_samples->back().samples = vector<vector<double> >(min_path_cluster_estimates.abundances.cols(), vector<double>());
 
                 gibbsAbundanceSampler(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, 1, mt_rng);
             }
@@ -479,13 +479,13 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             if (num_gibbs_samples > 0) {
 
-                vector<AbundanceSamples> & gibbs_abundance_samples = ploidy_path_cluster_estimates.gibbs_abundance_samples;
-                gibbs_abundance_samples.emplace_back(AbundanceSamples());
+                vector<AbundanceSamples> * gibbs_abundance_samples = &(ploidy_path_cluster_estimates.gibbs_abundance_samples);
+                gibbs_abundance_samples->emplace_back(AbundanceSamples());
 
-                gibbs_abundance_samples.back().path_ids = path_indices_sample.first;
-                gibbs_abundance_samples.back().path_ids.emplace_back(path_cluster_estimates->abundances.cols() - 1);
+                gibbs_abundance_samples->back().path_ids = path_indices_sample.first;
+                gibbs_abundance_samples->back().path_ids.emplace_back(path_cluster_estimates->abundances.cols() - 1);
                 
-                gibbs_abundance_samples.back().samples = vector<vector<double> >(ploidy_path_cluster_estimates.abundances.cols(), vector<double>());
+                gibbs_abundance_samples->back().samples = vector<vector<double> >(ploidy_path_cluster_estimates.abundances.cols(), vector<double>());
 
                 for (uint32_t i = 0; i < path_indices_sample.second; ++i) {
 

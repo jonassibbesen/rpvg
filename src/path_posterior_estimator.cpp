@@ -73,6 +73,6 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
 
     } else {
 
-        path_cluster_estimates->initEstimates(0, 0, true );
+        path_cluster_estimates->initEstimates(0, 0, true);
     }
 }
