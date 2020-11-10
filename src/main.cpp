@@ -268,22 +268,22 @@ int main(int argc, char* argv[]) {
     options.add_options("Probability")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
-      ("q,filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
+      ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
+      ("filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
       ("filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("24"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
-      ("write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ;
 
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
-      ("j,use-exact", "use slower more accucate exact likelihood inference for haplotyping", cxxopts::value<bool>())
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("use-hap-gibbs", "use faster Gibbs sampling for haplotype inference", cxxopts::value<bool>())
       ("num-hap-samples", "number of haplotyping samples in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ;
 
     options.add_options("Quantification")
-      ("n,max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
-      ("b,num-gibbs-samples", "number of Gibbs samples per haplotype sample (written to <prefix>_gibbs.txt.gz)", cxxopts::value<uint32_t>()->default_value("1"))
+      ("n,num-gibbs-samples", "number of Gibbs samples per haplotype sample (written to <prefix>_gibbs.txt.gz)", cxxopts::value<uint32_t>()->default_value("0"))
+      ("max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ("gibbs-thin-its", "number of Gibbs iterations between samples", cxxopts::value<uint32_t>()->default_value("25"))      
       ;
@@ -556,7 +556,7 @@ int main(int argc, char* argv[]) {
 
     spp::sparse_hash_map<string, pair<string, uint32_t> > haplotype_transcript_info;
 
-    const bool use_exact = option_results.count("use-exact");
+    const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
     const double prob_precision = option_results["prob-precision"].as<double>();
     const uint32_t max_em_its = option_results["max-em-its"].as<uint32_t>();
     const double min_em_conv = option_results["min-em-conv"].as<double>();
@@ -568,7 +568,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        path_estimator = new PathGroupPosteriorEstimator(ploidy, use_exact, prob_precision);
+        path_estimator = new PathGroupPosteriorEstimator(ploidy, use_hap_gibbs, prob_precision);
 
     } else if (inference_model == "transcripts") {
 
@@ -580,7 +580,7 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(num_hap_samples, ploidy, use_exact, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, use_hap_gibbs, num_hap_samples, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
      
         haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>());
 

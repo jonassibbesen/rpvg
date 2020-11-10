@@ -22,3 +22,6 @@
 [submodule "deps/eigen"]
 	path = deps/eigen
 	url = https://gitlab.com/libeigen/eigen.git
+[submodule "deps/htslib"]
+	path = deps/htslib
+	url = https://github.com/samtools/htslib.git
