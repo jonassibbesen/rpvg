@@ -232,17 +232,12 @@ void PathAbundanceEstimator::updateEstimates(PathClusterEstimates * path_cluster
 
    for (size_t i = 0; i < path_indices.size(); ++i) {
 
-        if (new_path_cluster_estimates.posteriors(0, i) > 0) {
-
-            assert(doubleCompare(new_path_cluster_estimates.posteriors(0, i), 1));
-
-            path_cluster_estimates->posteriors(0, path_indices.at(i)) += (new_path_cluster_estimates.posteriors(0, i) * sample_count);            
-            path_cluster_estimates->abundances(0, path_indices.at(i)) += (new_path_cluster_estimates.abundances(0, i) * sample_count);
-        }
+        path_cluster_estimates->posteriors(0, path_indices.at(i)) += (new_path_cluster_estimates.posteriors(0, i) * sample_count);            
+        path_cluster_estimates->abundances(0, path_indices.at(i)) += (new_path_cluster_estimates.abundances(0, i) * sample_count);
     }
 
-    path_cluster_estimates->posteriors(0, path_indices.size()) += (new_path_cluster_estimates.posteriors(0, path_indices.size()) * sample_count);            
-    path_cluster_estimates->abundances(0, path_indices.size()) += (new_path_cluster_estimates.abundances(0, path_indices.size()) * sample_count);  
+    path_cluster_estimates->posteriors(0, path_cluster_estimates->posteriors.cols() - 1) += (new_path_cluster_estimates.posteriors(0, path_indices.size()) * sample_count);            
+    path_cluster_estimates->abundances(0, path_cluster_estimates->abundances.cols() - 1) += (new_path_cluster_estimates.abundances(0, path_indices.size()) * sample_count);  
 
     if (!new_path_cluster_estimates.gibbs_abundance_samples.empty()) {
 
