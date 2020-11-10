@@ -29,6 +29,12 @@ struct PathInfo {
     }
 };
 
+struct AbundanceSamples {
+    
+    vector<uint32_t> path_ids;
+    vector<vector<double> > samples;
+};
+
 struct PathClusterEstimates {
 
     vector<PathInfo> paths;
@@ -36,14 +42,10 @@ struct PathClusterEstimates {
     Eigen::RowVectorXd posteriors;
     Eigen::RowVectorXd abundances;
 
-    double read_count;
+    double total_read_count;
+    vector<AbundanceSamples> gibbs_abundance_samples;
 
     vector<vector<uint32_t> > path_groups;
-
-    PathClusterEstimates() {
-
-        read_count = 0;
-    }
 
     void generateGroupsRecursive(const uint32_t num_components, const uint32_t group_size, vector<uint32_t> cur_group) {
 
@@ -90,7 +92,7 @@ struct PathClusterEstimates {
             abundances = Eigen::RowVectorXd::Constant(num_components, 1 / static_cast<float>(num_components));
         }
 
-        read_count = 0;
+        total_read_count = 0;
     }
 };
 

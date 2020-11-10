@@ -7,7 +7,7 @@
 
 TEST_CASE("Weighted minimum path cover can be found") {
     
-    auto path_abundance_estimator = MinimumPathAbundanceEstimator(1, 1, 1);
+    auto path_abundance_estimator = MinimumPathAbundanceEstimator(1, 1, 1, 1, 1);
 
     Eigen::ColMatrixXb read_path_cover(4, 3);
 	read_path_cover << 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1;

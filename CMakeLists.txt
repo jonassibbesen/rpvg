@@ -53,11 +53,10 @@ add_library(${PROJECT_NAME}
   src/alignment_path_finder.cpp 
   src/path_clusters.cpp 
   src/read_path_probabilities.cpp 
-  src/probability_matrix_writer.cpp 
   src/path_estimator.cpp 
   src/path_posterior_estimator.cpp 
   src/path_abundance_estimator.cpp
-  src/path_estimates_writer.cpp
+  src/threaded_output_writer.cpp
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
   src/io/register_loader_saver_xg.cpp
@@ -99,6 +98,7 @@ target_link_libraries(${PROJECT_NAME}
   gbwt  
   vgio
   sdsl
+  hts
   handlegraph
   xg
   divsufsort

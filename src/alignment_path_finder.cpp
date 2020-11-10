@@ -116,6 +116,8 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const uint32_t subpath_start_idx) const {
 
+    assert(alignment.mapping_quality() >= 0);
+
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
     extended_align_search_path.front().min_mapq = min(extended_align_search_path.front().min_mapq, static_cast<uint32_t>(alignment.mapping_quality()));
     extended_align_search_path.front().scores.emplace_back(alignment.score());
@@ -217,6 +219,8 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 
 template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t subpath_start_idx) const {
+
+    assert(alignment.mapping_quality() >= 0);
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
     extended_align_search_path.front().min_mapq = min(extended_align_search_path.front().min_mapq, static_cast<uint32_t>(alignment.mapping_quality()));

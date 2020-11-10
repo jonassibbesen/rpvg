@@ -20,7 +20,7 @@ class PathEstimator {
         PathEstimator(const double prob_precision_in);
         virtual ~PathEstimator() {};
 
-        virtual void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs) = 0;
+        virtual void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) = 0;
 
     protected:
        
