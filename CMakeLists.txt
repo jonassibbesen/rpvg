@@ -28,14 +28,14 @@ ExternalProject_Add(htslib-proj
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
   BUILD_COMMAND make
-  INSTALL_COMMAND ""
+  INSTALL_COMMAND make prefix=${PROJECT_SOURCE_DIR}/deps/htslib/ install
 )
 
 ExternalProject_Add(libvgio-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio .
+  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=TRUE -DCMAKE_PREFIX_PATH=${PROJECT_SOURCE_DIR}/deps/htslib .
   BUILD_COMMAND make
   INSTALL_COMMAND ""
   DEPENDS htslib-proj
@@ -68,8 +68,9 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/Catch2/single_include/catch2 
   ${PROJECT_SOURCE_DIR}/deps/cxxopts/include 
   ${PROJECT_SOURCE_DIR}/deps/sparsepp
-  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/include
   ${PROJECT_SOURCE_DIR}/deps/gbwt/include
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/include
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/external/libdivsufsort/include
   ${PROJECT_SOURCE_DIR}/deps/htslib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
@@ -83,8 +84,9 @@ include_directories(
 )
 
 link_directories(
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/lib
   ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/lib
-  ${PROJECT_SOURCE_DIR}/deps/gbwt/lib 
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/external/libdivsufsort/lib
   ${PROJECT_SOURCE_DIR}/deps/htslib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/lib
