@@ -427,7 +427,14 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
             } else {
 
-                calculatePathGroupPosteriors(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy);
+                if (ploidy == 2) {
+
+                    calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy);
+
+                } else {
+
+                    calculatePathGroupPosteriorsFull(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy);                    
+                }
             }
 
             samplePloidyPathIndices(&ploidy_path_indices_samples, group_path_cluster_estimates, group, mt_rng);

@@ -277,7 +277,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
-      ("use-hap-gibbs", "use faster Gibbs sampling for haplotype inference", cxxopts::value<bool>())
+      ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
       ("num-hap-samples", "number of haplotyping samples in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ;
 

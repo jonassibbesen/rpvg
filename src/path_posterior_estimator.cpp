@@ -25,7 +25,7 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
             path_counts.emplace_back(path.count);
         }
 
-        calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
+        calculatePathGroupPosteriorsFull(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
 
         assert(path_cluster_estimates->posteriors.cols() == read_path_probs.cols());
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->paths.size());
@@ -62,11 +62,18 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
 
         if (use_hap_gibbs) {
 
-            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy, mt_rng);
-        
+            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy, mt_rng);            
+
         } else {
+
+            if (ploidy == 2) {
+
+                calculatePathGroupPosteriorsBounded(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy);
             
-            calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy);
+            } else {
+
+                calculatePathGroupPosteriorsFull(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy);
+            }
         }
 
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());
