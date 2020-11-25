@@ -4,7 +4,7 @@
 
 PathPosteriorEstimator::PathPosteriorEstimator(const double prob_precision) : PathEstimator(prob_precision) {}
 
-void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs) {
+void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
     if (!cluster_probs.empty()) {
 
@@ -25,7 +25,7 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
             path_counts.emplace_back(path.count);
         }
 
-        calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
+        calculatePathGroupPosteriorsFull(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
 
         assert(path_cluster_estimates->posteriors.cols() == read_path_probs.cols());
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->paths.size());
@@ -37,12 +37,9 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
     }
 }
 
-PathGroupPosteriorEstimator::PathGroupPosteriorEstimator(const uint32_t ploidy_in, const bool use_exact_in, const uint32_t rng_seed, const double prob_precision) : ploidy(ploidy_in), use_exact(use_exact_in), PathPosteriorEstimator(prob_precision) {
+PathGroupPosteriorEstimator::PathGroupPosteriorEstimator(const uint32_t ploidy_in, const bool use_hap_gibbs_in, const double prob_precision) : ploidy(ploidy_in), use_hap_gibbs(use_hap_gibbs_in), PathPosteriorEstimator(prob_precision) {}
 
-    mt_rng = mt19937(rng_seed);
-}
-
-void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs) {
+void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
     if (!cluster_probs.empty()) {
 
@@ -63,13 +60,20 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
             path_counts.emplace_back(path.count);
         }
 
-        if (use_exact) {
+        if (use_hap_gibbs) {
 
-            calculatePathGroupPosteriors(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy);
-        
+            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy, mt_rng);            
+
         } else {
 
-            estimatePathGroupPosteriorsGibbs(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy, &mt_rng);
+            if (ploidy == 2) {
+
+                calculatePathGroupPosteriorsBounded(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy);
+            
+            } else {
+
+                calculatePathGroupPosteriorsFull(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, ploidy);
+            }
         }
 
         assert(path_cluster_estimates->posteriors.cols() == path_cluster_estimates->path_groups.size());

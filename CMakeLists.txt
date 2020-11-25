@@ -13,30 +13,32 @@ project(rpvg)
 
 find_package(OpenMP REQUIRED)
 
-ExternalProject_Add(sdsl-lite-proj
-  SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/sdsl-lite"
-  BUILD_IN_SOURCE TRUE
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ./install.sh ${PROJECT_SOURCE_DIR}/deps/sdsl-lite
-)
-
 ExternalProject_Add(gbwt-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/gbwt"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ""
+  CONFIGURE_COMMAND cmake .
+  BUILD_COMMAND make
   INSTALL_COMMAND ""
-  DEPENDS sdsl-lite-proj
+)
+
+ExternalProject_Add(htslib-proj
+  SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/htslib"
+  BUILD_IN_SOURCE TRUE
+  UPDATE_COMMAND ""
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND make
+  INSTALL_COMMAND make prefix=${PROJECT_SOURCE_DIR}/deps/htslib/ install
 )
 
 ExternalProject_Add(libvgio-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio .
+  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=TRUE -DCMAKE_PREFIX_PATH=${PROJECT_SOURCE_DIR}/deps/htslib .
+  BUILD_COMMAND make
   INSTALL_COMMAND ""
+  DEPENDS htslib-proj
 )
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -53,11 +55,10 @@ add_library(${PROJECT_NAME}
   src/alignment_path_finder.cpp 
   src/path_clusters.cpp 
   src/read_path_probabilities.cpp 
-  src/probability_matrix_writer.cpp 
   src/path_estimator.cpp 
   src/path_posterior_estimator.cpp 
   src/path_abundance_estimator.cpp
-  src/path_estimates_writer.cpp
+  src/threaded_output_writer.cpp
   src/io/register_libvg_io.cpp 
   src/io/register_loader_saver_gbwt.cpp 
   src/io/register_loader_saver_xg.cpp
@@ -67,8 +68,10 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/Catch2/single_include/catch2 
   ${PROJECT_SOURCE_DIR}/deps/cxxopts/include 
   ${PROJECT_SOURCE_DIR}/deps/sparsepp
-  ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/include
-  ${PROJECT_SOURCE_DIR}/deps/gbwt/include 
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/include
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/include
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/external/libdivsufsort/include
+  ${PROJECT_SOURCE_DIR}/deps/htslib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/include
@@ -81,8 +84,10 @@ include_directories(
 )
 
 link_directories(
-  ${PROJECT_SOURCE_DIR}/deps/gbwt 
-  ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/lib
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/lib
+  ${PROJECT_SOURCE_DIR}/deps/gbwt/sdsl-lite-prefix/src/sdsl-lite-build/external/libdivsufsort/lib
+  ${PROJECT_SOURCE_DIR}/deps/htslib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/lib
 )
@@ -95,21 +100,22 @@ target_link_libraries(xg
 )
 
 target_link_libraries(${PROJECT_NAME}
-  protobuf 
-  gbwt  
-  vgio
   sdsl
+  gbwt
+  protobuf
+  hts
   handlegraph
-  xg
+  vgio
   divsufsort
   divsufsort64
+  xg
 )
 
-add_dependencies(xg sdsl-lite-proj)
+add_dependencies(xg gbwt-proj)
 add_dependencies(xg libvgio-proj)
 
-add_dependencies(${PROJECT_NAME} sdsl-lite-proj)
 add_dependencies(${PROJECT_NAME} gbwt-proj)
+add_dependencies(${PROJECT_NAME} htslib-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
 add_dependencies(${PROJECT_NAME} xg)
 

@@ -169,4 +169,3 @@ double PathsIndex::calculateUpperPhi(const double value) const {
     return (0.5 * (1 + erf(value / sqrt(2))));
 }
 
-

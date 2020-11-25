@@ -66,8 +66,6 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
         sum_count += (i * frag_length_counts.at(i));
     }
 
-    cerr << total_count << endl;
-
     mean_ = sum_count / static_cast<double>(total_count);
 
     if (total_count > 1) {

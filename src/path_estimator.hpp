@@ -20,7 +20,7 @@ class PathEstimator {
         PathEstimator(const double prob_precision_in);
         virtual ~PathEstimator() {};
 
-        virtual void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs) = 0;
+        virtual void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) = 0;
 
     protected:
        
@@ -32,7 +32,8 @@ class PathEstimator {
         void readCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts);
         void pathCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs);
 
-        void calculatePathGroupPosteriors(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size);
+        void calculatePathGroupPosteriorsFull(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size);
+        void calculatePathGroupPosteriorsBounded(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size);
         void estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size, mt19937 * mt_rng);
 
     private:
@@ -40,7 +41,7 @@ class PathEstimator {
         void rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts);
         void colSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs);
 
-        vector<double> calcPathFrequences(const vector<uint32_t> & path_counts);
+        vector<double> calcPathLogFrequences(const vector<uint32_t> & path_counts);
 };
 
 namespace std {
