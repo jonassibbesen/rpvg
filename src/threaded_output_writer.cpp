@@ -162,7 +162,7 @@ PosteriorEstimatesWriter::PosteriorEstimatesWriter(const string filename_prefix,
         *out_sstream << "Name" << i + 1 << "\t";
     }
 
-    *out_sstream << "ClusterID\tPosterior" << endl;
+    *out_sstream << "ClusterID\tPosteriorProbability" << endl;
     output_queue->push(out_sstream);
 }
 
