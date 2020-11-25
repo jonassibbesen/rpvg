@@ -3,8 +3,6 @@
 #define RPVG_SRC_PATHCLUSTERS_HPP
 
 #include <vector>
-#include <unordered_map>
-#include <unordered_set>
 
 #include "sparsepp/spp.h"
 
@@ -37,7 +35,6 @@ class PathClusters {
 
     	void createPathClusters(const connected_paths_t & connected_paths);
         void mergeClusters(const connected_paths_t & connected_clusters);
-
 };
 
 

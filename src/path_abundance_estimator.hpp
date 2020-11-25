@@ -66,8 +66,12 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         const bool use_hap_gibbs;
         const uint32_t num_nested_samples;
 
-        vector<vector<uint32_t> > findPathOriginGroups(const vector<PathInfo> & paths) const;
-        
+        void inferAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);        
+        void inferAbundanceContrained(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);        
+
+        vector<vector<uint32_t> > findPathGroups(const vector<PathInfo> & paths) const;
+        vector<vector<uint32_t> > findPathSourceGroups(const vector<PathInfo> & paths) const;
+
         void samplePloidyPathIndices(vector<vector<uint32_t> > * ploidy_path_indices_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<uint32_t> & group, mt19937 * mt_rng);
 };
 

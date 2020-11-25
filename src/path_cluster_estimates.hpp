@@ -4,7 +4,8 @@
 
 #include <vector>
 
-#include <Eigen/Dense>
+#include "Eigen/Dense"
+#include "sparsepp/spp.h"
 
 #include "utils.hpp"
 
@@ -14,16 +15,22 @@ using namespace std;
 struct PathInfo {
         
     string name;
-    string origin;
-    uint32_t count;
+    uint32_t group_id;
+
+    uint32_t source_count;
+    vector<uint32_t> source_ids;
+
     uint32_t length;
     double effective_length;
     
     PathInfo() {
 
         name = "";
-        origin = "";
-        count = 1;
+        group_id = 0;
+
+        source_count = 1;
+        max_source_id = 0;
+        
         length = 0;
         effective_length = 0;
     }
@@ -45,7 +52,7 @@ struct PathClusterEstimates {
     double total_read_count;
     vector<AbundanceSamples> gibbs_abundance_samples;
 
-    vector<vector<uint32_t> > path_groups;
+    vector<vector<uint32_t> > path_group_sets;
 
     void generateGroupsRecursive(const uint32_t num_components, const uint32_t group_size, vector<uint32_t> cur_group) {
 
@@ -69,7 +76,7 @@ struct PathClusterEstimates {
 
         } else {
 
-            path_groups.emplace_back(cur_group);
+            path_group_sets.emplace_back(cur_group);
         }
     }
 
@@ -78,7 +85,7 @@ struct PathClusterEstimates {
         if (group_size > 0) {
 
             generateGroupsRecursive(num_components, group_size, vector<uint>());
-            num_components = path_groups.size();
+            num_components = path_group_sets.size();
         }
 
         if (init_zero) {
