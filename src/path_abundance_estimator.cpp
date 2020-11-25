@@ -8,6 +8,7 @@
 const uint32_t min_em_conv_its = 10;
 const double min_em_abundances = pow(10, -8);
 
+const double abundance_gibbs_gamma = 1;
 
 PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_em_conv, const uint32_t num_gibbs_samples_in, const uint32_t gibbs_thin_its_in, const double prob_precision) : max_em_its(max_em_its_in), em_conv_min_exp(min_em_conv), em_conv_max_rel_diff(min_em_conv), num_gibbs_samples(num_gibbs_samples_in), gibbs_thin_its(gibbs_thin_its_in), PathEstimator(prob_precision) {}
 
@@ -42,7 +43,7 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
 
             gibbs_abundance_samples->back().samples = vector<vector<double> >(path_cluster_estimates->abundances.cols(), vector<double>());
 
-            gibbsAbundanceSampler(path_cluster_estimates, read_path_probs, read_counts, 1, mt_rng);
+            gibbsAbundanceSampler(path_cluster_estimates, read_path_probs, read_counts, abundance_gibbs_gamma, mt_rng);
         }
 
         removeNoiseAndRenormalizeAbundances(path_cluster_estimates);
@@ -317,7 +318,7 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
                 
                 gibbs_abundance_samples->back().samples = vector<vector<double> >(min_path_cluster_estimates.abundances.cols(), vector<double>());
 
-                gibbsAbundanceSampler(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, 1, mt_rng);
+                gibbsAbundanceSampler(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, abundance_gibbs_gamma, mt_rng);
             }
 
             updateEstimates(path_cluster_estimates, min_path_cluster_estimates, min_path_cover, 1);    
@@ -491,7 +492,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
 
                 for (uint32_t i = 0; i < path_indices_sample.second; ++i) {
 
-                    gibbsAbundanceSampler(&ploidy_path_cluster_estimates, ploidy_read_path_probs, ploidy_read_counts, 1, mt_rng);
+                    gibbsAbundanceSampler(&ploidy_path_cluster_estimates, ploidy_read_path_probs, ploidy_read_counts, abundance_gibbs_gamma, mt_rng);
                 }
             }
 

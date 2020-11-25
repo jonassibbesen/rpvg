@@ -31,7 +31,7 @@ The prefix used for all output files are given using `-o`. The number of threads
 
 The method currently contains four different inference models. Each model have been written with a particular path type and corresponding inference problem in mind:
 
-* `haplotypes`: Infers haplotype/diplotype/... posterior probabilities. For a ploidy of 2 and lower it uses a branch and bound inference scheme to infer the most probable combination of haplotypes. A faster less accurate Gibbs sampling scheme can be enabled using `--use-hap-gibbs`, which scales much better for higher ploidies. The maximum ploidy can be given using `-y`.
+* `haplotypes`: Infers haplotype/diplotype/... posterior probabilities. For diploid ploidy it uses a branch and bound like algorithm to infer the most probable combination of haplotypes. A faster less accurate Gibbs sampling scheme can be enabled using `--use-hap-gibbs`, which scales much better for higher ploidies. The maximum ploidy can be given using `-y`.
 
 * `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm.
 

@@ -1,7 +1,7 @@
 
 #include "path_estimator.hpp"
 
-static const double max_log_likelihood_diff = log(pow(10, -12));
+static const double max_log_likelihood_diff = log(pow(10, -16));
 
 static const uint32_t min_gibbs_chains = 10;
 static const double gibbs_chain_scaling = 0.01;
@@ -310,6 +310,8 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
         marginal_posteriors.emplace_back(marginal_path_cluster_estimates.posteriors(0, i), marginal_path_cluster_estimates.path_groups.at(i).front());
     }
 
+    sort(marginal_posteriors.rbegin(), marginal_posteriors.rend());
+
     const Eigen::ColVectorXd max_read_probs = read_path_probs.rowwise().maxCoeff();
 
     vector<double> log_likelihoods;
@@ -324,10 +326,10 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
         Eigen::ColVectorXd group_read_probs_base = noise_probs;
         group_read_probs_base += read_path_probs.col(first_path_idx);
 
-        double max_log_likelihood_base = read_counts.cast<double>() * (group_read_probs_base + max_read_probs).array().log().matrix();
-        max_log_likelihood_base += path_log_freqs.at(first_path_idx) + max_path_log_freq + log(2);
+        double max_log_likelihood_best = read_counts.cast<double>() * (group_read_probs_base + max_read_probs).array().log().matrix();
+        max_log_likelihood_best += path_log_freqs.at(first_path_idx) + max_path_log_freq + log(2);
 
-        if (max_log_likelihood_base - max_log_likelihood < max_log_likelihood_diff) {
+        if (max_log_likelihood_best - max_log_likelihood < max_log_likelihood_diff) {
 
             continue;
         }
@@ -469,7 +471,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
     path_cluster_estimates->posteriors = Eigen::RowVectorXd(1, path_group_sample_counts.size());
 
-    for (size_t i = 0; i < path_group_sample_counts.size(); ++i) {
+    for (size_t i = 0; i < path_cluster_estimates->posteriors.cols(); ++i) {
 
         path_cluster_estimates->posteriors(0, i) = path_group_sample_counts.at(i) / static_cast<double>(num_gibbs_chains * num_gibbs_its);
     }

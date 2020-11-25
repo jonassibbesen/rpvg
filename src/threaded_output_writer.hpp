@@ -20,7 +20,7 @@ class ThreadedOutputWriter {
 
     public: 
 
-        ThreadedOutputWriter(const string & filename, const string & compression_mode);
+        ThreadedOutputWriter(const string & filename, const string & compression_mode, const uint32_t num_threads);
         virtual ~ThreadedOutputWriter() {};
 
         void close();
@@ -41,7 +41,7 @@ class ProbabilityClusterWriter : public ThreadedOutputWriter {
 
     public: 
         
-        ProbabilityClusterWriter(const string filename_prefix, const double prob_precision_in);
+        ProbabilityClusterWriter(const string filename_prefix, const uint32_t num_threads, const double prob_precision_in);
         ~ProbabilityClusterWriter() {};
 
         void addCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths);
@@ -58,7 +58,7 @@ class GibbsSamplesWriter : public ThreadedOutputWriter {
 
     public: 
         
-        GibbsSamplesWriter(const string filename_prefix, const uint32_t num_gibbs_samples_in);
+        GibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in);
         ~GibbsSamplesWriter() {};
 
         void addSamples(const PathClusterEstimates & path_cluster_estimate);
@@ -72,33 +72,29 @@ class PosteriorEstimatesWriter : public ThreadedOutputWriter {
 
     public: 
         
-        PosteriorEstimatesWriter(const string filename_prefix, const uint32_t ploidy_in, const double min_posterior_in);
+        PosteriorEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in);
         ~PosteriorEstimatesWriter() {};
 
-        void addEstimates(const vector<PathClusterEstimates> & path_cluster_estimates);
+        void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
 
     private:
 
         const uint32_t ploidy;
         const double min_posterior;
-
-        uint32_t cur_cluster_id;
 };
 
 class AbundanceEstimatesWriter : public ThreadedOutputWriter {
 
     public: 
     	
-    	AbundanceEstimatesWriter(const string filename_prefix, const double total_transcript_count_in);
+    	AbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const double total_transcript_count_in);
     	~AbundanceEstimatesWriter() {};
 
-        void addEstimates(const vector<PathClusterEstimates> & path_cluster_estimates);
+        void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
 
     private:
 
         const double total_transcript_count;
-
-        uint32_t cur_cluster_id;
 };
 
 
