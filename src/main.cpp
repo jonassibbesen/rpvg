@@ -19,6 +19,8 @@
 #include "vg/io/basic_stream.hpp"
 #include "io/register_libvg_io.hpp"
 #include "handlegraph/handle_graph.hpp"
+#include "htslib/bgzf.h"
+#include "htslib/hts.h"
 
 #include "utils.hpp"
 #include "fragment_length_dist.hpp"
@@ -609,17 +611,17 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("write-probs")) {
 
-        prob_cluster_writer = new ProbabilityClusterWriter(option_results["output-prefix"].as<string>(), prob_precision);
+        prob_cluster_writer = new ProbabilityClusterWriter(option_results["output-prefix"].as<string>(), num_threads, prob_precision);
     }
 
     GibbsSamplesWriter * gibbs_samples_writer = nullptr;
 
     if (num_gibbs_samples > 0) {
 
-        gibbs_samples_writer = new GibbsSamplesWriter(option_results["output-prefix"].as<string>(), num_gibbs_samples);
+        gibbs_samples_writer = new GibbsSamplesWriter(option_results["output-prefix"].as<string>(), num_threads, num_gibbs_samples);
     }
 
-    vector<vector<PathClusterEstimates> > threaded_path_cluster_estimates(num_threads);
+    vector<vector<pair<uint32_t, PathClusterEstimates> > > threaded_path_cluster_estimates(num_threads);
 
     for (size_t i = 0; i < num_threads; ++i) {
 
@@ -635,15 +637,6 @@ int main(int argc, char* argv[]) {
     }
 
     sort(align_paths_clusters_indices.rbegin(), align_paths_clusters_indices.rend());
-
-    vector<mt19937> threaded_mt_rng;
-    threaded_mt_rng.reserve(num_threads);
-
-    for (size_t i = 0; i < num_threads; ++i) {
-
-        // Need better solution for this
-        threaded_mt_rng.emplace_back(rng_seed + i);
-    }
 
     #pragma omp parallel for schedule(dynamic, 1)
     for (size_t i = 0; i < align_paths_clusters_indices.size(); ++i) {
@@ -665,9 +658,9 @@ int main(int argc, char* argv[]) {
         spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index;
 
         auto * path_cluster_estimates = &(threaded_path_cluster_estimates.at(omp_get_thread_num()));
-        path_cluster_estimates->emplace_back(PathClusterEstimates());
+        path_cluster_estimates->emplace_back(i + 1, PathClusterEstimates());
 
-        path_cluster_estimates->back().paths.reserve(path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size());
+        path_cluster_estimates->back().second.paths.reserve(path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size());
         
         for (auto & path_id: path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx)) {
 
@@ -678,23 +671,23 @@ int main(int argc, char* argv[]) {
                 auto haplotype_transcript_info_it = haplotype_transcript_info.find(paths_index.pathName(path_id));
                 assert(haplotype_transcript_info_it != haplotype_transcript_info.end());
 
-                path_cluster_estimates->back().paths.emplace_back(move(haplotype_transcript_info_it->second));
+                path_cluster_estimates->back().second.paths.emplace_back(move(haplotype_transcript_info_it->second));
             
             } else {
 
-                path_cluster_estimates->back().paths.emplace_back(PathInfo());
-                path_cluster_estimates->back().paths.back().name = paths_index.pathName(path_id);
+                path_cluster_estimates->back().second.paths.emplace_back(PathInfo());
+                path_cluster_estimates->back().second.paths.back().name = paths_index.pathName(path_id);
             }
 
-            path_cluster_estimates->back().paths.back().length = paths_index.pathLength(path_id); 
+            path_cluster_estimates->back().second.paths.back().length = paths_index.pathLength(path_id); 
 
             if (is_long_reads) {
 
-                path_cluster_estimates->back().paths.back().effective_length = paths_index.pathLength(path_id); 
+                path_cluster_estimates->back().second.paths.back().effective_length = paths_index.pathLength(path_id); 
 
             } else {
 
-                path_cluster_estimates->back().paths.back().effective_length = paths_index.effectivePathLength(path_id, fragment_length_dist); 
+                path_cluster_estimates->back().second.paths.back().effective_length = paths_index.effectivePathLength(path_id, fragment_length_dist); 
             }
         }
 
@@ -712,7 +705,7 @@ int main(int argc, char* argv[]) {
             }
 
             read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-            read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().paths, fragment_length_dist, is_single_end);
+            read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end);
         }
 
         sort(read_path_cluster_probs.begin(), read_path_cluster_probs.end());
@@ -737,17 +730,19 @@ int main(int argc, char* argv[]) {
             read_path_cluster_probs.resize(prev_unique_probs_idx + 1);
         }
 
-        path_estimator->estimate(&(path_cluster_estimates->back()), read_path_cluster_probs, &(threaded_mt_rng.at(thread_id)));
+        // Need better solution for this
+        mt19937 mt_rng = mt19937(rng_seed + i);
+        path_estimator->estimate(&(path_cluster_estimates->back().second), read_path_cluster_probs, &mt_rng);
 
         if (prob_cluster_writer) {
 
-            prob_cluster_writer->addCluster(read_path_cluster_probs, path_cluster_estimates->back().paths);
+            prob_cluster_writer->addCluster(read_path_cluster_probs, path_cluster_estimates->back().second.paths);
         } 
 
         if (gibbs_samples_writer) {
 
-            gibbs_samples_writer->addSamples(path_cluster_estimates->back());
-            path_cluster_estimates->back().gibbs_abundance_samples.clear();
+            gibbs_samples_writer->addSamples(path_cluster_estimates->back().second);
+            path_cluster_estimates->back().second.gibbs_abundance_samples.clear();
         }
 
         // if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
@@ -777,7 +772,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        PosteriorEstimatesWriter posterior_estimates_writer(option_results["output-prefix"].as<string>(), ploidy, prob_precision);
+        PosteriorEstimatesWriter posterior_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, prob_precision);
 
         for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
 
@@ -794,19 +789,19 @@ int main(int argc, char* argv[]) {
 
             for (auto & path_cluster_estimates: path_cluster_estimates_thread) {
 
-                assert(path_cluster_estimates.paths.size() == path_cluster_estimates.abundances.cols());
+                assert(path_cluster_estimates.second.paths.size() == path_cluster_estimates.second.abundances.cols());
 
-                for (size_t i = 0; i < path_cluster_estimates.paths.size(); ++i) {
+                for (size_t i = 0; i < path_cluster_estimates.second.paths.size(); ++i) {
 
-                    if (path_cluster_estimates.paths.at(i).effective_length > 0) {
+                    if (path_cluster_estimates.second.paths.at(i).effective_length > 0) {
 
-                        total_transcript_count += (path_cluster_estimates.abundances(0, i) * path_cluster_estimates.total_read_count / path_cluster_estimates.paths.at(i).effective_length);
+                        total_transcript_count += (path_cluster_estimates.second.abundances(0, i) * path_cluster_estimates.second.total_read_count / path_cluster_estimates.second.paths.at(i).effective_length);
                     }
                 }
             }
         }
 
-        AbundanceEstimatesWriter abundance_estimates_writer(option_results["output-prefix"].as<string>(), total_transcript_count);
+        AbundanceEstimatesWriter abundance_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, total_transcript_count);
 
         for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
 

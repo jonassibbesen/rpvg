@@ -27,10 +27,7 @@ struct PathInfo {
 
         name = "";
         group_id = 0;
-
         source_count = 1;
-        max_source_id = 0;
-        
         length = 0;
         effective_length = 0;
     }
