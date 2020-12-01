@@ -640,7 +640,7 @@ int main(int argc, char* argv[]) {
         unordered_map<uint32_t, uint32_t> clustered_path_index;
 
         auto * path_cluster_estimates = &(threaded_path_cluster_estimates.at(omp_get_thread_num()));
-        path_cluster_estimates->emplace_back(i, PathClusterEstimates());
+        path_cluster_estimates->emplace_back(i + 1, PathClusterEstimates());
 
         path_cluster_estimates->back().second.paths.reserve(path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size());
         
@@ -722,8 +722,8 @@ int main(int argc, char* argv[]) {
 
         if (gibbs_samples_writer) {
 
-            gibbs_samples_writer->addSamples(path_cluster_estimates->back().second);
-            path_cluster_estimates->back().second.gibbs_abundance_samples.clear();
+            gibbs_samples_writer->addSamples(path_cluster_estimates->back());
+            path_cluster_estimates->back().second.gibbs_read_count_samples.clear();
         }
 
         // if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {

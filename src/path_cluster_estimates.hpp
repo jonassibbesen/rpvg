@@ -29,7 +29,7 @@ struct PathInfo {
     }
 };
 
-struct AbundanceSamples {
+struct CountSamples {
     
     vector<uint32_t> path_ids;
     vector<vector<double> > samples;
@@ -43,7 +43,7 @@ struct PathClusterEstimates {
     Eigen::RowVectorXd abundances;
 
     double total_read_count;
-    vector<AbundanceSamples> gibbs_abundance_samples;
+    vector<CountSamples> gibbs_read_count_samples;
 
     vector<vector<uint32_t> > path_groups;
 
