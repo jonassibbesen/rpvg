@@ -140,21 +140,20 @@ void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_c
 
         vector<uint32_t> gibbs_path_read_counts(gibbs_abundances.cols(), 0);
 
-        for (size_t i = 0; i < read_path_probs.rows(); ++i) {
+        for (size_t i = 0; i < read_posteriors.rows(); ++i) {
 
             uint32_t row_reads_counts = read_counts(0, i);
             double row_sum_probs = 1;
 
-            for (size_t j = 0; j < read_path_probs.cols(); ++j) {
+            for (size_t j = 0; j < read_posteriors.cols(); ++j) {
 
-                auto cur_prob = read_path_probs(i, j);
+                auto cur_prob = read_posteriors(i, j);
 
                 if (cur_prob > 0) {
 
                     assert(row_sum_probs > 0);
-                    assert(cur_prob < row_sum_probs || doubleCompare(cur_prob, row_sum_probs));
 
-                    binomial_distribution<uint32_t> path_read_count_sampler(row_reads_counts, max(1.0, cur_prob / row_sum_probs));
+                    binomial_distribution<uint32_t> path_read_count_sampler(row_reads_counts, min(1.0, cur_prob / row_sum_probs));
                     auto path_read_count = path_read_count_sampler(*mt_rng);
 
                     gibbs_path_read_counts.at(j) += path_read_count;
