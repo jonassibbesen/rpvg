@@ -7,7 +7,7 @@ ThreadedOutputWriter::ThreadedOutputWriter(const string & filename, const string
 
     writer_stream = bgzf_open(filename.c_str(), compression_mode.c_str());
 
-    output_queue = new ProducerConsumerQueue<stringstream *>(5 * num_threads);
+    output_queue = new ProducerConsumerQueue<stringstream *>(num_threads * 5);
     writing_thread = thread(&ThreadedOutputWriter::write, this);
 }
 
@@ -102,7 +102,7 @@ void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & 
 GibbsSamplesWriter::GibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in) : ThreadedOutputWriter(filename_prefix + "_gibbs.txt.gz", "wg", num_threads), num_gibbs_samples(num_gibbs_samples_in) {
 
     auto out_sstream = new stringstream;
-    *out_sstream << "Name\tHaplotypeSampleId";
+    *out_sstream << "Name\tClusterID\tHaplotypeSampleId";
 
     for (size_t i = 1; i <= num_gibbs_samples; ++i) {
 
@@ -113,34 +113,35 @@ GibbsSamplesWriter::GibbsSamplesWriter(const string filename_prefix, const uint3
     output_queue->push(out_sstream);
 }
 
-void GibbsSamplesWriter::addSamples(const PathClusterEstimates & path_cluster_estimate) {
+void GibbsSamplesWriter::addSamples(const pair<uint32_t, PathClusterEstimates> & path_cluster_estimate) {
 
-    if (!path_cluster_estimate.gibbs_abundance_samples.empty()) {
+    if (!path_cluster_estimate.second.gibbs_read_count_samples.empty()) {
 
         uint32_t cur_hap_sample_id = 0;
         auto out_sstream = new stringstream;
 
-        for (auto & abundance_samples: path_cluster_estimate.gibbs_abundance_samples) {
+        for (auto & read_count_samples: path_cluster_estimate.second.gibbs_read_count_samples) {
 
-            assert(!abundance_samples.path_ids.empty());
-            assert(abundance_samples.path_ids.size() == abundance_samples.samples.size());
+            assert(!read_count_samples.path_ids.empty());
+            assert(read_count_samples.path_ids.size() == read_count_samples.samples.size());
 
-            assert(abundance_samples.samples.front().size() % num_gibbs_samples == 0);
+            assert(read_count_samples.samples.front().size() % num_gibbs_samples == 0);
 
-            for (size_t i = 0; i < abundance_samples.samples.front().size(); i += num_gibbs_samples) {
+            for (size_t i = 0; i < read_count_samples.samples.front().size(); i += num_gibbs_samples) {
 
                 ++cur_hap_sample_id;
 
-                for (size_t j = 0; j < abundance_samples.path_ids.size(); ++j) {
+                for (size_t j = 0; j < read_count_samples.path_ids.size(); ++j) {
 
-                    assert(abundance_samples.samples.front().size() == abundance_samples.samples.at(j).size());
+                    assert(read_count_samples.samples.front().size() == read_count_samples.samples.at(j).size());
 
-                    *out_sstream << path_cluster_estimate.paths.at(abundance_samples.path_ids.at(j)).name;
+                    *out_sstream << path_cluster_estimate.second.paths.at(read_count_samples.path_ids.at(j)).name;
+                    *out_sstream << "\t" << path_cluster_estimate.first;
                     *out_sstream << "\t" << cur_hap_sample_id;
 
                     for (size_t k = 0; k < num_gibbs_samples; ++k) {
 
-                        *out_sstream << "\t" << abundance_samples.samples.at(j).at(i + k);
+                        *out_sstream << "\t" << read_count_samples.samples.at(j).at(i + k);
                     }
 
                     *out_sstream << endl;
@@ -172,15 +173,15 @@ void PosteriorEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
 
     for (auto & cur_estimates: path_cluster_estimates) {
 
-        assert(cur_estimates.second.path_groups.size() == cur_estimates.second.posteriors.cols());
+        assert(cur_estimates.second.path_group_sets.size() == cur_estimates.second.posteriors.cols());
 
-        for (size_t i = 0; i < cur_estimates.second.path_groups.size(); ++i) {
+        for (size_t i = 0; i < cur_estimates.second.path_group_sets.size(); ++i) {
 
-            assert(cur_estimates.second.path_groups.at(i).size() == ploidy);
+            assert(cur_estimates.second.path_group_sets.at(i).size() == ploidy);
 
             if (cur_estimates.second.posteriors(0, i) >= min_posterior) {
 
-                for (auto & path_idx: cur_estimates.second.path_groups.at(i)) {
+                for (auto & path_idx: cur_estimates.second.path_group_sets.at(i)) {
 
                     *out_sstream << cur_estimates.second.paths.at(path_idx).name << "\t";
                 }

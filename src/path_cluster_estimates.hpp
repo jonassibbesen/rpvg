@@ -18,14 +18,13 @@ struct PathInfo {
     uint32_t group_id;
 
     uint32_t source_count;
-    vector<uint32_t> source_ids;
+    spp::sparse_hash_set<uint32_t> source_ids;
 
     uint32_t length;
     double effective_length;
     
-    PathInfo() {
+    PathInfo(const string & name_in) : name(name_in) {
 
-        name = "";
         group_id = 0;
         source_count = 1;
         length = 0;
@@ -33,7 +32,7 @@ struct PathInfo {
     }
 };
 
-struct AbundanceSamples {
+struct CountSamples {
     
     vector<uint32_t> path_ids;
     vector<vector<double> > samples;
@@ -47,7 +46,7 @@ struct PathClusterEstimates {
     Eigen::RowVectorXd abundances;
 
     double total_read_count;
-    vector<AbundanceSamples> gibbs_abundance_samples;
+    vector<CountSamples> gibbs_read_count_samples;
 
     vector<vector<uint32_t> > path_group_sets;
 

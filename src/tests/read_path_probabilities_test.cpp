@@ -1,5 +1,6 @@
 
 #include "catch.hpp"
+#include "sparsepp/spp.h"
 
 #include "../read_path_probabilities.hpp"
 #include "../utils.hpp"
@@ -7,13 +8,13 @@
    
 TEST_CASE("Read path probabilities can be calculated from alignment paths") {
     
-	unordered_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
+	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
 	vector<AlignmentPath> alignment_paths(1, AlignmentPath(10, 10, 3, false, gbwt::SearchState()));
 	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
 
-	vector<PathInfo> paths(2);
+	vector<PathInfo> paths(2, PathInfo(""));
 	paths.front().effective_length = 3;
 	paths.back().effective_length = 3;
 
@@ -53,10 +54,10 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 		clustered_path_index.emplace(10, 2);
 		clustered_path_index.emplace(50, 3);
 
-		paths.emplace_back(PathInfo());
+		paths.emplace_back(PathInfo(""));
 		paths.back().effective_length = 3;
 
-		paths.emplace_back(PathInfo());
+		paths.emplace_back(PathInfo(""));
 		paths.back().effective_length = 3;
 
 		ReadPathProbabilities read_path_probs_3(1, pow(10, -8));
@@ -94,13 +95,13 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
 TEST_CASE("Identical read path probabilities can be merged") {
 
-	unordered_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
+	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
 	vector<AlignmentPath> alignment_paths(1, AlignmentPath(10, 10, 3, false, gbwt::SearchState()));
 	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
 
-	vector<PathInfo> paths(2);
+	vector<PathInfo> paths(2, PathInfo(""));
 	paths.front().effective_length = 3;
 	paths.back().effective_length = 3;
 
@@ -120,7 +121,7 @@ TEST_CASE("Identical read path probabilities can be merged") {
 
 	SECTION("Probability precision affect merge") {
 
-		vector<PathInfo> paths(2);
+		vector<PathInfo> paths(2, PathInfo(""));
 		paths.front().effective_length = 2;
 		paths.back().effective_length = 3;
 
@@ -135,7 +136,7 @@ TEST_CASE("Identical read path probabilities can be merged") {
 TEST_CASE("Read path probabilities can be collapsed") {
 
 	
-	unordered_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}, {10, 2}, {50, 3}});
+	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}, {10, 2}, {50, 3}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
 	vector<AlignmentPath> alignment_paths(1, AlignmentPath(10, 10, 3, false, gbwt::SearchState()));
@@ -144,7 +145,7 @@ TEST_CASE("Read path probabilities can be collapsed") {
 	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
 	alignment_path_ids.emplace_back(vector<gbwt::size_type>({50}));
 
-	vector<PathInfo> paths(4);
+	vector<PathInfo> paths(4, PathInfo(""));
 	paths.at(0).effective_length = 3;
 	paths.at(1).effective_length = 3;
 	paths.at(2).effective_length = 3;

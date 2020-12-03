@@ -226,7 +226,7 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
             continue;
         }
 
-        auto haplotype_transcript_info_it = haplotype_transcript_info.emplace(element, PathInfo());
+        auto haplotype_transcript_info_it = haplotype_transcript_info.emplace(element, PathInfo(element));
         assert(haplotype_transcript_info_it.second);
 
         getline(line_ss, element, '\t');        
@@ -240,11 +240,10 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
 
         if (parse_haplotype_ids) {
 
-
             for (auto & haplotype: splitString(element, ',')) {
 
                 auto haplotype_id_index_it = haplotype_id_index.emplace(haplotype, haplotype_id_index.size());
-                haplotype_transcript_info_it.first->second.source_ids.emplace_back(haplotype_id_index_it.first->second);
+                assert(haplotype_transcript_info_it.first->second.source_ids.emplace(haplotype_id_index_it.first->second).second);
             }
 
             haplotype_transcript_info_it.first->second.source_count = haplotype_transcript_info_it.first->second.source_ids.size();
@@ -600,7 +599,7 @@ int main(int argc, char* argv[]) {
     } else if (inference_model == "haplotype-transcripts") {
 
         path_estimator = new NestedPathAbundanceEstimator(ploidy, use_hap_gibbs, num_hap_samples, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
-        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), false);
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), true);
 
     } else {
 
@@ -675,8 +674,7 @@ int main(int argc, char* argv[]) {
             
             } else {
 
-                path_cluster_estimates->back().second.paths.emplace_back(PathInfo());
-                path_cluster_estimates->back().second.paths.back().name = paths_index.pathName(path_id);
+                path_cluster_estimates->back().second.paths.emplace_back(PathInfo(paths_index.pathName(path_id)));
             }
 
             path_cluster_estimates->back().second.paths.back().length = paths_index.pathLength(path_id); 
@@ -741,8 +739,8 @@ int main(int argc, char* argv[]) {
 
         if (gibbs_samples_writer) {
 
-            gibbs_samples_writer->addSamples(path_cluster_estimates->back().second);
-            path_cluster_estimates->back().second.gibbs_abundance_samples.clear();
+            gibbs_samples_writer->addSamples(path_cluster_estimates->back());
+            path_cluster_estimates->back().second.gibbs_read_count_samples.clear();
         }
 
         // if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {

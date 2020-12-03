@@ -61,7 +61,7 @@ class GibbsSamplesWriter : public ThreadedOutputWriter {
         GibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in);
         ~GibbsSamplesWriter() {};
 
-        void addSamples(const PathClusterEstimates & path_cluster_estimate);
+        void addSamples(const pair<uint32_t, PathClusterEstimates> & path_cluster_estimate);
 
     private:
 
