@@ -137,7 +137,7 @@ void PathEstimator::constructGroupedProbabilityMatrix(Eigen::ColMatrixXd * read_
 
             for (auto & group_id: path_id_group_idx.at(prob.first)) {
 
-                (*read_path_probs)(i, group_id) += (prob.second / path_id_group_idx.at(prob.first).size());
+                (*read_path_probs)(i, group_id) += prob.second;
             }
         }
 
