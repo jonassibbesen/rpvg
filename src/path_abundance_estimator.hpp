@@ -55,7 +55,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t ploidy_in, const bool use_hap_gibbs_in, const uint32_t num_nested_samples_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
+        NestedPathAbundanceEstimator(const uint32_t ploidy_in, const bool use_hap_gibbs_in, const uint32_t num_nested_samples_in, const bool hap_consist_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
         ~NestedPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);
@@ -65,6 +65,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         const uint32_t ploidy;
         const bool use_hap_gibbs;
         const uint32_t num_nested_samples;
+        const bool hap_consist;
 
         void inferAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const;        
         void inferAbundanceContrained(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const;        

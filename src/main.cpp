@@ -304,6 +304,7 @@ int main(int argc, char* argv[]) {
       ("max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ("gibbs-thin-its", "number of Gibbs iterations between samples", cxxopts::value<uint32_t>()->default_value("25"))      
+      ("hap-consist", "haplotypes are consistent", cxxopts::value<bool>())
       ;
 
     if (argc == 1) {
@@ -558,6 +559,7 @@ int main(int argc, char* argv[]) {
 
     cerr << path_clusters.path_to_cluster_index.size() << endl;
     cerr << path_clusters.cluster_to_paths_index.size() << endl;
+    cerr << path_clusters.search_to_cluster_index.size() << endl;
 
     // path_clusters.addReadClusters(align_paths_index);
 
@@ -586,6 +588,7 @@ int main(int argc, char* argv[]) {
     const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
     const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
     const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
+    const bool hap_consist = option_results["hap-consist"].as<bool>();
 
     PathEstimator * path_estimator;
 
@@ -603,8 +606,8 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(ploidy, use_hap_gibbs, num_hap_samples, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
-        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), true);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, use_hap_gibbs, num_hap_samples, hap_consist, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), hap_consist);
 
     } else {
 

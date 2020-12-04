@@ -378,17 +378,17 @@ vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const E
 }
 
 
-NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t path_subset_in, const bool use_hap_gibbs_in, const uint32_t num_nested_samples_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : ploidy(path_subset_in), use_hap_gibbs(use_hap_gibbs_in), num_nested_samples(num_nested_samples_in), PathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
+NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t path_subset_in, const bool use_hap_gibbs_in, const uint32_t num_nested_samples_in, const bool hap_consist_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : ploidy(path_subset_in), use_hap_gibbs(use_hap_gibbs_in), num_nested_samples(num_nested_samples_in), hap_consist(hap_consist_in), PathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
 
 void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
-    if (false) {
+    if (hap_consist) {
 
-        inferAbundance(path_cluster_estimates, cluster_probs, mt_rng);
+        inferAbundanceContrained(path_cluster_estimates, cluster_probs, mt_rng);
     
     } else {
 
-        inferAbundanceContrained(path_cluster_estimates, cluster_probs, mt_rng);
+        inferAbundance(path_cluster_estimates, cluster_probs, mt_rng);
     }
 }
 
@@ -480,7 +480,7 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
 
             for (auto & p: path_source_groups.first.at(i)) {
 
-                if (path_cluster_estimates->paths.at(p).name == "") {
+                if (path_cluster_estimates->paths.at(p).name == "ENST00000288344.14") {
 
                     debug = true;
                 }
@@ -534,11 +534,11 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
 
             cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;
 
-            auto group_read_path_probs_debug = group_read_path_probs;
-            group_read_path_probs_debug.conservativeResize(group_read_path_probs_debug.rows(), group_read_path_probs_debug.cols() + 1);
-            group_read_path_probs_debug.col(group_read_path_probs_debug.cols() - 1) = group_read_counts.transpose().cast<double>();
+            // auto group_read_path_probs_debug = group_read_path_probs;
+            // group_read_path_probs_debug.conservativeResize(group_read_path_probs_debug.rows(), group_read_path_probs_debug.cols() + 1);
+            // group_read_path_probs_debug.col(group_read_path_probs_debug.cols() - 1) = group_read_counts.transpose().cast<double>();
 
-            cerr << group_read_path_probs_debug << endl;
+            // cerr << group_read_path_probs_debug << endl;
         }
 
         group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);

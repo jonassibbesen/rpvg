@@ -5,6 +5,7 @@
 #include "path_clusters.hpp"
 #include "utils.hpp"
 
+static const uint32_t thread_buffer_max_size = 100000;
 
 PathClusters::PathClusters(const PathsIndex & paths_index_in, const uint32_t num_threads_in) : paths_index(paths_index_in), num_threads(num_threads_in) {
 
@@ -139,27 +140,55 @@ PathClusters::PathClusters(const PathsIndex & paths_index_in, const uint32_t num
                             }
                         }
                     }
+
+                    if (thread_search_to_cluster_index.size() == thread_buffer_max_size) {
+
+                        #pragma omp critical
+                        {
+                            cerr << thread_connected_paths.size() << " " << thread_search_to_cluster_index.size() << endl;
+
+                            for (auto & paths: thread_connected_paths) {
+
+                                auto connected_paths_it = connected_paths.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
+                                connected_paths_it.first->second.insert(paths.second.begin(), paths.second.end());
+                            }
+
+                            for (auto & node_path: thread_search_to_cluster_index) {
+
+                                search_to_cluster_index.emplace(node_path);
+                            }
+
+                            thread_connected_paths.clear();
+                            thread_search_to_cluster_index.clear();                  
+                        }
+                    }
                 }
 
                 ++cur_align_paths_index_pos;
             }
-        }
 
-        #pragma omp critical
-        {
-            for (auto & paths: thread_connected_paths) {
+            #pragma omp critical
+            { 
+                cerr << thread_connected_paths.size() << " " << thread_search_to_cluster_index.size() << endl;
 
-                auto connected_paths_it = connected_paths.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
-                connected_paths_it.first->second.insert(paths.second.begin(), paths.second.end());
-            }
+                for (auto & paths: thread_connected_paths) {
 
-            for (auto & node_path: thread_search_to_cluster_index) {
+                    auto connected_paths_it = connected_paths.emplace(paths.first, spp::sparse_hash_set<uint32_t>());
+                    connected_paths_it.first->second.insert(paths.second.begin(), paths.second.end());
+                }
 
-                search_to_cluster_index.emplace(node_path);
+                for (auto & node_path: thread_search_to_cluster_index) {
+
+                    search_to_cluster_index.emplace(node_path);
+                }
+
+                thread_connected_paths.clear();
+                thread_search_to_cluster_index.clear();    
             }
         }
     }
 
+    cerr << connected_paths.size() << endl;
     createPathClusters(connected_paths);
 
     for (auto & search_cluster: search_to_cluster_index) {
