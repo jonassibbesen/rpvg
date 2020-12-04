@@ -480,7 +480,7 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
 
             for (auto & p: path_source_groups.first.at(i)) {
 
-                if (path_cluster_estimates->paths.at(p).name == "ENST00000646150.1_1") {
+                if (path_cluster_estimates->paths.at(p).name == "") {
 
                     debug = true;
                 }
@@ -521,20 +521,24 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
         }
 
         constructGroupedProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, path_source_groups.first, path_cluster_estimates->paths.size());
+        addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, group_noise_probs);
 
         if (debug) {        
 
             cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;
         }
 
-        group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() + 1);
-        group_read_path_probs.col(group_read_path_probs.cols() - 1) = group_noise_probs;
-
         readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
 
         if (debug) {        
 
             cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;
+
+            auto group_read_path_probs_debug = group_read_path_probs;
+            group_read_path_probs_debug.conservativeResize(group_read_path_probs_debug.rows(), group_read_path_probs_debug.cols() + 1);
+            group_read_path_probs_debug.col(group_read_path_probs_debug.cols() - 1) = group_read_counts.transpose().cast<double>();
+
+            cerr << group_read_path_probs_debug << endl;
         }
 
         group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
