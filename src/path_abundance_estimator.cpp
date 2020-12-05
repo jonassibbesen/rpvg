@@ -480,7 +480,7 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
 
             for (auto & p: path_source_groups.first.at(i)) {
 
-                if (path_cluster_estimates->paths.at(p).name == "ENST00000288344.14") {
+                if (path_cluster_estimates->paths.at(p).name == "ENST00000383329.7") {
 
                     debug = true;
                 }
