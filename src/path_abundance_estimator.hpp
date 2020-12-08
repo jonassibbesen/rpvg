@@ -67,8 +67,10 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         const uint32_t num_nested_samples;
         const bool hap_consist;
 
-        void inferAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const;        
-        void inferAbundanceContrained(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const;        
+        mutex debug_mutex;
+
+        void inferAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);        
+        void inferAbundanceContrained(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);        
 
         vector<vector<uint32_t> > findPathGroups(const vector<PathInfo> & paths) const;
         pair<vector<vector<uint32_t> >, vector<uint32_t> > findPathSourceGroups(const vector<PathInfo> & paths) const;

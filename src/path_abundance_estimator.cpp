@@ -392,7 +392,7 @@ void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_
     }
 }
 
-void NestedPathAbundanceEstimator::inferAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const {
+void NestedPathAbundanceEstimator::inferAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
     if (!cluster_probs.empty()) {
 
@@ -468,28 +468,31 @@ void NestedPathAbundanceEstimator::inferAbundance(PathClusterEstimates * path_cl
     }
 }
 
-void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const {
+void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
     if (!cluster_probs.empty()) {
 
-        auto path_source_groups = findPathSourceGroups(path_cluster_estimates->paths);
-
         bool debug = false;
+        string debug_path = "";
 
-        for (size_t i = 0; i < path_source_groups.first.size(); ++i) {
+        for (auto & path: path_cluster_estimates->paths) {
 
-            for (auto & p: path_source_groups.first.at(i)) {
+            if (path.name == "ENST00000383329.7" || path.name == "ENST00000451975.2" || path.name == "ENST00000525375.1" || path.name == "ENST00000486746.5") {
 
-                if (path_cluster_estimates->paths.at(p).name == "ENST00000383329.7") {
+                debug = true;
+                debug_path = path.name;
 
-                    debug = true;
-                }
+                break;
             }
         }
 
-        if (debug) {        
+        auto path_source_groups = findPathSourceGroups(path_cluster_estimates->paths);
 
-            cerr << endl;
+        if (debug) {   
+
+            debug_mutex.lock();     
+            cerr << "### " << debug_path << endl;
+
             cerr << path_source_groups.first.size() << endl;
             cerr << findPathGroups(path_cluster_estimates->paths).size() << endl;
 
@@ -509,29 +512,35 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
             }
 
             cerr << a << endl;
+            cerr << cluster_probs.size() << " " << path_cluster_estimates->paths.size() << endl;
+
+            debug_mutex.unlock();     
         }
 
         Eigen::ColMatrixXd group_read_path_probs;
         Eigen::ColVectorXd group_noise_probs;
         Eigen::RowVectorXui group_read_counts;  
 
-        if (debug) {        
-
-            cerr << cluster_probs.size() << " " << path_cluster_estimates->paths.size() << endl;
-        }
-
         constructGroupedProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, path_source_groups.first, path_cluster_estimates->paths.size());
         addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, group_noise_probs);
 
         if (debug) {        
 
+            debug_mutex.lock();     
+            cerr << "### " << debug_path << endl;
+
             cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;
+
+            debug_mutex.unlock();     
         }
 
         readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
 
         if (debug) {        
 
+            debug_mutex.lock();     
+            cerr << "### " << debug_path << endl;
+            
             cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;
 
             // auto group_read_path_probs_debug = group_read_path_probs;
@@ -539,6 +548,8 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
             // group_read_path_probs_debug.col(group_read_path_probs_debug.cols() - 1) = group_read_counts.transpose().cast<double>();
 
             // cerr << group_read_path_probs_debug << endl;
+
+            debug_mutex.unlock();  
         }
 
         group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
@@ -564,16 +575,21 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
 
         if (debug) {        
 
+            debug_mutex.lock();     
+            cerr << "### " << debug_path << endl;
+            
             cerr << group_path_cluster_estimates.posteriors.cols() << endl;
             cerr << group_path_cluster_estimates.path_group_sets.size() << endl;
 
             for (size_t i = 0; i < group_path_cluster_estimates.path_group_sets.size(); ++i) {
 
-                if (group_path_cluster_estimates.posteriors(0, i) > pow(10, -8)) {
+                if (group_path_cluster_estimates.posteriors(0, i) > pow(10, -4)) {
 
                     cerr << group_path_cluster_estimates.posteriors(0, i) << ": " << group_path_cluster_estimates.path_group_sets.at(i) << endl;
                 }
             }
+
+            debug_mutex.unlock();  
         }
 
         spp::sparse_hash_map<vector<uint32_t>, uint32_t> path_subset_samples;
@@ -581,12 +597,17 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
 
         if (debug) {        
 
+            debug_mutex.lock();     
+            cerr << "### " << debug_path << endl;
+            
             cerr << path_subset_samples.size() << endl;
 
             for (auto & bla: path_subset_samples) {
 
                 cerr << bla.first << ": " << bla.second << endl; 
             }
+
+            debug_mutex.unlock();
         }
 
         inferPathSubsetAbundance(path_cluster_estimates, cluster_probs, mt_rng, path_subset_samples);
@@ -668,9 +689,9 @@ pair<vector<vector<uint32_t> >, vector<uint32_t> > NestedPathAbundanceEstimator:
 
             bool is_grouped = true;
 
-            for (size_t i = 0; i < paths.size(); ++i) {
+            for (auto & path: paths) {
 
-                if (paths.at(i).source_ids.count(*path_source_ids_it) != paths.at(i).source_ids.count(*path_source_ids_it2)) {
+                if (path.source_ids.count(*path_source_ids_it) != path.source_ids.count(*path_source_ids_it2)) {
 
                     is_grouped = false;
                     break; 
