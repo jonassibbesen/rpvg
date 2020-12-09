@@ -378,31 +378,31 @@ vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const E
 }
 
 
-NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t path_subset_in, const bool use_hap_gibbs_in, const uint32_t num_nested_samples_in, const bool hap_consist_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : ploidy(path_subset_in), use_hap_gibbs(use_hap_gibbs_in), num_nested_samples(num_nested_samples_in), hap_consist(hap_consist_in), PathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
+NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t group_size_in, const uint32_t num_subset_samples_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : group_size(group_size_in), num_subset_samples(num_subset_samples_in), infer_collapsed(infer_collapsed_in), use_group_post_gibbs(use_group_post_gibbs_in), PathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
 
 void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
-    if (hap_consist) {
+    if (infer_collapsed) {
 
-        inferAbundanceContrained(path_cluster_estimates, cluster_probs, mt_rng);
+        inferAbundancesCollapsedGroups(path_cluster_estimates, cluster_probs, mt_rng);
     
     } else {
 
-        inferAbundance(path_cluster_estimates, cluster_probs, mt_rng);
+        inferAbundancesIndependentGroups(path_cluster_estimates, cluster_probs, mt_rng);
     }
 }
 
-void NestedPathAbundanceEstimator::inferAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
+void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const {
 
     if (!cluster_probs.empty()) {
 
         auto path_groups = findPathGroups(path_cluster_estimates->paths);
 
-        vector<vector<uint32_t> > path_subset_samples(num_nested_samples);
+        vector<vector<uint32_t> > path_subset_samples(num_subset_samples);
 
         for (auto & path_subset: path_subset_samples) {
 
-            path_subset.reserve(path_groups.size() * ploidy);
+            path_subset.reserve(path_groups.size() * group_size);
         }
 
         for (auto & group: path_groups) {    
@@ -431,19 +431,19 @@ void NestedPathAbundanceEstimator::inferAbundance(PathClusterEstimates * path_cl
 
             PathClusterEstimates group_path_cluster_estimates;
 
-            if (use_hap_gibbs) {
+            if (use_group_post_gibbs) {
 
-                estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy, mt_rng);
+                estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, group_size, mt_rng);
 
             } else {
 
-                if (ploidy == 2) {
+                if (group_size == 2) {
 
-                    calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy);
+                    calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, group_size);
 
                 } else {
 
-                    calculatePathGroupPosteriorsFull(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, ploidy);                    
+                    calculatePathGroupPosteriorsFull(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, group_size);                    
                 }
             }
 
@@ -468,54 +468,11 @@ void NestedPathAbundanceEstimator::inferAbundance(PathClusterEstimates * path_cl
     }
 }
 
-void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
+void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const {
 
     if (!cluster_probs.empty()) {
 
-        bool debug = false;
-        string debug_path = "";
-
-        for (auto & path: path_cluster_estimates->paths) {
-
-            if (path.name == "ENST00000383329.7" || path.name == "ENST00000451975.2" || path.name == "ENST00000525375.1" || path.name == "ENST00000486746.5") {
-
-                debug = true;
-                debug_path = path.name;
-
-                break;
-            }
-        }
-
         auto path_source_groups = findPathSourceGroups(path_cluster_estimates->paths);
-
-        if (debug) {   
-
-            debug_mutex.lock();     
-            cerr << "### " << debug_path << endl;
-
-            cerr << path_source_groups.first.size() << endl;
-            cerr << findPathGroups(path_cluster_estimates->paths).size() << endl;
-
-            uint32_t a = 0;
-
-            for (size_t i = 0; i < path_source_groups.first.size(); ++i) {
-
-                cerr << "#" <<  i << ": ";
-
-                for (auto & p: path_source_groups.first.at(i)) {
-
-                    cerr << path_cluster_estimates->paths.at(p).name << " "; 
-                }
-
-                cerr << "\n" << path_source_groups.second.at(i) << endl;
-                a += path_source_groups.second.at(i);
-            }
-
-            cerr << a << endl;
-            cerr << cluster_probs.size() << " " << path_cluster_estimates->paths.size() << endl;
-
-            debug_mutex.unlock();     
-        }
 
         Eigen::ColMatrixXd group_read_path_probs;
         Eigen::ColVectorXd group_noise_probs;
@@ -524,91 +481,31 @@ void NestedPathAbundanceEstimator::inferAbundanceContrained(PathClusterEstimates
         constructGroupedProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, path_source_groups.first, path_cluster_estimates->paths.size());
         addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, group_noise_probs);
 
-        if (debug) {        
-
-            debug_mutex.lock();     
-            cerr << "### " << debug_path << endl;
-
-            cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;
-
-            debug_mutex.unlock();     
-        }
-
         readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
-
-        if (debug) {        
-
-            debug_mutex.lock();     
-            cerr << "### " << debug_path << endl;
-            
-            cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;
-
-            // auto group_read_path_probs_debug = group_read_path_probs;
-            // group_read_path_probs_debug.conservativeResize(group_read_path_probs_debug.rows(), group_read_path_probs_debug.cols() + 1);
-            // group_read_path_probs_debug.col(group_read_path_probs_debug.cols() - 1) = group_read_counts.transpose().cast<double>();
-
-            // cerr << group_read_path_probs_debug << endl;
-
-            debug_mutex.unlock();  
-        }
 
         group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
         group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
 
         PathClusterEstimates group_path_cluster_estimates;
 
-        if (use_hap_gibbs) {
+        if (use_group_post_gibbs) {
 
-            estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, ploidy, mt_rng);
+            estimatePathGroupPosteriorsGibbs(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, group_size, mt_rng);
 
         } else {
 
-            if (ploidy == 2) {
+            if (group_size == 2) {
 
-                calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, ploidy);
+                calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, group_size);
 
             } else {
 
-                calculatePathGroupPosteriorsFull(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, ploidy);                    
+                calculatePathGroupPosteriorsFull(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, group_size);                    
             }
-        }
-
-        if (debug) {        
-
-            debug_mutex.lock();     
-            cerr << "### " << debug_path << endl;
-            
-            cerr << group_path_cluster_estimates.posteriors.cols() << endl;
-            cerr << group_path_cluster_estimates.path_group_sets.size() << endl;
-
-            for (size_t i = 0; i < group_path_cluster_estimates.path_group_sets.size(); ++i) {
-
-                if (group_path_cluster_estimates.posteriors(0, i) > pow(10, -4)) {
-
-                    cerr << group_path_cluster_estimates.posteriors(0, i) << ": " << group_path_cluster_estimates.path_group_sets.at(i) << endl;
-                }
-            }
-
-            debug_mutex.unlock();  
         }
 
         spp::sparse_hash_map<vector<uint32_t>, uint32_t> path_subset_samples;
         samplePathSubsetIndices(&path_subset_samples, group_path_cluster_estimates, path_source_groups.first, mt_rng);
-
-        if (debug) {        
-
-            debug_mutex.lock();     
-            cerr << "### " << debug_path << endl;
-            
-            cerr << path_subset_samples.size() << endl;
-
-            for (auto & bla: path_subset_samples) {
-
-                cerr << bla.first << ": " << bla.second << endl; 
-            }
-
-            debug_mutex.unlock();
-        }
 
         inferPathSubsetAbundance(path_cluster_estimates, cluster_probs, mt_rng, path_subset_samples);
 
@@ -640,74 +537,53 @@ vector<vector<uint32_t> > NestedPathAbundanceEstimator::findPathGroups(const vec
 
 pair<vector<vector<uint32_t> >, vector<uint32_t> > NestedPathAbundanceEstimator::findPathSourceGroups(const vector<PathInfo> & paths) const {
 
-    spp::sparse_hash_set<uint32_t> path_source_ids;
+    spp::sparse_hash_map<uint32_t, vector<uint32_t> > source_id_paths;
 
-    for (auto & path: paths) {
+    for (size_t i = 0; i < paths.size(); ++i) {
 
-        for (auto & id: path.source_ids) {
+        for (auto & id: paths.at(i).source_ids) {
 
-            path_source_ids.emplace(id);
+            auto source_id_paths_it = source_id_paths.emplace(id, vector<uint32_t>());
+            source_id_paths_it.first->second.emplace_back(i);
         }
     }
 
     pair<vector<vector<uint32_t> >, vector<uint32_t> > path_source_groups;
-    spp::sparse_hash_set<uint32_t> source_id_grouped;
 
-    auto path_source_ids_it = path_source_ids.begin();
+    auto source_id_paths_it = source_id_paths.begin();
 
-    while (path_source_ids_it != path_source_ids.end()) {
+    while (source_id_paths_it != source_id_paths.end()) {
 
-        if (source_id_grouped.find(*path_source_ids_it) != source_id_grouped.end()) {
+        if (source_id_paths_it->second.empty()) {
 
-            ++path_source_ids_it;
+            ++source_id_paths_it;
             continue;
         }
 
-        path_source_groups.first.emplace_back(vector<uint32_t>());
-
-        for (size_t i = 0; i < paths.size(); ++i) {
-
-            if (paths.at(i).source_ids.find(*path_source_ids_it) != paths.at(i).source_ids.end()) {
-
-                path_source_groups.first.back().emplace_back(i);
-            }
-        }
-
         path_source_groups.second.emplace_back(1);
-        assert(source_id_grouped.emplace(*path_source_ids_it).second);
 
-        auto path_source_ids_it2 = path_source_ids_it;
-        ++path_source_ids_it2;
+        auto source_id_paths_it2 = source_id_paths_it;
+        ++source_id_paths_it2;
 
-        while (path_source_ids_it2 != path_source_ids.end()) {
+        while (source_id_paths_it2 != source_id_paths.end()) {
 
-            if (source_id_grouped.find(*path_source_ids_it2) != source_id_grouped.end()) {
+            if (!source_id_paths_it2->second.empty()) {
 
-                ++path_source_ids_it2;
-                continue;
-            }
+                if (source_id_paths_it->second == source_id_paths_it2->second) {
 
-            bool is_grouped = true;
-
-            for (auto & path: paths) {
-
-                if (path.source_ids.count(*path_source_ids_it) != path.source_ids.count(*path_source_ids_it2)) {
-
-                    is_grouped = false;
-                    break; 
+                    path_source_groups.second.back()++;
+                    source_id_paths_it2->second.clear();
                 } 
             }
 
-            if (is_grouped) {
-
-                path_source_groups.second.back()++;
-                assert(source_id_grouped.emplace(*path_source_ids_it2).second);
-            }
-
-            ++path_source_ids_it2;
+            ++source_id_paths_it2;
         }
 
-        ++path_source_ids_it;
+        assert(!source_id_paths_it->second.empty());
+        path_source_groups.first.emplace_back(source_id_paths_it->second);
+
+        source_id_paths_it->second.clear();
+        ++source_id_paths_it;
     }
 
     assert(path_source_groups.first.size() == path_source_groups.second.size());
@@ -721,12 +597,12 @@ void NestedPathAbundanceEstimator::sampleGroupPathIndices(vector<vector<uint32_t
 
     discrete_distribution<uint32_t> path_group_set_sampler(posteriors.row(0).data(), posteriors.row(0).data() + posteriors.row(0).size());
 
-    for (size_t i = 0; i < num_nested_samples; ++i) {
+    for (size_t i = 0; i < num_subset_samples; ++i) {
 
         vector<uint32_t> path_group_set = group_path_cluster_estimates.path_group_sets.at(path_group_set_sampler(*mt_rng));
 
         assert(!path_group_set.empty());
-        assert(path_group_set.size() == ploidy);
+        assert(path_group_set.size() == group_size);
 
         sort(path_group_set.begin(), path_group_set.end());
 
@@ -749,31 +625,41 @@ void NestedPathAbundanceEstimator::samplePathSubsetIndices(spp::sparse_hash_map<
 
     discrete_distribution<uint32_t> path_group_set_sampler(posteriors.row(0).data(), posteriors.row(0).data() + posteriors.row(0).size());
 
-    for (size_t i = 0; i < num_nested_samples; ++i) {
+    vector<uint32_t> path_group_set_sample_counts(group_path_cluster_estimates.path_group_sets.size(), 0);
 
-        vector<uint32_t> path_group_set = group_path_cluster_estimates.path_group_sets.at(path_group_set_sampler(*mt_rng));
+    for (size_t i = 0; i < num_subset_samples; ++i) {
 
-        assert(!path_group_set.empty());
-        assert(path_group_set.size() == ploidy);
+        path_group_set_sample_counts.at(path_group_set_sampler(*mt_rng)) += 1;
+    }
 
-        spp::sparse_hash_set<uint32_t> path_subset_ids;
-        vector<uint32_t> path_subset;
+    for (size_t i = 0; i < path_group_set_sample_counts.size(); ++i) {
 
-        for (auto & group: path_group_set) {
+        if (path_group_set_sample_counts.at(i) > 0) {
 
-            for (auto & path: path_groups.at(group)) {
+            auto path_group_set = group_path_cluster_estimates.path_group_sets.at(i);
 
-                if (path_subset_ids.emplace(path).second) {
+            assert(!path_group_set.empty());
+            assert(path_group_set.size() == group_size);
 
-                    path_subset.emplace_back(path);
+            spp::sparse_hash_set<uint32_t> path_subset_ids;
+            vector<uint32_t> path_subset;
+
+            for (auto & group: path_group_set) {
+
+                for (auto & path: path_groups.at(group)) {
+
+                    if (path_subset_ids.emplace(path).second) {
+
+                        path_subset.emplace_back(path);
+                    }
                 }
             }
+
+            sort(path_subset.begin(), path_subset.end());
+            auto path_subset_samples_it = path_subset_samples->emplace(path_subset, 0);
+
+            path_subset_samples_it.first->second += path_group_set_sample_counts.at(i);
         }
-
-        sort(path_subset.begin(), path_subset.end());
-
-        auto path_subset_samples_it = path_subset_samples->emplace(path_subset, 0);
-        path_subset_samples_it.first->second++;
     }
 }
 
@@ -835,7 +721,7 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
             path_cluster_estimates->abundances(0, i) /= path_cluster_estimates->posteriors(0, i);
         }
 
-        path_cluster_estimates->posteriors(0, i) /= num_nested_samples;
+        path_cluster_estimates->posteriors(0, i) /= num_subset_samples;
     }
 
     removeNoiseAndRenormalizeAbundances(path_cluster_estimates);

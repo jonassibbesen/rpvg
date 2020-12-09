@@ -290,13 +290,15 @@ int main(int argc, char* argv[]) {
       ("filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
       ("filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("24"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
+      ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
       ;
 
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
-      ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
+      ("equal-haps", "enforce equivalent haplotypes across clustered transcripts in haplotype-transcript inference", cxxopts::value<bool>())
       ("num-hap-samples", "number of haplotyping samples in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
+      ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
       ;
 
     options.add_options("Quantification")
@@ -304,7 +306,6 @@ int main(int argc, char* argv[]) {
       ("max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
       ("min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ("gibbs-thin-its", "number of Gibbs iterations between samples", cxxopts::value<uint32_t>()->default_value("25"))      
-      ("hap-consist", "haplotypes are consistent", cxxopts::value<bool>())
       ;
 
     if (argc == 1) {
@@ -555,16 +556,21 @@ int main(int argc, char* argv[]) {
     double time_align = gbwt::readTimer();
     cerr << "Found alignment paths (" << time_align - time_load << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    PathClusters path_clusters(paths_index, num_threads, align_paths_index);
+    spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
+    PathClusters path_clusters(num_threads, paths_index, align_paths_index, &search_to_path_index);
 
     cerr << path_clusters.path_to_cluster_index.size() << endl;
     cerr << path_clusters.cluster_to_paths_index.size() << endl;
-    cerr << path_clusters.search_to_cluster_index.size() << endl;
+    cerr << search_to_path_index.size() << endl;
 
-    // path_clusters.addReadClusters(align_paths_index);
+    if (option_results.count("path-node-cluster")) {
 
-    // cerr << path_clusters.path_to_cluster_index.size() << endl;
-    // cerr << path_clusters.cluster_to_paths_index.size() << endl;
+        path_clusters.addNodeClusters(paths_index);
+
+        cerr << path_clusters.path_to_cluster_index.size() << endl;
+        cerr << path_clusters.cluster_to_paths_index.size() << endl;
+        cerr << search_to_path_index.size() << endl;
+    }
 
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 
@@ -572,7 +578,7 @@ int main(int argc, char* argv[]) {
 
     while (align_paths_index_it != align_paths_index.end()) {
 
-        align_paths_clusters.at(path_clusters.search_to_cluster_index.at(align_paths_index_it->first.front().search_state)).emplace_back(align_paths_index_it);
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(search_to_path_index.at(align_paths_index_it->first.front().search_state))).emplace_back(align_paths_index_it);
         ++align_paths_index_it;
     }
 
@@ -588,7 +594,7 @@ int main(int argc, char* argv[]) {
     const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
     const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
     const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
-    const bool hap_consist = option_results["hap-consist"].as<bool>();
+    const bool equal_haps = option_results.count("equal-haps");
 
     PathEstimator * path_estimator;
 
@@ -606,8 +612,8 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(ploidy, use_hap_gibbs, num_hap_samples, hap_consist, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
-        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), hap_consist);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, equal_haps, use_hap_gibbs, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), equal_haps);
 
     } else {
 

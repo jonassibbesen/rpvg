@@ -12,30 +12,24 @@
 using namespace std;
 
 
-typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_paths_t;
-
 class PathClusters {
 
     public: 
 
-        PathClusters(const PathsIndex & paths_index_in, const uint32_t num_threads_in);
-        PathClusters(const PathsIndex & paths_index_in, const uint32_t num_threads_in, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index);
+        PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, spp::sparse_hash_map<gbwt::SearchState, uint32_t> * search_to_path_index);
 
-        void addReadClusters(const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index);
-    	void addCallTraversalClusters();
+        void addNodeClusters(const PathsIndex & paths_index);
 
         vector<uint32_t> path_to_cluster_index;
         vector<vector<uint32_t> > cluster_to_paths_index;
 
-        spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_cluster_index;
-
     private: 
 
-        const PathsIndex & paths_index;
         const uint32_t num_threads;
+        const uint32_t num_paths;
 
-    	void createPathClusters(const connected_paths_t & connected_paths);
-        void mergeClusters(const connected_paths_t & connected_clusters);
+    	void createPathClusters(const vector<spp::sparse_hash_set<uint32_t> > & connected_paths);
+        void mergeClusters(const vector<spp::sparse_hash_set<uint32_t> > & connected_clusters);
 };
 
 namespace std {

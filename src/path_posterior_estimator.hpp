@@ -30,15 +30,15 @@ class PathGroupPosteriorEstimator : public PathPosteriorEstimator {
 
     public:
 
-        PathGroupPosteriorEstimator(const uint32_t ploidy_in, const bool use_hap_gibbs_in, const double prob_precision);
+        PathGroupPosteriorEstimator(const uint32_t group_size_in, const bool use_group_post_gibbs_in, const double prob_precision);
         ~PathGroupPosteriorEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);
 
     private: 
 
-        const uint32_t ploidy;
-        const bool use_hap_gibbs;
+        const uint32_t group_size;
+        const bool use_group_post_gibbs;
 };
 
  
