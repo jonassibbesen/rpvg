@@ -173,15 +173,15 @@ void PosteriorEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
 
     for (auto & cur_estimates: path_cluster_estimates) {
 
-        assert(cur_estimates.second.path_groups.size() == cur_estimates.second.posteriors.cols());
+        assert(cur_estimates.second.path_group_sets.size() == cur_estimates.second.posteriors.cols());
 
-        for (size_t i = 0; i < cur_estimates.second.path_groups.size(); ++i) {
+        for (size_t i = 0; i < cur_estimates.second.path_group_sets.size(); ++i) {
 
-            assert(cur_estimates.second.path_groups.at(i).size() == ploidy);
+            assert(cur_estimates.second.path_group_sets.at(i).size() == ploidy);
 
             if (cur_estimates.second.posteriors(0, i) >= min_posterior) {
 
-                for (auto & path_idx: cur_estimates.second.path_groups.at(i)) {
+                for (auto & path_idx: cur_estimates.second.path_group_sets.at(i)) {
 
                     *out_sstream << cur_estimates.second.paths.at(path_idx).name << "\t";
                 }

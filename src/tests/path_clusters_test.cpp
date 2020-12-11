@@ -27,8 +27,8 @@ TEST_CASE("GBWT paths can be clustered") {
 
     gbwt_thread_3[0] = gbwt::Node::encode(3, false);
 
-    gbwt_thread_4[0] = gbwt::Node::encode(6, false);
-    gbwt_thread_4[1] = gbwt::Node::encode(7, false);
+    gbwt_thread_4[0] = gbwt::Node::encode(6, true);
+    gbwt_thread_4[1] = gbwt::Node::encode(7, true);
 
     gbwt_builder.insert(gbwt_thread_1, false);
     gbwt_builder.insert(gbwt_thread_2, false);
@@ -70,23 +70,22 @@ TEST_CASE("GBWT paths can be clustered") {
     PathsIndex paths_index(gbwt_index, graph);
     REQUIRE(paths_index.index().metadata.paths() == 4);
 
-	PathClusters path_clusters(paths_index, 1);
+    spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index;
+    spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
+
+    PathClusters path_clusters(1, paths_index, align_paths_index, &search_to_path_index);
+    path_clusters.addNodeClusters(paths_index);
 
     REQUIRE(path_clusters.path_to_cluster_index.size() == 4);
-    REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 0, 1, 0}));
-    REQUIRE(path_clusters.cluster_to_paths_index.size() == 2);
-    REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0, 1, 3}));
-    REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({2}));
+    REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 1, 2, 1}));
+    REQUIRE(path_clusters.cluster_to_paths_index.size() == 3);
+    REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0}));
+    REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({1, 3}));
+    REQUIRE(path_clusters.cluster_to_paths_index.at(2) == vector<uint32_t>({2}));
 
-    REQUIRE(path_clusters.node_to_path_index.size() == 6);    
-    REQUIRE(path_clusters.node_to_path_index.at(1) == 0);
-    REQUIRE(path_clusters.node_to_path_index.at(2) == 0);
-    REQUIRE(path_clusters.node_to_path_index.at(3) == 2);
-    REQUIRE(path_clusters.node_to_path_index.at(4) == 0);
-    REQUIRE(path_clusters.node_to_path_index.at(6) == 3);
-    REQUIRE(path_clusters.node_to_path_index.at(7) == 3);
+    REQUIRE(search_to_path_index.empty());    
 
-    SECTION("Bidirectionality does not affect clustering") {
+    SECTION("Bidirectionality affect clustering") {
 
     	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
 	    gbwt::GBWTBuilder gbwt_builder_bidi(gbwt::bit_length(gbwt::Node::encode(7, true)));
@@ -114,11 +113,13 @@ TEST_CASE("GBWT paths can be clustered") {
 	    PathsIndex paths_index_bidi(gbwt_index_bidi, graph);
 	    REQUIRE(paths_index_bidi.index().metadata.paths() == 4);
 
-		PathClusters path_clusters_bidi(paths_index, 1);
+    	path_clusters.addNodeClusters(paths_index_bidi);
 
-	    REQUIRE(path_clusters_bidi.path_to_cluster_index == path_clusters.path_to_cluster_index);
-	    REQUIRE(path_clusters_bidi.path_to_cluster_index == path_clusters.path_to_cluster_index);
-	    REQUIRE(path_clusters_bidi.node_to_path_index == path_clusters.node_to_path_index);
+	    REQUIRE(path_clusters.path_to_cluster_index.size() == 4);
+	    REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 0, 1, 0}));
+	    REQUIRE(path_clusters.cluster_to_paths_index.size() == 2);
+	    REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0, 1, 3}));
+	    REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({2}));
     }
 }
 

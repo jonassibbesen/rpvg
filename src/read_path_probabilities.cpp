@@ -42,7 +42,7 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const unordered_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
+void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
 
     assert(!align_paths.empty());
     assert(align_paths.size() == align_paths_ids.size());
@@ -87,7 +87,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
                 } else {
 
                     // account for really rare cases when a mpmap alignment can have multiple alignments on the same path
-                    read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(align_paths_ids.size()) - log(cluster_paths.at(path_idx).effective_length));
+                    read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length));
                 }
             }
         }
