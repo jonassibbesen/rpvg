@@ -80,8 +80,6 @@ PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & pat
 
         #pragma omp critical
         { 
-            cerr << thread_search_to_path_index.size() << endl;
-
             for (auto & path: thread_search_to_path_index) {
 
                 search_to_path_index->emplace(path);

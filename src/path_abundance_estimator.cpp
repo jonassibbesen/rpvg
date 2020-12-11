@@ -303,7 +303,7 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
             assert(min_path_cluster_estimates.abundances.cols() == min_path_cover.size() + 1);            
 
             path_cluster_estimates->initEstimates(path_cluster_estimates->paths.size() + 1, 0, true);
-            path_cluster_estimates->total_read_count = read_counts.sum();
+            path_cluster_estimates->total_read_count = min_path_cluster_estimates.total_read_count;
 
             if (num_gibbs_samples > 0) {
 
@@ -716,11 +716,7 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
 
     for (size_t i = 0; i < path_cluster_estimates->abundances.cols(); ++i) {
 
-        if (path_cluster_estimates->posteriors(0, i) > 0) {
-
-            path_cluster_estimates->abundances(0, i) /= path_cluster_estimates->posteriors(0, i);
-        }
-
+        path_cluster_estimates->abundances(0, i) /= num_subset_samples;
         path_cluster_estimates->posteriors(0, i) /= num_subset_samples;
     }
 

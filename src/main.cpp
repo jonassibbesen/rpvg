@@ -559,18 +559,12 @@ int main(int argc, char* argv[]) {
     spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
     PathClusters path_clusters(num_threads, paths_index, align_paths_index, &search_to_path_index);
 
-    cerr << path_clusters.path_to_cluster_index.size() << endl;
-    cerr << path_clusters.cluster_to_paths_index.size() << endl;
-    cerr << search_to_path_index.size() << endl;
-
     if (option_results.count("path-node-cluster")) {
 
         path_clusters.addNodeClusters(paths_index);
-
-        cerr << path_clusters.path_to_cluster_index.size() << endl;
-        cerr << path_clusters.cluster_to_paths_index.size() << endl;
-        cerr << search_to_path_index.size() << endl;
     }
+
+    cerr << path_clusters.cluster_to_paths_index.size() << endl;
 
     vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
 

@@ -8,117 +8,118 @@
 #include "../utils.hpp"
 
 
-// TEST_CASE("GBWT paths can be clustered") {
+TEST_CASE("GBWT paths can be clustered") {
 
-// 	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
-//     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(7, true)));
+	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+    gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(7, true)));
 
-//     gbwt::vector_type gbwt_thread_1(3);
-//     gbwt::vector_type gbwt_thread_2(2);
-//     gbwt::vector_type gbwt_thread_3(1);
-//     gbwt::vector_type gbwt_thread_4(2);
+    gbwt::vector_type gbwt_thread_1(3);
+    gbwt::vector_type gbwt_thread_2(2);
+    gbwt::vector_type gbwt_thread_3(1);
+    gbwt::vector_type gbwt_thread_4(2);
    
-//     gbwt_thread_1[0] = gbwt::Node::encode(1, false);
-//     gbwt_thread_1[1] = gbwt::Node::encode(2, false);
-//     gbwt_thread_1[2] = gbwt::Node::encode(4, false);
+    gbwt_thread_1[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_1[1] = gbwt::Node::encode(2, false);
+    gbwt_thread_1[2] = gbwt::Node::encode(4, false);
 
-//     gbwt_thread_2[0] = gbwt::Node::encode(1, true);
-//     gbwt_thread_2[1] = gbwt::Node::encode(6, true);
+    gbwt_thread_2[0] = gbwt::Node::encode(1, true);
+    gbwt_thread_2[1] = gbwt::Node::encode(6, true);
 
-//     gbwt_thread_3[0] = gbwt::Node::encode(3, false);
+    gbwt_thread_3[0] = gbwt::Node::encode(3, false);
 
-//     gbwt_thread_4[0] = gbwt::Node::encode(6, false);
-//     gbwt_thread_4[1] = gbwt::Node::encode(7, false);
+    gbwt_thread_4[0] = gbwt::Node::encode(6, true);
+    gbwt_thread_4[1] = gbwt::Node::encode(7, true);
 
-//     gbwt_builder.insert(gbwt_thread_1, false);
-//     gbwt_builder.insert(gbwt_thread_2, false);
-//     gbwt_builder.insert(gbwt_thread_3, false);
-//     gbwt_builder.insert(gbwt_thread_4, false);
+    gbwt_builder.insert(gbwt_thread_1, false);
+    gbwt_builder.insert(gbwt_thread_2, false);
+    gbwt_builder.insert(gbwt_thread_3, false);
+    gbwt_builder.insert(gbwt_thread_4, false);
 
-//     gbwt_builder.index.addMetadata();
+    gbwt_builder.index.addMetadata();
 
-//     for (uint32_t i = 0; i < 4; ++i) {
+    for (uint32_t i = 0; i < 4; ++i) {
 
-//     	gbwt_builder.index.metadata.addPath(gbwt::PathName());
-//     }    
+    	gbwt_builder.index.metadata.addPath(gbwt::PathName());
+    }    
 
-//     gbwt_builder.finish();
+    gbwt_builder.finish();
 
-//     std::stringstream gbwt_stream;
-//     gbwt_builder.index.serialize(gbwt_stream);
+    std::stringstream gbwt_stream;
+    gbwt_builder.index.serialize(gbwt_stream);
 
-//     gbwt::GBWT gbwt_index;
-//     gbwt_index.load(gbwt_stream);
+    gbwt::GBWT gbwt_index;
+    gbwt_index.load(gbwt_stream);
 
-//     const string graph_str = R"(
-//     	{
-//     		"node": [
-//     			{"id": 1, "sequence": "A"},
-//     			{"id": 2, "sequence": "A"},
-//     			{"id": 3, "sequence": "A"},
-//     			{"id": 4, "sequence": "A"},
-//     			{"id": 5, "sequence": "A"},
-//     			{"id": 6, "sequence": "A"},
-//     			{"id": 7, "sequence": "A"}
-//     		],
-//     	}
-//     )";
+    const string graph_str = R"(
+    	{
+    		"node": [
+    			{"id": 1, "sequence": "A"},
+    			{"id": 2, "sequence": "A"},
+    			{"id": 3, "sequence": "A"},
+    			{"id": 4, "sequence": "A"},
+    			{"id": 5, "sequence": "A"},
+    			{"id": 6, "sequence": "A"},
+    			{"id": 7, "sequence": "A"}
+    		],
+    	}
+    )";
 
-// 	vg::Graph graph;
-// 	json2pb(graph, graph_str);
+	vg::Graph graph;
+	json2pb(graph, graph_str);
 
-//     PathsIndex paths_index(gbwt_index, graph);
-//     REQUIRE(paths_index.index().metadata.paths() == 4);
+    PathsIndex paths_index(gbwt_index, graph);
+    REQUIRE(paths_index.index().metadata.paths() == 4);
 
-// 	PathClusters path_clusters(paths_index, 1);
+    spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index;
+    spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
 
-//     REQUIRE(path_clusters.path_to_cluster_index.size() == 4);
-//     REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 0, 1, 0}));
-//     REQUIRE(path_clusters.cluster_to_paths_index.size() == 2);
-//     REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0, 1, 3}));
-//     REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({2}));
+    PathClusters path_clusters(1, paths_index, align_paths_index, &search_to_path_index);
+    path_clusters.addNodeClusters(paths_index);
 
-//     REQUIRE(path_clusters.search_to_cluster_index.size() == 6);    
-//     REQUIRE(path_clusters.search_to_cluster_index.at(1) == 0);
-//     REQUIRE(path_clusters.search_to_cluster_index.at(2) == 0);
-//     REQUIRE(path_clusters.search_to_cluster_index.at(3) == 2);
-//     REQUIRE(path_clusters.search_to_cluster_index.at(4) == 0);
-//     REQUIRE(path_clusters.search_to_cluster_index.at(6) == 3);
-//     REQUIRE(path_clusters.search_to_cluster_index.at(7) == 3);
+    REQUIRE(path_clusters.path_to_cluster_index.size() == 4);
+    REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 1, 2, 1}));
+    REQUIRE(path_clusters.cluster_to_paths_index.size() == 3);
+    REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0}));
+    REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({1, 3}));
+    REQUIRE(path_clusters.cluster_to_paths_index.at(2) == vector<uint32_t>({2}));
 
-//     SECTION("Bidirectionality does not affect clustering") {
+    REQUIRE(search_to_path_index.empty());    
 
-//     	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
-// 	    gbwt::GBWTBuilder gbwt_builder_bidi(gbwt::bit_length(gbwt::Node::encode(7, true)));
+    SECTION("Bidirectionality affect clustering") {
 
-// 	    gbwt_builder_bidi.insert(gbwt_thread_1, true);
-// 	    gbwt_builder_bidi.insert(gbwt_thread_2, true);
-// 	    gbwt_builder_bidi.insert(gbwt_thread_3, true);
-// 	    gbwt_builder_bidi.insert(gbwt_thread_4, true);
+    	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+	    gbwt::GBWTBuilder gbwt_builder_bidi(gbwt::bit_length(gbwt::Node::encode(7, true)));
 
-// 	    gbwt_builder_bidi.index.addMetadata();
+	    gbwt_builder_bidi.insert(gbwt_thread_1, true);
+	    gbwt_builder_bidi.insert(gbwt_thread_2, true);
+	    gbwt_builder_bidi.insert(gbwt_thread_3, true);
+	    gbwt_builder_bidi.insert(gbwt_thread_4, true);
 
-// 	    for (uint32_t i = 0; i < 4; ++i) {
+	    gbwt_builder_bidi.index.addMetadata();
 
-// 	    	gbwt_builder_bidi.index.metadata.addPath(gbwt::PathName());
-// 	    }    
+	    for (uint32_t i = 0; i < 4; ++i) {
 
-// 	    gbwt_builder_bidi.finish();
+	    	gbwt_builder_bidi.index.metadata.addPath(gbwt::PathName());
+	    }    
 
-// 	    std::stringstream gbwt_stream_bidi;
-// 	    gbwt_builder_bidi.index.serialize(gbwt_stream_bidi);
+	    gbwt_builder_bidi.finish();
 
-// 	    gbwt::GBWT gbwt_index_bidi;
-// 	    gbwt_index_bidi.load(gbwt_stream_bidi);
+	    std::stringstream gbwt_stream_bidi;
+	    gbwt_builder_bidi.index.serialize(gbwt_stream_bidi);
 
-// 	    PathsIndex paths_index_bidi(gbwt_index_bidi, graph);
-// 	    REQUIRE(paths_index_bidi.index().metadata.paths() == 4);
+	    gbwt::GBWT gbwt_index_bidi;
+	    gbwt_index_bidi.load(gbwt_stream_bidi);
 
-// 		PathClusters path_clusters_bidi(paths_index, 1);
+	    PathsIndex paths_index_bidi(gbwt_index_bidi, graph);
+	    REQUIRE(paths_index_bidi.index().metadata.paths() == 4);
 
-// 	    REQUIRE(path_clusters_bidi.path_to_cluster_index == path_clusters.path_to_cluster_index);
-// 	    REQUIRE(path_clusters_bidi.path_to_cluster_index == path_clusters.path_to_cluster_index);
-// 	    REQUIRE(path_clusters_bidi.search_to_cluster_index == path_clusters.search_to_cluster_index);
-//     }
-// }
+    	path_clusters.addNodeClusters(paths_index_bidi);
+
+	    REQUIRE(path_clusters.path_to_cluster_index.size() == 4);
+	    REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 0, 1, 0}));
+	    REQUIRE(path_clusters.cluster_to_paths_index.size() == 2);
+	    REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0, 1, 3}));
+	    REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({2}));
+    }
+}
 
