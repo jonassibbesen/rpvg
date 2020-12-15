@@ -280,6 +280,22 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
     }
 }
 
+// Debug start
+
+char quality_short_to_char(short i) {
+    return static_cast<char>(i + 33);
+}
+
+string string_quality_short_to_char(const string& quality) {
+    string buffer; buffer.resize(quality.size());
+    for (int i = 0; i < quality.size(); ++i) {
+        buffer[i] = quality_short_to_char(quality[i]);
+    }
+    return buffer;
+}
+
+// Debug end
+
 template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
@@ -330,6 +346,67 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
     }
 
     auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2));
+
+
+    // Debug start
+
+    string debug_paths = "";
+    int32_t debug_idx = -1;
+
+    string debug_paths2 = "";
+    int32_t debug_idx2 = -1;
+
+    for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+
+        if (paired_align_search_paths.at(i).complete()) {
+
+            for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).search_state)) {
+
+                auto path_name = paths_index.pathName(path_id);
+
+                if (path_name == "ENST00000302165.4_16" || 
+                    path_name == "ENST00000297316.4_42" || 
+                    path_name == "ENST00000375078.3_22" || 
+                    path_name == "ENST00000346234.6_28" || 
+                    path_name == "ENST00000338366.5_20"
+                    ) {
+
+                    debug_paths = path_name; 
+                    debug_idx = i;         
+                
+                } else if (path_name == "ENST00000302165.4_62" || 
+                            path_name == "ENST00000297316.4" || 
+                            path_name == "ENST00000375078.3" || 
+                            path_name == "ENST00000346234.6_38" || 
+                            path_name == "ENST00000338366.5") {
+
+                    debug_paths2 = path_name; 
+                    debug_idx2 = i;         
+                }                
+            }
+        }
+    }
+
+    if (debug_idx != debug_idx2) {
+
+        #pragma omp critical
+        {
+            cerr << "\n\n###" << endl;
+            cerr << debug_paths << endl;
+            cerr << debug_idx << endl;
+            cerr << debug_paths2 << endl;
+            cerr << debug_idx2 << endl;
+            cerr << paired_align_search_paths << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_1) << endl;
+            cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_2) << endl;
+            cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+        }
+    }
+
+    // Debug end
 
 #ifdef debug
 
