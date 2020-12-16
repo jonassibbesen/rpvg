@@ -297,7 +297,7 @@ string string_quality_short_to_char(const string& quality) {
 // Debug end
 
 template<class AlignmentType>
-vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2, map<int32_t, int32_t> * align_max_score_debug) const {
 
 #ifdef debug
 
@@ -347,64 +347,79 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2));
 
-
     // Debug start
 
-    string debug_paths = "";
-    int32_t debug_idx = -1;
+    int32_t max_score = 0;
 
-    string debug_paths2 = "";
-    int32_t debug_idx2 = -1;
+    for (auto & align_search_path: paired_align_search_paths) {
 
-    for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+        if (align_search_path.complete()) {
 
-        if (paired_align_search_paths.at(i).complete()) {
+            max_score = max(max_score, *max_element(align_search_path.scores.begin(), align_search_path.scores.end()));
+        }
+    }
 
-            for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).search_state)) {
+    if (align_max_score_debug) {
 
-                auto path_name = paths_index.pathName(path_id);
+        auto align_max_score_debug_it = align_max_score_debug->emplace(max_score, 0);
+        align_max_score_debug_it.first->second++;
+    }
 
-                if (path_name == "ENST00000302165.4_16" || 
-                    path_name == "ENST00000297316.4_42" || 
-                    path_name == "ENST00000375078.3_22" || 
-                    path_name == "ENST00000346234.6_28" || 
-                    path_name == "ENST00000338366.5_20"
-                    ) {
+    // string debug_paths = "";
+    // int32_t debug_idx = -1;
 
-                    debug_paths = path_name; 
-                    debug_idx = i;         
+    // string debug_paths2 = "";
+    // int32_t debug_idx2 = -1;
+
+    // for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+
+    //     if (paired_align_search_paths.at(i).complete()) {
+
+    //         for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).search_state)) {
+
+    //             auto path_name = paths_index.pathName(path_id);
+
+    //             if (path_name == "ENST00000302165.4_16" || 
+    //                 path_name == "ENST00000297316.4_42" || 
+    //                 path_name == "ENST00000375078.3_22" || 
+    //                 path_name == "ENST00000346234.6_28" || 
+    //                 path_name == "ENST00000338366.5_20"
+    //                 ) {
+
+    //                 debug_paths = path_name; 
+    //                 debug_idx = i;         
                 
-                } else if (path_name == "ENST00000302165.4_62" || 
-                            path_name == "ENST00000297316.4" || 
-                            path_name == "ENST00000375078.3" || 
-                            path_name == "ENST00000346234.6_38" || 
-                            path_name == "ENST00000338366.5") {
+    //             } else if (path_name == "ENST00000302165.4_62" || 
+    //                         path_name == "ENST00000297316.4" || 
+    //                         path_name == "ENST00000375078.3" || 
+    //                         path_name == "ENST00000346234.6_38" || 
+    //                         path_name == "ENST00000338366.5") {
 
-                    debug_paths2 = path_name; 
-                    debug_idx2 = i;         
-                }                
-            }
-        }
-    }
+    //                 debug_paths2 = path_name; 
+    //                 debug_idx2 = i;         
+    //             }                
+    //         }
+    //     }
+    // }
 
-    if (debug_idx != debug_idx2) {
+    // if (debug_idx != debug_idx2) {
 
-        #pragma omp critical
-        {
-            cerr << "\n\n###" << endl;
-            cerr << debug_paths << endl;
-            cerr << debug_idx << endl;
-            cerr << debug_paths2 << endl;
-            cerr << debug_idx2 << endl;
-            cerr << paired_align_search_paths << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_1) << endl;
-            cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_2) << endl;
-            cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
-        }
-    }
+    //     #pragma omp critical
+    //     {
+    //         cerr << "\n\n###" << endl;
+    //         cerr << debug_paths << endl;
+    //         cerr << debug_idx << endl;
+    //         cerr << debug_paths2 << endl;
+    //         cerr << debug_idx2 << endl;
+    //         cerr << paired_align_search_paths << endl;
+    //         cerr << endl;
+    //         cerr << pb2json(alignment_1) << endl;
+    //         cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+    //         cerr << endl;
+    //         cerr << pb2json(alignment_2) << endl;
+    //         cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+    //     }
+    // }
 
     // Debug end
 

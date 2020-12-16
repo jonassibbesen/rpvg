@@ -21,7 +21,7 @@ class AlignmentPathFinder {
        	void setMaxPairSeqLength(const uint32_t max_pair_seq_length_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
-		vector<AlignmentPath> findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const;
+		vector<AlignmentPath> findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2, map<int32_t, int32_t> * align_max_score_debug = nullptr) const;
 
 	private:
 

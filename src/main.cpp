@@ -113,6 +113,8 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 template<class AlignmentType> 
 void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
 
+    auto threaded_align_max_score_debug = vector<map<int32_t, int32_t> >(num_threads);
+
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
     for (auto & align_paths_buffer: threaded_align_paths_buffer) {
@@ -124,7 +126,7 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, min_mapq, best_score_diff);
+        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2, &(threaded_align_max_score_debug.at(omp_get_thread_num()))), align_paths_buffer, min_mapq, best_score_diff);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -138,6 +140,14 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     for (auto & align_paths_buffer: threaded_align_paths_buffer) {
 
         align_paths_buffer_queue->push(align_paths_buffer);
+    }
+
+    for (auto & align_max_score_debug: threaded_align_max_score_debug) {
+
+        for (auto & max_score: align_max_score_debug) {
+
+            cerr << max_score.first << "\t" << max_score.second << endl;
+        }
     }
 }
 
