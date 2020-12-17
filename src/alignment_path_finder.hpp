@@ -17,18 +17,21 @@ class AlignmentPathFinder {
 
     public: 
     
-       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_seq_length_in);
+       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_seq_length_in, const double min_mapq_value_in, const double min_rel_score_in);
        	void setMaxPairSeqLength(const uint32_t max_pair_seq_length_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
-		vector<AlignmentPath> findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2, map<int32_t, int32_t> * align_max_score_debug = nullptr) const;
+		vector<AlignmentPath> findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const;
 
 	private:
 
        	const PathsIndex & paths_index;
-
        	const string library_type;
+
        	uint32_t max_pair_seq_length;
+
+       	double min_mapq_value;
+       	double min_rel_score;
 
 		bool alignmentHasPath(const vg::Alignment & alignment) const;
 		bool alignmentHasPath(const vg::MultipathAlignment & alignment) const;
@@ -50,6 +53,8 @@ class AlignmentPathFinder {
 
 		bool isAlignmentDisconnected(const vg::Alignment & alignment) const;
 		bool isAlignmentDisconnected(const vg::MultipathAlignment & alignment) const;
+
+		bool filterAlignmentSearchPaths(const vector<AlignmentSearchPath> & align_search_paths) const;
 };
 
 

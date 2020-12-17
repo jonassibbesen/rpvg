@@ -20,8 +20,10 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	alignment_search_path.seq_length = 100;
 	alignment_search_path.min_mapq = 10;
 	
-	alignment_search_path.scores.push_back(50);
-	alignment_search_path.scores.push_back(60);
+	alignment_search_path.scores.emplace_back(50,60);
+	alignment_search_path.scores.emplace_back(60,100);
+
+	REQUIRE(doubleCompare(alignment_search_path.minRelativeScore(), 0.6));
 
 	AlignmentPath alignment_path(alignment_search_path, false);
 	

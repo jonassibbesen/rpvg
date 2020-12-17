@@ -45,42 +45,17 @@ typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connecte
 typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buffer_queue_t;
 
 
-void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const double min_mapq, const uint32_t best_score_diff) {
+void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer) {
 
     if (!align_paths.empty()) {
 
-        uint32_t max_score_sum = 0;
-
-        for (auto & align_path: align_paths) {
-
-            max_score_sum = max(max_score_sum, align_path.score_sum);
-        }
-
-        align_paths_buffer->emplace_back(vector<AlignmentPath>());
-
-        for (auto & align_path: align_paths) {
-
-            assert(max_score_sum >= align_path.score_sum);
-
-            if (align_path.min_mapq >= min_mapq && max_score_sum - align_path.score_sum <= best_score_diff) {
-
-                align_paths_buffer->back().emplace_back(align_path);
-            }
-        }
-
-        if (!align_paths_buffer->back().empty()) {
-
-            sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
-
-        } else {
-
-            align_paths_buffer->pop_back();
-        }
+        align_paths_buffer->emplace_back(align_paths);
+        sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
     }
 }
 
 template<class AlignmentType> 
-void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
+void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -93,7 +68,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
     vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, min_mapq, best_score_diff);
+        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -111,9 +86,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 }
 
 template<class AlignmentType> 
-void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
-
-    auto threaded_align_max_score_debug = vector<map<int32_t, int32_t> >(num_threads);
+void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -126,7 +99,7 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2, &(threaded_align_max_score_debug.at(omp_get_thread_num()))), align_paths_buffer, min_mapq, best_score_diff);
+        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -140,14 +113,6 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     for (auto & align_paths_buffer: threaded_align_paths_buffer) {
 
         align_paths_buffer_queue->push(align_paths_buffer);
-    }
-
-    for (auto & align_max_score_debug: threaded_align_max_score_debug) {
-
-        for (auto & max_score: align_max_score_debug) {
-
-            cerr << max_score.first << "\t" << max_score.second << endl;
-        }
     }
 }
 
@@ -298,7 +263,7 @@ int main(int argc, char* argv[]) {
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("24"))
+      ("filt-rel-score", "filter alignments with a best score that below <value> of optimal score", cxxopts::value<double>()->default_value("0.8"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
       ;
@@ -499,33 +464,33 @@ int main(int argc, char* argv[]) {
 
     thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
 
-    const double min_mapq = prob_to_phred(option_results["filt-mapq-prob"].as<double>());
-    const uint32_t best_score_diff = option_results["filt-score-diff"].as<uint32_t>();
+    const double min_mapq_value = prob_to_phred(option_results["filt-mapq-prob"].as<double>());
+    const double min_rel_score = option_results["filt-rel-score"].as<double>();
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength());
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_value, min_rel_score);
 
         if (is_single_end) {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
         }
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength());
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_value, min_rel_score);
 
         if (is_single_end) {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
         }        
     }
 

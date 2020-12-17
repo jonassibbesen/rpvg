@@ -104,8 +104,41 @@ AlignmentSearchPath::AlignmentSearchPath() {
 
 uint32_t AlignmentSearchPath::scoreSum() const {
 
-    return max(0, accumulate(scores.begin(), scores.end(), 0));
+    int32_t score_sum = 0;
+
+    for (auto & score: scores) {
+
+        score_sum += score.first;
+    }
+
+    return max(0, score_sum);
 }
+
+uint32_t AlignmentSearchPath::bestScoreSum() const {
+
+    int32_t best_score_sum = 0;
+
+    for (auto & score: scores) {
+
+        best_score_sum += score.second;
+    }
+
+    return max(0, best_score_sum);
+}
+
+double AlignmentSearchPath::minRelativeScore() const {
+
+    double min_rel_score = 1;
+
+    for (auto & score: scores) {
+
+        assert(score.first <= score.second);
+        min_rel_score = min(min_rel_score, score.first / static_cast<double>(score.second));
+    }
+
+    return min_rel_score;
+}
+
 
 bool AlignmentSearchPath::complete() const {
 

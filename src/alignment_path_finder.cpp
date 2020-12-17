@@ -9,7 +9,7 @@
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_seq_length_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_seq_length(max_pair_seq_length_in) {}
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_seq_length_in, const double min_mapq_value_in, const double min_rel_score_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_seq_length(max_pair_seq_length_in), min_mapq_value(min_mapq_value_in), min_rel_score(min_rel_score_in) {}
 
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::setMaxPairSeqLength(const uint32_t max_pair_seq_length_in) {
@@ -93,6 +93,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         }  
     }
 
+    if (filterAlignmentSearchPaths(align_search_paths)) {
+
+        return vector<AlignmentPath>();
+    }
+
     auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, isAlignmentDisconnected(alignment));
 
 #ifdef debug
@@ -120,7 +125,7 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
     extended_align_search_path.front().min_mapq = min(extended_align_search_path.front().min_mapq, static_cast<uint32_t>(alignment.mapping_quality()));
-    extended_align_search_path.front().scores.emplace_back(alignment.score());
+    extended_align_search_path.front().scores.emplace_back(alignment.score(), 0);
     
     extendAlignmentPath(&extended_align_search_path.front(), alignment.path());
 
@@ -155,9 +160,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 
     while (align_search_path->path_end_pos < align_search_path->path.size() && mapping_it != path.mapping().cend()) {
 
-        ++align_search_path->path_end_pos;
-
-        if (align_search_path->path.at(align_search_path->path_end_pos - 1) != mapping_to_gbwt(*mapping_it)) {
+        if (align_search_path->path.at(align_search_path->path_end_pos) != mapping_to_gbwt(*mapping_it)) {
 
             align_search_path->search_state = gbwt::SearchState();
             assert(align_search_path->search_state.empty());  
@@ -168,9 +171,12 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 
             align_search_path->seq_length -= align_search_path->seq_end_offset;
             align_search_path->seq_end_offset = mapping_it->position().offset() + mapping_from_length(*mapping_it);
+
             align_search_path->seq_length += mapping_it->position().offset() + mapping_to_length(*mapping_it);
+            align_search_path->scores.back().second += mapping_to_length(*mapping_it);
         } 
 
+        ++align_search_path->path_end_pos;
         ++mapping_it;
     }
 
@@ -194,6 +200,8 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
         }
 
         align_search_path->seq_length += mapping_to_length(*mapping_it);
+        align_search_path->scores.back().second += mapping_to_length(*mapping_it);
+
         ++mapping_it;
 
         if (align_search_path->search_state.empty()) {
@@ -224,7 +232,7 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
     extended_align_search_path.front().min_mapq = min(extended_align_search_path.front().min_mapq, static_cast<uint32_t>(alignment.mapping_quality()));
-    extended_align_search_path.front().scores.emplace_back(0);
+    extended_align_search_path.front().scores.emplace_back(0, 0);
 
     extendAlignmentPaths(&extended_align_search_path, alignment.subpath(), subpath_start_idx);
             
@@ -250,7 +258,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
 
         const vg::Subpath & subpath = subpaths.Get(cur_align_search_path.second);
 
-        cur_align_search_path.first.scores.back() += subpath.score();
+        cur_align_search_path.first.scores.back().first += subpath.score();
         extendAlignmentPath(&cur_align_search_path.first, subpath.path());
 
         if (cur_align_search_path.first.path.empty() || !cur_align_search_path.first.search_state.empty()) {
@@ -265,7 +273,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
                 for (auto & connection: subpath.connection()) {
 
                     assert(connection.score() <= 0);
-                    cur_align_search_path.first.scores.back() += connection.score();
+                    cur_align_search_path.first.scores.back().first += connection.score();
 
                     align_search_paths_queue.push(make_pair(cur_align_search_path.first, connection.next()));
                 }
@@ -297,7 +305,7 @@ string string_quality_short_to_char(const string& quality) {
 // Debug end
 
 template<class AlignmentType>
-vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2, map<int32_t, int32_t> * align_max_score_debug) const {
+vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
 #ifdef debug
 
@@ -345,25 +353,14 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         }
     }
 
+    if (filterAlignmentSearchPaths(paired_align_search_paths)) {
+
+        return vector<AlignmentPath>();
+    }
+
     auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2));
 
     // Debug start
-
-    int32_t max_score = 0;
-
-    for (auto & align_search_path: paired_align_search_paths) {
-
-        if (align_search_path.complete()) {
-
-            max_score = max(max_score, *max_element(align_search_path.scores.begin(), align_search_path.scores.end()));
-        }
-    }
-
-    if (align_max_score_debug) {
-
-        auto align_max_score_debug_it = align_max_score_debug->emplace(max_score, 0);
-        align_max_score_debug_it.first->second++;
-    }
 
     // string debug_paths = "";
     // int32_t debug_idx = -1;
@@ -628,6 +625,34 @@ bool AlignmentPathFinder<AlignmentType>::isAlignmentDisconnected(const vg::Multi
     }
 
     return is_connected;
+}
+
+template<class AlignmentType>
+bool AlignmentPathFinder<AlignmentType>::filterAlignmentSearchPaths(const vector<AlignmentSearchPath> & align_search_paths) const {
+
+    double max_min_rel_score = 0;
+
+    for (auto & align_search_path: align_search_paths) {
+
+        if (align_search_path.complete()) {
+
+            if (align_search_path.min_mapq < min_mapq_value) {
+
+                return true;
+            }
+
+            max_min_rel_score = max(max_min_rel_score, align_search_path.minRelativeScore());
+        }
+    }
+
+    if (max_min_rel_score < min_rel_score) {
+
+        return true;
+    
+    } else {
+
+        return false;
+    }
 }
 
 template class AlignmentPathFinder<vg::Alignment>;
