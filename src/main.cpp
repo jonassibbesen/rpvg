@@ -263,7 +263,7 @@ int main(int argc, char* argv[]) {
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("filt-rel-score", "filter alignments with a best score that below <value> of optimal score", cxxopts::value<double>()->default_value("0.8"))
+      ("filt-rel-score", "filter alignments with a best score that below <value> of optimal score", cxxopts::value<double>()->default_value("0.7"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
       ;
