@@ -427,10 +427,20 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
             cerr << "\n\n###" << endl;
             cerr << debug_paths << endl;
             cerr << debug_idx << endl;
-            cerr << paired_align_search_paths.at(debug_idx) << endl;
+
+            if (debug_idx >= 0) {
+
+                cerr << paired_align_search_paths.at(debug_idx) << endl;
+            }
+
             cerr << debug_paths2 << endl;
             cerr << debug_idx2 << endl;
-            cerr << paired_align_search_paths.at(debug_idx2) << endl;
+
+            if (debug_idx2 >= 0) {
+
+                cerr << paired_align_search_paths.at(debug_idx2) << endl;
+            }
+            
             cerr << endl;
             cerr << paired_align_search_paths << endl;
             cerr << endl;
