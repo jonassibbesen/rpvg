@@ -95,7 +95,7 @@ ostream & operator<<(ostream & os, const vector<AlignmentPath> & align_path) {
 
 AlignmentSearchPath::AlignmentSearchPath() {
 
-    path_end_pos = 0;
+    path_end_idx = 0;
     seq_start_offset = 0;
     seq_end_offset = 0;
     seq_length = 0;
@@ -132,7 +132,7 @@ double AlignmentSearchPath::minRelativeScore() const {
 
     for (auto & score: scores) {
 
-        assert(score.first <= score.second);
+        // assert(score.first <= score.second);
         min_rel_score = min(min_rel_score, score.first / static_cast<double>(score.second));
     }
 
@@ -142,7 +142,7 @@ double AlignmentSearchPath::minRelativeScore() const {
 
 bool AlignmentSearchPath::complete() const {
 
-    if (path.empty() || path_end_pos != path.size()) {
+    if (path.empty() || path_end_idx != path.size()) {
 
         return false;
     }
@@ -155,7 +155,7 @@ bool AlignmentSearchPath::complete() const {
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path) {
 
     os << "(" << align_search_path.path << ")";
-    os << " | " << align_search_path.path_end_pos;
+    os << " | " << align_search_path.path_end_idx;
     os << " | " << align_search_path.seq_start_offset;
     os << " | " << align_search_path.seq_end_offset;
     os << " | " << gbwt::Node::id(align_search_path.search_state.node);
