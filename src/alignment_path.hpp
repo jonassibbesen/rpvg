@@ -81,9 +81,12 @@ class AlignmentSearchPath {
         uint32_t seq_length;
 
         uint32_t min_mapq;
-        vector<int32_t> scores;
+        vector<pair<int32_t, int32_t> > scores;
 
         uint32_t scoreSum() const;
+        uint32_t bestScoreSum() const;
+        double minRelativeScore() const;
+
         bool complete() const;
 };
 
