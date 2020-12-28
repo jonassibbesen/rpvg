@@ -475,22 +475,22 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
         bool debug = false;     
          string debug_path = "";        
 
-          for (auto & path: path_cluster_estimates->paths) {        
+         //  for (auto & path: path_cluster_estimates->paths) {        
 
-              if (
-                    path.name == "ENST00000580018.3_15" || 
-                    path.name == "ENST00000374259.7" || 
-                    path.name == "ENST00000325307.11" || 
-                    path.name == "ENST00000216252.3_19" || 
-                    path.name == "ENST00000271638.2"
-                ) {       
+         //      if (
+         //            path.name == "ENST00000580018.3_15" || 
+         //            path.name == "ENST00000374259.7" || 
+         //            path.name == "ENST00000325307.11" || 
+         //            path.name == "ENST00000216252.3_19" || 
+         //            path.name == "ENST00000271638.2"
+         //        ) {       
 
-                  debug = true;     
-                 debug_path = path.name;        
+         //          debug = true;     
+         //         debug_path = path.name;        
 
-                  break;        
-             }      
-         }
+         //          break;        
+         //     }      
+         // }
 
         auto path_source_groups = findPathSourceGroups(path_cluster_estimates->paths);
 
