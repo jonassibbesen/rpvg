@@ -475,22 +475,32 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
         bool debug = false;     
          string debug_path = "";        
 
-         //  for (auto & path: path_cluster_estimates->paths) {        
+          for (auto & path: path_cluster_estimates->paths) {        
 
-         //      if (
-         //            path.name == "ENST00000580018.3_15" || 
-         //            path.name == "ENST00000374259.7" || 
-         //            path.name == "ENST00000325307.11" || 
-         //            path.name == "ENST00000216252.3_19" || 
-         //            path.name == "ENST00000271638.2"
-         //        ) {       
+              if (
+                path.name == "ENST00000346234.6" || 
+                 path.name == "ENST00000461096.6" || 
+                 path.name == "ENST00000317897.4" || 
+                 path.name == "ENST00000594159.1" || 
+                 path.name == "ENST00000396062.3" || 
+                 path.name == "ENST00000296677.4" || 
+                 path.name == "ENST00000568280.1" || 
+                 path.name == "ENST00000370206.8" || 
+                 path.name == "ENST00000379375.5" || 
+                 path.name == "ENST00000275766.1" || 
+                 path.name == "ENST00000317811.5" || 
+                 path.name == "ENST00000378045.4" || 
+                 path.name == "ENST00000329235.6" || 
+                 path.name == "ENST00000596580.2" || 
+                 path.name == "ENST00000368847.4"
+                ) {       
 
-         //          debug = true;     
-         //         debug_path = path.name;        
+                  debug = true;     
+                 debug_path = path.name;        
 
-         //          break;        
-         //     }      
-         // }
+                  break;        
+             }      
+         }
 
         auto path_source_groups = findPathSourceGroups(path_cluster_estimates->paths);
 
