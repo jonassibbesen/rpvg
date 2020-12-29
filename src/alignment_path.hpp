@@ -64,6 +64,24 @@ namespace std {
     };
 }
 
+struct ReadAlignmentStats {
+
+    int32_t score;
+    uint32_t length;
+
+    int32_t left_softclip_length;
+    int32_t right_softclip_length;
+
+    ReadAlignmentStats() {
+
+        score = 0;
+        length = 0;
+
+        left_softclip_length = -1;
+        right_softclip_length = -1; 
+    }
+};
+
 class AlignmentSearchPath {
 
     public: 
@@ -79,15 +97,16 @@ class AlignmentSearchPath {
         gbwt::SearchState search_state;
 
         uint32_t seq_length;
-
         uint32_t min_mapq;
-        vector<pair<int32_t, int32_t> > scores;
+
+        vector<ReadAlignmentStats> read_stats;
+
+        void softclipAdjustSeqLength();
 
         uint32_t scoreSum() const;
-        uint32_t bestScoreSum() const;
-        double minRelativeScore() const;
+        double maxSoftclipFraction() const;
 
-        bool complete() const;
+        bool isComplete() const;
 };
 
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path);

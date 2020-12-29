@@ -31,7 +31,7 @@ class AlignmentPathFinder {
        	uint32_t max_pair_seq_length;
 
        	double min_mapq_value;
-       	double min_rel_score;
+       	double max_softclip_frac;
 
 		bool alignmentHasPath(const vg::Alignment & alignment) const;
 		bool alignmentHasPath(const vg::MultipathAlignment & alignment) const;
