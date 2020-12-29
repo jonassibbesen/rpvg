@@ -469,7 +469,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
 
-        if (paired_align_search_paths.at(i).complete()) {
+        if (paired_align_search_paths.at(i).isComplete()) {
 
             for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).search_state)) {
 
@@ -490,7 +490,13 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                      path_name == "ENST00000378045.4" || 
                      path_name == "ENST00000329235.6" || 
                      path_name == "ENST00000596580.2_72" || 
-                     path_name == "ENST00000368847.4_38"
+                     path_name == "ENST00000368847.4_38" ||
+                     path_name == "ENST00000580018.3_15" || 
+                     path_name == "ENST00000374259.7" || 
+                     path_name == "ENST00000325307.11" || 
+                     path_name == "ENST00000216252.3_19" || 
+                     path_name == "ENST00000271638.2"
+
                 ) {   
 
                     debug_paths = path_name; 
@@ -511,7 +517,12 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                      path_name == "ENST00000378045.4_11" || 
                      path_name == "ENST00000329235.6_14" || 
                      path_name == "ENST00000596580.2_175" || 
-                     path_name == "ENST00000368847.4_110"
+                     path_name == "ENST00000368847.4_110" ||
+                     path_name == "ENST00000580018.3_16" || 
+                     path_name == "ENST00000374259.7_19" || 
+                     path_name == "ENST00000325307.11_24" || 
+                     path_name == "ENST00000216252.3_24" || 
+                     path_name == "ENST00000271638.2_8"
                     ) {  
 
                     debug_paths2 = path_name; 
