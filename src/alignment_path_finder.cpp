@@ -246,7 +246,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
                     cerr << pb2json(*mapping_it) << endl;
                 }
 
-                assert(mapping_it->position().offset() == 0);
+                // assert(mapping_it->position().offset() == 0);
                 is_cycle_visit = true;      
             }
 
