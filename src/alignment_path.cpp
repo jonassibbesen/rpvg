@@ -15,7 +15,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
     for (auto & align_search_path: align_search_paths) {
 
-        if (align_search_path.complete()) {
+        if (align_search_path.isComplete()) {
 
             align_paths.emplace_back(align_search_path, is_multimap);
         }
@@ -93,6 +93,17 @@ ostream & operator<<(ostream & os, const vector<AlignmentPath> & align_path) {
     return os;
 }
 
+ostream & operator<<(ostream & os, const ReadAlignmentStats & read_stats) {
+
+    os << read_stats.score;
+    os << "," << read_stats.length;
+    os << "," << read_stats.left_softclip_length;
+    os << "," << read_stats.right_softclip_length;
+
+    return os;
+}
+
+
 AlignmentSearchPath::AlignmentSearchPath() {
 
     path_end_idx = 0;
@@ -102,45 +113,52 @@ AlignmentSearchPath::AlignmentSearchPath() {
     min_mapq = std::numeric_limits<uint32_t>::max();
 }
 
+void AlignmentSearchPath::softclipAdjustSeqLength() {
+
+    assert(!read_stats.empty());
+    assert(read_stats.size() <= 2);
+
+    if (read_stats.size() == 2) {
+
+        assert(read_stats.front().right_softclip_length >= 0);
+        assert(read_stats.back().left_softclip_length >= 0);
+
+        assert(read_stats.front().right_softclip_length + read_stats.back().left_softclip_length <= seq_length);
+        seq_length -= (read_stats.front().right_softclip_length + read_stats.back().left_softclip_length);
+    }
+}
+
 uint32_t AlignmentSearchPath::scoreSum() const {
 
     int32_t score_sum = 0;
+    assert(!read_stats.empty());
 
-    for (auto & score: scores) {
+    for (auto & stats: read_stats) {
 
-        score_sum += score.first;
+        score_sum += stats.score;
     }
 
     return max(0, score_sum);
 }
 
-uint32_t AlignmentSearchPath::bestScoreSum() const {
+double AlignmentSearchPath::maxSoftclipFraction() const {
 
-    int32_t best_score_sum = 0;
+    double max_softclip_frac = 0;
+    assert(!read_stats.empty());
 
-    for (auto & score: scores) {
+    for (auto & stats: read_stats) {
 
-        best_score_sum += score.second;
+        assert(stats.left_softclip_length >= 0);
+        assert(stats.right_softclip_length >= 0);
+
+        assert(stats.left_softclip_length + stats.right_softclip_length <= stats.length);
+        max_softclip_frac = max(max_softclip_frac, (stats.left_softclip_length + stats.right_softclip_length) / static_cast<double>(stats.length));
     }
 
-    return max(0, best_score_sum);
+    return max_softclip_frac;
 }
 
-double AlignmentSearchPath::minRelativeScore() const {
-
-    double min_rel_score = 1;
-
-    for (auto & score: scores) {
-
-        // assert(score.first <= score.second);
-        min_rel_score = min(min_rel_score, score.first / static_cast<double>(score.second));
-    }
-
-    return min_rel_score;
-}
-
-
-bool AlignmentSearchPath::complete() const {
+bool AlignmentSearchPath::isComplete() const {
 
     if (path.empty() || path_end_idx != path.size()) {
 
@@ -161,8 +179,8 @@ ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path
     os << " | " << gbwt::Node::id(align_search_path.search_state.node);
     os << " | " << align_search_path.search_state.size();
     os << " | " << align_search_path.seq_length;
-    os << " | (" << align_search_path.min_mapq << ")";
-    os << " | (" << align_search_path.scores << ")";
+    os << " | " << align_search_path.min_mapq;
+    os << " | (" << align_search_path.read_stats << ")";
 
     return os;
 }

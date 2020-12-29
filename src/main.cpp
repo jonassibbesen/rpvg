@@ -263,7 +263,7 @@ int main(int argc, char* argv[]) {
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("filt-rel-score", "filter alignments with a best score that below <value> of optimal score", cxxopts::value<double>()->default_value("0.7"))
+      ("filt-soft-clip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("0.3"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
       ;
@@ -465,11 +465,11 @@ int main(int argc, char* argv[]) {
     thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
 
     const double min_mapq_value = prob_to_phred(option_results["filt-mapq-prob"].as<double>());
-    const double min_rel_score = option_results["filt-rel-score"].as<double>();
+    const double max_softclip_frac = option_results["filt-soft-clip"].as<double>();
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_value, min_rel_score);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_value, max_softclip_frac);
 
         if (is_single_end) {
 
@@ -482,7 +482,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_value, min_rel_score);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_value, max_softclip_frac);
 
         if (is_single_end) {
 
