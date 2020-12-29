@@ -238,6 +238,14 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 
             if (align_search_path->path.back() == cur_node && mapping_it->position().offset() != align_search_path->seq_end_offset) {
 
+                if (mapping_it->position().offset() != 0) {
+
+                    cerr << "\nExtend" << endl;
+                    cerr << *align_search_path << endl;
+                    cerr << pb2json(path) << endl;
+                    cerr << pb2json(*mapping_it) << endl;
+                }
+
                 assert(mapping_it->position().offset() == 0);
                 is_cycle_visit = true;      
             }
