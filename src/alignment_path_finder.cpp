@@ -178,7 +178,16 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
                                     
                 } else {
 
-                    assert(mapping_it->position().offset() == 0);                    
+                    if (mapping_it->position().offset() != 0) {
+
+                        cerr << "\nOverlap" << endl;
+                        cerr << *align_search_path << endl;
+                        cerr << pb2json(path) << endl;
+                        cerr << pb2json(*mapping_it) << endl;
+                        cerr << pb2json(*prev_mapping_it) << endl;
+                    }
+
+                    // assert(mapping_it->position().offset() == 0);                    
                     is_cycle_visit = true;
                 }
             } 
