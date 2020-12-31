@@ -67,28 +67,26 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
 
     vector<AlignmentSearchPath> align_search_paths;
 
-    bool print_debug = false;
-
     function<size_t(const uint32_t)> node_length_func = [&](const uint32_t node_id) { return paths_index.nodeLength(node_id); };
 
     if (library_type == "fr") {
 
-        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment, &print_debug);
+        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment);
 
     } else if (library_type == "rf") {
 
         AlignmentType alignment_rc = lazy_reverse_complement_alignment(alignment, node_length_func);
-        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment_rc, &print_debug);
+        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment_rc);
 
     } else {
 
         assert(library_type == "unstranded");
-        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment, &print_debug);
+        align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment);
 
         if (!paths_index.index().bidirectional()) {
 
             AlignmentType alignment_rc = lazy_reverse_complement_alignment(alignment, node_length_func);
-            auto align_search_paths_rc = extendAlignmentPath(AlignmentSearchPath(), alignment_rc, &print_debug);
+            auto align_search_paths_rc = extendAlignmentPath(AlignmentSearchPath(), alignment_rc);
 
             align_search_paths.reserve(align_search_paths.size() + align_search_paths_rc.size());
             align_search_paths.insert(align_search_paths.end(), align_search_paths_rc.begin(), align_search_paths_rc.end());
@@ -115,13 +113,13 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
 }
 
 template<class AlignmentType>
-vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, bool * print_debug) const {
+vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const {
 
-    return extendAlignmentPath(align_search_path, alignment, 0, print_debug);
+    return extendAlignmentPath(align_search_path, alignment, 0);
 }
 
 template<class AlignmentType>
-vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const uint32_t subpath_start_idx, bool * print_debug) const {
+vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const uint32_t subpath_start_idx) const {
 
     assert(alignment.mapping_quality() >= 0);
 
@@ -131,7 +129,7 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
     extended_align_search_path.front().read_stats.emplace_back(ReadAlignmentStats());
     extended_align_search_path.front().read_stats.back().score = alignment.score();
     
-    extendAlignmentPath(&extended_align_search_path.front(), alignment.path(), print_debug);
+    extendAlignmentPath(&extended_align_search_path.front(), alignment.path());
 
     if (extended_align_search_path.front().search_state.empty()) {
 
@@ -144,7 +142,7 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 }
 
 template<class AlignmentType>
-void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Path & path, bool * print_debug) const {
+void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Path & path) const {
 
     assert(align_search_path->path_end_idx <= align_search_path->path.size());
     
@@ -208,18 +206,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
                                     
                 } else {
 
-                    if (mapping_it->position().offset() != 0) {
-
-                        cerr << "\nOverlap" << endl;
-                        cerr << *align_search_path << endl;
-                        cerr << pb2json(path) << endl;
-                        cerr << pb2json(*mapping_it) << endl;
-                        cerr << pb2json(*prev_mapping_it) << endl;
-
-                        *print_debug = true;
-                    }
-
-                    // assert(mapping_it->position().offset() == 0);                    
+                    assert(mapping_it->position().offset() == 0);                    
                     is_cycle_visit = true;
                 }
             } 
@@ -270,17 +257,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 
             if (align_search_path->path.back() == cur_node && mapping_it->position().offset() != align_search_path->seq_end_offset) {
 
-                if (mapping_it->position().offset() != 0) {
-
-                    cerr << "\nExtend" << endl;
-                    cerr << *align_search_path << endl;
-                    cerr << pb2json(path) << endl;
-                    cerr << pb2json(*mapping_it) << endl;
-
-                    *print_debug = true;
-                }
-
-                // assert(mapping_it->position().offset() == 0);
+                assert(mapping_it->position().offset() == 0);
                 is_cycle_visit = true;      
             }
 
@@ -308,13 +285,13 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 }
 
 template<class AlignmentType>
-vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, bool * print_debug) const {
+vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment) const {
 
     vector<AlignmentSearchPath> extended_align_search_paths;
 
     for (auto & start_idx: alignment.start()) {
 
-        auto cur_extended_align_search_paths = extendAlignmentPath(align_search_path, alignment, start_idx, print_debug);
+        auto cur_extended_align_search_paths = extendAlignmentPath(align_search_path, alignment, start_idx);
         extended_align_search_paths.insert(extended_align_search_paths.end(), cur_extended_align_search_paths.begin(), cur_extended_align_search_paths.end());
     }
 
@@ -322,7 +299,7 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 }
 
 template<class AlignmentType>
-vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t subpath_start_idx, bool * print_debug) const {
+vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t subpath_start_idx) const {
 
     assert(alignment.mapping_quality() >= 0);
 
@@ -331,13 +308,13 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
     
     extended_align_search_path.front().read_stats.emplace_back(ReadAlignmentStats());
 
-    extendAlignmentPaths(&extended_align_search_path, alignment.subpath(), subpath_start_idx, print_debug);
+    extendAlignmentPaths(&extended_align_search_path, alignment.subpath(), subpath_start_idx);
             
     return extended_align_search_path;
 }
 
 template<class AlignmentType>
-void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t subpath_start_idx, bool * print_debug) const {
+void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t subpath_start_idx) const {
 
     std::queue<pair<AlignmentSearchPath, uint32_t> > align_search_paths_queue;
 
@@ -356,23 +333,15 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
         const vg::Subpath & subpath = subpaths.Get(cur_align_search_path.second);
 
         cur_align_search_path.first.read_stats.back().score += subpath.score();
-        extendAlignmentPath(&cur_align_search_path.first, subpath.path(), print_debug);
+        extendAlignmentPath(&cur_align_search_path.first, subpath.path());
 
         if (cur_align_search_path.first.path.empty() || !cur_align_search_path.first.search_state.empty()) {
 
-            if (subpath.next_size() > 0 || subpath.connection_size() > 0) {
+            if (subpath.next_size() > 0) {
 
                 for (auto & next_subpath_idx: subpath.next()) {
 
                     align_search_paths_queue.push(make_pair(cur_align_search_path.first, next_subpath_idx));
-                }
-
-                for (auto & connection: subpath.connection()) {
-
-                    assert(connection.score() <= 0);
-                    cur_align_search_path.first.read_stats.back().score += connection.score();
-
-                    align_search_paths_queue.push(make_pair(cur_align_search_path.first, connection.next()));
                 }
 
             } else {
@@ -424,42 +393,29 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     vector<AlignmentSearchPath> paired_align_search_paths;
 
-    bool print_debug = false;
-
     function<size_t(const uint32_t)> node_length_func = [&](const uint32_t node_id) { return paths_index.nodeLength(node_id); };
     AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_length_func);
 
     if (library_type == "fr") {
 
-        pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_2_rc, &print_debug);
+        pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_2_rc);
 
     } else if (library_type == "rf") {
 
         AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_length_func);
-        pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc, &print_debug);
+        pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc);
 
     } else {
 
         assert(library_type == "unstranded");
 
         AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_length_func);
-        pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_2_rc, &print_debug);
+        pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_2_rc);
 
         if (!paths_index.index().bidirectional()) {
 
             AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_length_func);
-            pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc, &print_debug);
-        }
-    }
-
-    if (print_debug) {
-
-        #pragma omp critical
-        {
-            cerr << endl;
-            cerr << pb2json(alignment_1) << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_2) << endl;
+            pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_1_rc);
         }
     }
 
@@ -559,9 +515,9 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 }
 
 template<class AlignmentType>
-void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSearchPath> * paired_align_search_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment, bool * print_debug) const {
+void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSearchPath> * paired_align_search_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment) const {
 
-    auto start_align_search_paths = extendAlignmentPath(AlignmentSearchPath(), start_alignment, print_debug);
+    auto start_align_search_paths = extendAlignmentPath(AlignmentSearchPath(), start_alignment);
     auto end_alignment_start_nodes_index = getAlignmentStartNodesIndex(end_alignment);
 
     std::queue<AlignmentSearchPath> paired_align_search_path_queue;
@@ -591,7 +547,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
                 }
 
                 align_search_path.path_end_idx = path_it - align_search_path.path.begin();
-                auto complete_paired_align_search_paths = extendAlignmentPath(align_search_path, end_alignment, start_nodes.second, print_debug);
+                auto complete_paired_align_search_paths = extendAlignmentPath(align_search_path, end_alignment, start_nodes.second);
 
                 for (auto & complete_align_search_path: complete_paired_align_search_paths) {
 
@@ -626,7 +582,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
                 assert(cur_paired_align_search_path_end.path_end_idx == cur_paired_align_search_path_end.path.size());
                 --cur_paired_align_search_path_end.path_end_idx;
 
-                auto complete_paired_align_search_paths = extendAlignmentPath(cur_paired_align_search_path_end, end_alignment, end_alignment_start_nodes_index_itp.first->second, print_debug);
+                auto complete_paired_align_search_paths = extendAlignmentPath(cur_paired_align_search_path_end, end_alignment, end_alignment_start_nodes_index_itp.first->second);
 
                 for (auto & complete_align_search_path: complete_paired_align_search_paths) {
 
