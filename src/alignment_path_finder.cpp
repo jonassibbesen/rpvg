@@ -476,53 +476,72 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                 auto path_name = paths_index.pathName(path_id);
 
                 if (
-                    path_name == "ENST00000346234.6_28" || 
-                     path_name == "ENST00000461096.6_28" || 
-                     path_name == "ENST00000317897.4_26" || 
-                     path_name == "ENST00000594159.1_9" || 
-                     path_name == "ENST00000396062.3_21" || 
-                     path_name == "ENST00000296677.4_79" || 
-                     path_name == "ENST00000568280.1_20" || 
-                     path_name == "ENST00000370206.8_3" || 
-                     path_name == "ENST00000379375.5_1" || 
-                     path_name == "ENST00000275766.1_44" || 
-                     path_name == "ENST00000317811.5" || 
-                     path_name == "ENST00000378045.4" || 
-                     path_name == "ENST00000329235.6" || 
-                     path_name == "ENST00000596580.2_72" || 
-                     path_name == "ENST00000368847.4_38" ||
-                     path_name == "ENST00000580018.3_15" || 
-                     path_name == "ENST00000374259.7" || 
-                     path_name == "ENST00000325307.11" || 
-                     path_name == "ENST00000216252.3_19" || 
-                     path_name == "ENST00000271638.2"
-
+                    // path_name == "ENST00000346234.6_28" || 
+                    //  path_name == "ENST00000461096.6_28" || 
+                    //  path_name == "ENST00000317897.4_26" || 
+                    //  path_name == "ENST00000594159.1_9" || 
+                    //  path_name == "ENST00000396062.3_21" || 
+                    //  path_name == "ENST00000296677.4_79" || 
+                    //  path_name == "ENST00000568280.1_20" || 
+                    //  path_name == "ENST00000370206.8_3" || 
+                    //  path_name == "ENST00000379375.5_1" || 
+                    //  path_name == "ENST00000275766.1_44" || 
+                    //  path_name == "ENST00000317811.5" || 
+                    //  path_name == "ENST00000378045.4" || 
+                    //  path_name == "ENST00000329235.6" || 
+                    //  path_name == "ENST00000596580.2_72" || 
+                    //  path_name == "ENST00000368847.4_38" ||
+                    //  path_name == "ENST00000580018.3_15" || 
+                    //  path_name == "ENST00000374259.7" || 
+                    //  path_name == "ENST00000325307.11" || 
+                    //  path_name == "ENST00000216252.3_19" || 
+                    //  path_name == "ENST00000271638.2"
+                    path_name == "ENST00000253788.11_9" ||
+                    path_name == "ENST00000323699.8_55" ||
+                    path_name == "ENST00000378119.8_158" ||
+                    path_name == "ENST00000228506.7_157" ||
+                    path_name == "ENST00000340913.10" ||
+                    path_name == "ENST00000592588.6" ||
+                    path_name == "ENST00000584577.5" ||
+                    path_name == "ENST00000223641.4" ||
+                    path_name == "ENST00000591776.5" ||
+                    path_name == "ENST00000221975.6" 
                 ) {   
 
                     debug_paths = path_name; 
                     debug_idx = i;         
                 
                 } else if (
-                    path_name == "ENST00000346234.6_38" || 
-                     path_name == "ENST00000461096.6" || 
-                     path_name == "ENST00000317897.4_29" || 
-                     path_name == "ENST00000594159.1_55" || 
-                     path_name == "ENST00000396062.3" || 
-                     path_name == "ENST00000296677.4_88" || 
-                     path_name == "ENST00000568280.1_45" || 
-                     path_name == "ENST00000370206.8_55" || 
-                     path_name == "ENST00000379375.5_43" || 
-                     path_name == "ENST00000275766.1" || 
-                     path_name == "ENST00000317811.5_46" || 
-                     path_name == "ENST00000378045.4_11" || 
-                     path_name == "ENST00000329235.6_14" || 
-                     path_name == "ENST00000596580.2_175" || 
-                     path_name == "ENST00000368847.4_110" ||
-                     path_name == "ENST00000580018.3_16" || 
-                     path_name == "ENST00000374259.7_19" || 
-                     path_name == "ENST00000325307.11_24" || 
-                     path_name == "ENST00000216252.3_24" || 
-                     path_name == "ENST00000271638.2_8"
+                    // path_name == "ENST00000346234.6_38" || 
+                    //  path_name == "ENST00000461096.6" || 
+                    //  path_name == "ENST00000317897.4_29" || 
+                    //  path_name == "ENST00000594159.1_55" || 
+                    //  path_name == "ENST00000396062.3" || 
+                    //  path_name == "ENST00000296677.4_88" || 
+                    //  path_name == "ENST00000568280.1_45" || 
+                    //  path_name == "ENST00000370206.8_55" || 
+                    //  path_name == "ENST00000379375.5_43" || 
+                    //  path_name == "ENST00000275766.1" || 
+                    //  path_name == "ENST00000317811.5_46" || 
+                    //  path_name == "ENST00000378045.4_11" || 
+                    //  path_name == "ENST00000329235.6_14" || 
+                    //  path_name == "ENST00000596580.2_175" || 
+                    //  path_name == "ENST00000368847.4_110" ||
+                    //  path_name == "ENST00000580018.3_16" || 
+                    //  path_name == "ENST00000374259.7_19" || 
+                    //  path_name == "ENST00000325307.11_24" || 
+                    //  path_name == "ENST00000216252.3_24" || 
+                    //  path_name == "ENST00000271638.2_8"
+                    path_name == "ENST00000253788.11_6" ||
+                    path_name == "ENST00000323699.8_56" ||
+                    path_name == "ENST00000378119.8_161" ||
+                    path_name == "ENST00000228506.7_171" ||
+                    path_name == "ENST00000340913.10_40" ||
+                    path_name == "ENST00000592588.6_3" ||
+                    path_name == "ENST00000584577.5_6" ||
+                    path_name == "ENST00000223641.4_1" ||
+                    path_name == "ENST00000591776.5_4" ||
+                    path_name == "ENST00000221975.6_4" 
                     ) {  
 
                     debug_paths2 = path_name; 
