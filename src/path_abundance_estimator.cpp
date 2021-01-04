@@ -478,36 +478,36 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
           for (auto & path: path_cluster_estimates->paths) {        
 
               if (
-                    // path.name == "ENST00000346234.6_28" || 
-                    //  path.name == "ENST00000461096.6_28" || 
-                    //  path.name == "ENST00000317897.4_26" || 
-                    //  path.name == "ENST00000594159.1_9" || 
-                    //  path.name == "ENST00000396062.3_21" || 
-                    //  path.name == "ENST00000296677.4_79" || 
-                    //  path.name == "ENST00000568280.1_20" || 
-                    //  path.name == "ENST00000370206.8_3" || 
-                    //  path.name == "ENST00000379375.5_1" || 
-                    //  path.name == "ENST00000275766.1_44" || 
-                    //  path.name == "ENST00000317811.5" || 
-                    //  path.name == "ENST00000378045.4" || 
-                    //  path.name == "ENST00000329235.6" || 
-                    //  path.name == "ENST00000596580.2_72" || 
-                    //  path.name == "ENST00000368847.4_38" ||
-                    //  path.name == "ENST00000580018.3_15" || 
-                    //  path.name == "ENST00000374259.7" || 
-                    //  path.name == "ENST00000325307.11" || 
-                    //  path.name == "ENST00000216252.3_19" || 
-                    //  path.name == "ENST00000271638.2"
-                    path.name == "ENST00000253788.11_9" ||
-                    path.name == "ENST00000323699.8_55" ||
-                    path.name == "ENST00000378119.8_158" ||
-                    path.name == "ENST00000228506.7_157" ||
-                    path.name == "ENST00000340913.10" ||
-                    path.name == "ENST00000592588.6" ||
-                    path.name == "ENST00000584577.5" ||
-                    path.name == "ENST00000223641.4" ||
-                    path.name == "ENST00000591776.5" ||
-                    path.name == "ENST00000221975.6" 
+                    path.name == "ENST00000346234.6_28" || 
+                     path.name == "ENST00000461096.6_28" || 
+                     path.name == "ENST00000317897.4_26" || 
+                     path.name == "ENST00000594159.1_9" || 
+                     path.name == "ENST00000396062.3_21" || 
+                     path.name == "ENST00000296677.4_79" || 
+                     path.name == "ENST00000568280.1_20" || 
+                     path.name == "ENST00000370206.8_3" || 
+                     path.name == "ENST00000379375.5_1" || 
+                     path.name == "ENST00000275766.1_44" || 
+                     path.name == "ENST00000317811.5" || 
+                     path.name == "ENST00000378045.4" || 
+                     path.name == "ENST00000329235.6" || 
+                     path.name == "ENST00000596580.2_72" || 
+                     path.name == "ENST00000368847.4_38" ||
+                     path.name == "ENST00000580018.3_15" || 
+                     path.name == "ENST00000374259.7" || 
+                     path.name == "ENST00000325307.11" || 
+                     path.name == "ENST00000216252.3_19" || 
+                     path.name == "ENST00000271638.2"
+                    // path.name == "ENST00000253788.11_9" ||
+                    // path.name == "ENST00000323699.8_55" ||
+                    // path.name == "ENST00000378119.8_158" ||
+                    // path.name == "ENST00000228506.7_157" ||
+                    // path.name == "ENST00000340913.10" ||
+                    // path.name == "ENST00000592588.6" ||
+                    // path.name == "ENST00000584577.5" ||
+                    // path.name == "ENST00000223641.4" ||
+                    // path.name == "ENST00000591776.5" ||
+                    // path.name == "ENST00000221975.6" 
                 ) {       
 
                   debug = true;     
