@@ -186,14 +186,6 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
         align_search_path->read_stats.back().right_softclip_length = last_edit.to_length();   
     }
 
-    if (mapping_rit->position().node_id() == 153845293 || mapping_rit->position().node_id() == 120272628) {
-
-        cerr << "\nPrev" << endl;
-        cerr << *align_search_path << endl;
-        cerr << pb2json(path) << endl;
-        cerr << pb2json(*mapping_it) << endl;        
-    }
-
     while (align_search_path->path_end_idx < align_search_path->path.size() && mapping_it != path.mapping().cend()) {
 
         auto cur_node = mapping_to_gbwt(*mapping_it);
@@ -214,16 +206,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
                                     
                 } else {
 
-                    if (mapping_it->position().offset() != 0) {
-
-                        cerr << "\nOverlap" << endl;
-                        cerr << *align_search_path << endl;
-                        cerr << pb2json(path) << endl;
-                        cerr << pb2json(*mapping_it) << endl;
-                        cerr << pb2json(*prev_mapping_it) << endl;
-                    }
-
-                    // assert(mapping_it->position().offset() == 0);                    
+                    assert(mapping_it->position().offset() == 0);                    
                     is_cycle_visit = true;
                 }
             } 
@@ -274,15 +257,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
 
             if (align_search_path->path.back() == cur_node && mapping_it->position().offset() != align_search_path->seq_end_offset) {
 
-                if (mapping_it->position().offset() != 0) {
-
-                    cerr << "\nExtend" << endl;
-                    cerr << *align_search_path << endl;
-                    cerr << pb2json(path) << endl;
-                    cerr << pb2json(*mapping_it) << endl;
-                }
-
-                // assert(mapping_it->position().offset() == 0);
+                assert(mapping_it->position().offset() == 0);
                 is_cycle_visit = true;      
             }
 
@@ -362,19 +337,11 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
 
         if (cur_align_search_path.first.path.empty() || !cur_align_search_path.first.search_state.empty()) {
 
-            if (subpath.next_size() > 0 || subpath.connection_size() > 0) {
+            if (subpath.next_size() > 0) {
 
                 for (auto & next_subpath_idx: subpath.next()) {
 
                     align_search_paths_queue.push(make_pair(cur_align_search_path.first, next_subpath_idx));
-                }
-
-                for (auto & connection: subpath.connection()) {
-
-                    assert(connection.score() <= 0);
-                    cur_align_search_path.first.read_stats.back().score += connection.score();
-
-                    align_search_paths_queue.push(make_pair(cur_align_search_path.first, connection.next()));
                 }
 
             } else {
