@@ -32,7 +32,7 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Improbable alignment path returns finite probabilities") {
 
-    	alignment_paths.front().seq_length = 100000;
+    	alignment_paths.front().frag_length = 100000;
 
 		ReadPathProbabilities read_path_probs_2(1, pow(10, -8));
 		read_path_probs_2.calcReadPathProbabilities(alignment_paths, alignment_path_ids, clustered_path_index, paths, fragment_length_dist, false);
