@@ -270,6 +270,13 @@ inline vector<string> splitString(const string & str, const char delim) {
     return elems;
 }
 
+static const double score_log_base = 1.383325268738;
+
+inline uint32_t scorePrecision(const double prob_precision) {
+
+    return ceil(-1 * log(prob_precision) / score_log_base);
+}
+
 // Precision used when comparing double variables.
 static const double double_precision = numeric_limits<double>::epsilon() * 100;
 

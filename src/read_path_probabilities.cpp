@@ -7,7 +7,6 @@
 #include <limits>
 #include <sstream>
 
-static const double score_log_base = 1.383325268738;
 
 ReadPathProbabilities::ReadPathProbabilities() {
 
@@ -64,7 +63,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
             if (!is_single_end) {
 
-                align_paths_log_probs.back() += fragment_length_dist.logProb(align_path.seq_length);
+                align_paths_log_probs.back() += fragment_length_dist.logProb(align_path.frag_length);
             }
         }
         

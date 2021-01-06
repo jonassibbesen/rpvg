@@ -17,8 +17,7 @@ class AlignmentPathFinder {
 
     public: 
     
-       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_seq_length_in, const double min_mapq_value_in, const double min_rel_score_in);
-       	void setMaxPairSeqLength(const uint32_t max_pair_seq_length_in);
+       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t min_mapq_filter_in, const double min_best_score_filter_in, const double max_softclip_filter_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
 		vector<AlignmentPath> findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const;
@@ -28,10 +27,11 @@ class AlignmentPathFinder {
        	const PathsIndex & paths_index;
        	const string library_type;
 
-       	uint32_t max_pair_seq_length;
+       	const uint32_t max_pair_frag_length;
 
-       	double min_mapq_value;
-       	double max_softclip_frac;
+       	const uint32_t min_mapq_filter;
+       	const double min_best_score_filter;
+       	const double max_softclip_filter;
 
 		bool alignmentHasPath(const vg::Alignment & alignment) const;
 		bool alignmentHasPath(const vg::MultipathAlignment & alignment) const;

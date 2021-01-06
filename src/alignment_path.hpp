@@ -19,17 +19,17 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const uint32_t seq_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in);
+        AlignmentPath(const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
 
-        uint32_t seq_length;
+        uint32_t frag_length;
         uint32_t min_mapq;
         uint32_t score_sum;
 
         bool is_multimap;
         gbwt::SearchState search_state;
 
-        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap);
+        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const uint32_t max_score_diff, const bool is_multimap);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
@@ -50,7 +50,7 @@ namespace std {
 
             for (auto & align_path: align_paths) {
 
-                spp::hash_combine(seed, align_path.seq_length);
+                spp::hash_combine(seed, align_path.frag_length);
                 spp::hash_combine(seed, align_path.min_mapq);
                 spp::hash_combine(seed, align_path.score_sum);
                 spp::hash_combine(seed, align_path.is_multimap);
@@ -66,6 +66,7 @@ namespace std {
 
 struct ReadAlignmentStats {
 
+    uint32_t mapq;
     int32_t score;
     uint32_t length;
 
@@ -74,6 +75,7 @@ struct ReadAlignmentStats {
 
     ReadAlignmentStats() {
 
+        mapq = 0;
         score = 0;
         length = 0;
 
@@ -91,19 +93,21 @@ class AlignmentSearchPath {
         vector<gbwt::node_type> path;
         uint32_t path_end_idx;
 
-        uint32_t seq_start_offset;
-        uint32_t seq_end_offset;
+        uint32_t path_start_offset;        
+        uint32_t path_end_offset;
 
         gbwt::SearchState search_state;
 
-        uint32_t seq_length;
-        uint32_t min_mapq;
+        int32_t insert_length;
 
         vector<ReadAlignmentStats> read_stats;
 
-        void softclipAdjustSeqLength();
+        uint32_t fragmentLength() const;
 
+        uint32_t minMappingQuality() const;
         uint32_t scoreSum() const;
+
+        double minBestScoreFraction() const;
         double maxSoftclipFraction() const;
 
         bool isComplete() const;
