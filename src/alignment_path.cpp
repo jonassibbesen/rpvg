@@ -125,9 +125,12 @@ ostream & operator<<(ostream & os, const ReadAlignmentStats & read_stats) {
 
 AlignmentSearchPath::AlignmentSearchPath() {
 
-    path_end_idx = 0;
-    path_start_offset = 0;
-    path_end_offset = 0;
+    path_idx = 0;
+    path_offset = 0;
+
+    start_offset = 0;
+    end_offset = 0;
+
     insert_length = 0;
 }
 
@@ -215,7 +218,7 @@ double AlignmentSearchPath::maxSoftclipFraction() const {
 
 bool AlignmentSearchPath::isComplete() const {
 
-    if (path.empty() || path_end_idx != path.size()) {
+    if (path.empty() || path_idx != path.size()) {
 
         return false;
     }
@@ -228,11 +231,12 @@ bool AlignmentSearchPath::isComplete() const {
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path) {
 
     os << "(" << align_search_path.path << ")";
-    os << " | " << align_search_path.path_end_idx;
-    os << " | " << align_search_path.path_start_offset;
-    os << " | " << align_search_path.path_end_offset;
+    os << " | " << align_search_path.path_idx;
+    os << " | " << align_search_path.path_offset;
     os << " | " << gbwt::Node::id(align_search_path.search_state.node);
     os << " | " << align_search_path.search_state.size();
+    os << " | " << align_search_path.start_offset;
+    os << " | " << align_search_path.end_offset;
     os << " | " << align_search_path.insert_length;
     os << " | (" << align_search_path.read_stats << ")";
 

@@ -91,13 +91,15 @@ class AlignmentSearchPath {
         AlignmentSearchPath();
 
         vector<gbwt::node_type> path;
-        uint32_t path_end_idx;
 
-        uint32_t path_start_offset;        
-        uint32_t path_end_offset;
+        uint32_t path_idx;
+        uint32_t path_offset;
 
         gbwt::SearchState search_state;
 
+        uint32_t start_offset;        
+        uint32_t end_offset;
+        
         int32_t insert_length;
 
         vector<ReadAlignmentStats> read_stats;
