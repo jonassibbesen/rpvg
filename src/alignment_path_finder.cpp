@@ -460,28 +460,28 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                      path_name == "ENST00000296677.4_79" || 
                      path_name == "ENST00000568280.1_20" || 
                      path_name == "ENST00000370206.8_3" || 
-                     path_name == "ENST00000379375.5_1" || 
+                     path_name == "ENST00000379375.5_66" || 
                      path_name == "ENST00000275766.1_44" || 
                      path_name == "ENST00000317811.5" || 
                      path_name == "ENST00000378045.4" || 
-                     path_name == "ENST00000329235.6" || 
+                     path_name == "ENST00000329235.6_9" || 
                      path_name == "ENST00000596580.2_72" || 
                      path_name == "ENST00000368847.4_38" ||
                      path_name == "ENST00000580018.3_15" || 
                      path_name == "ENST00000374259.7" || 
                      path_name == "ENST00000325307.11" || 
                      path_name == "ENST00000216252.3_19" || 
-                     path_name == "ENST00000271638.2"
-                    // path_name == "ENST00000253788.11_9" ||
-                    // path_name == "ENST00000323699.8_55" ||
-                    // path_name == "ENST00000378119.8_158" ||
-                    // path_name == "ENST00000228506.7_157" ||
-                    // path_name == "ENST00000340913.10" ||
-                    // path_name == "ENST00000592588.6" ||
-                    // path_name == "ENST00000584577.5" ||
-                    // path_name == "ENST00000223641.4" ||
-                    // path_name == "ENST00000591776.5" ||
-                    // path_name == "ENST00000221975.6" 
+                     path_name == "ENST00000271638.2" ||
+                     path_name == "ENST00000253788.11_9" ||
+                     path_name == "ENST00000323699.8_55" ||
+                     path_name == "ENST00000378119.8_158" ||
+                     path_name == "ENST00000228506.7_157" ||
+                     path_name == "ENST00000340913.10" ||
+                     path_name == "ENST00000592588.6" ||
+                     path_name == "ENST00000584577.5" ||
+                     path_name == "ENST00000223641.4" ||
+                     path_name == "ENST00000591776.5" ||
+                     path_name == "ENST00000221975.6" 
                 ) {   
 
                     debug_paths = path_name; 
@@ -507,17 +507,17 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                      path_name == "ENST00000374259.7_19" || 
                      path_name == "ENST00000325307.11_24" || 
                      path_name == "ENST00000216252.3_24" || 
-                     path_name == "ENST00000271638.2_8"
-                    // path_name == "ENST00000253788.11_6" ||
-                    // path_name == "ENST00000323699.8_56" ||
-                    // path_name == "ENST00000378119.8_161" ||
-                    // path_name == "ENST00000228506.7_171" ||
-                    // path_name == "ENST00000340913.10_40" ||
-                    // path_name == "ENST00000592588.6_3" ||
-                    // path_name == "ENST00000584577.5_6" ||
-                    // path_name == "ENST00000223641.4_1" ||
-                    // path_name == "ENST00000591776.5_4" ||
-                    // path_name == "ENST00000221975.6_4" 
+                     path_name == "ENST00000271638.2_8" || 
+                     path_name == "ENST00000253788.11_6" ||
+                     path_name == "ENST00000323699.8_56" ||
+                     path_name == "ENST00000378119.8_161" ||
+                     path_name == "ENST00000228506.7_171" ||
+                     path_name == "ENST00000340913.10_40" ||
+                     path_name == "ENST00000592588.6_3" ||
+                     path_name == "ENST00000584577.5_6" ||
+                     path_name == "ENST00000223641.4_1" ||
+                     path_name == "ENST00000591776.5_4" ||
+                     path_name == "ENST00000221975.6_4" 
                     ) {  
 
                     debug_paths2 = path_name; 
