@@ -64,24 +64,29 @@ namespace std {
     };
 }
 
-struct ReadAlignmentStats {
+class ReadAlignmentStats {
 
-    uint32_t mapq;
-    int32_t score;
-    uint32_t length;
+    public: 
 
-    int32_t left_softclip_length;
-    int32_t right_softclip_length;
+        ReadAlignmentStats();
 
-    ReadAlignmentStats() {
+        uint32_t mapq;
+        int32_t score;
+        uint32_t length;
 
-        mapq = 0;
-        score = 0;
-        length = 0;
+        int32_t left_softclip_length;
+        int32_t right_softclip_length;
 
-        left_softclip_length = -1;
-        right_softclip_length = -1; 
-    }
+        uint32_t internal_start_offset;
+        uint32_t internal_end_offset;
+
+        void updateSoftClippingLengths(const vg::Path & path);
+
+        void updateInternalStartOffset(const uint32_t offset, const bool is_first);
+        void updateInternalEndOffset(const uint32_t offset, const bool is_last);
+
+        uint32_t clippedOffsetLeftBases();
+        uint32_t clippedOffsetRightBases();
 };
 
 class AlignmentSearchPath {

@@ -118,10 +118,89 @@ ostream & operator<<(ostream & os, const ReadAlignmentStats & read_stats) {
     os << "," << read_stats.length;
     os << "," << read_stats.left_softclip_length;
     os << "," << read_stats.right_softclip_length;
+    os << "," << read_stats.internal_start_offset;
+    os << "," << read_stats.internal_end_offset;
 
     return os;
 }
 
+
+ReadAlignmentStats::ReadAlignmentStats() {
+
+    mapq = 0;
+    score = 0;
+    length = 0;
+
+    left_softclip_length = -1;
+    right_softclip_length = -1; 
+
+    internal_start_offset = 0;
+    internal_end_offset = 0;
+}
+
+void ReadAlignmentStats::updateSoftClippingLengths(const vg::Path & path) {
+
+    auto mapping_it = path.mapping().cbegin();
+    assert(mapping_it != path.mapping().cend());
+
+    if (left_softclip_length == -1) {
+
+        left_softclip_length = 0;
+
+        assert(mapping_it->edit_size() > 0);
+        const vg::Edit & first_edit = mapping_it->edit(0);
+
+        if (first_edit.from_length() == 0) {
+
+            left_softclip_length = first_edit.to_length();   
+        } 
+    }
+
+    auto mapping_rit = path.mapping().rbegin();
+    assert(mapping_rit != path.mapping().rend());   
+
+    right_softclip_length = 0;
+
+    assert(mapping_rit->edit_size() > 0);
+    const vg::Edit & last_edit = mapping_rit->edit(mapping_rit->edit_size() - 1);
+
+    if (last_edit.from_length() == 0) {
+
+        right_softclip_length = last_edit.to_length();   
+    }
+}
+
+void ReadAlignmentStats::updateInternalStartOffset(const uint32_t offset, const bool is_first) {
+
+    internal_start_offset += offset;
+
+    if (is_first) {
+
+        assert(left_softclip_length <= offset);
+        internal_start_offset -= left_softclip_length;
+    }
+}
+
+void ReadAlignmentStats::updateInternalEndOffset(const uint32_t offset, const bool is_last) {
+
+    internal_end_offset += offset;
+
+    if (is_last) {
+
+        assert(right_softclip_length <= offset);
+        internal_end_offset -= right_softclip_length;
+    }
+}
+
+uint32_t ReadAlignmentStats::clippedOffsetLeftBases() {
+
+    return (left_softclip_length + internal_start_offset);
+}
+
+uint32_t ReadAlignmentStats::clippedOffsetRightBases() {
+
+    return (right_softclip_length + internal_end_offset);
+}
 
 AlignmentSearchPath::AlignmentSearchPath() {
 
@@ -154,8 +233,8 @@ uint32_t AlignmentSearchPath::fragmentLength() const {
         assert(read_stats.front().right_softclip_length >= 0);
         assert(read_stats.back().left_softclip_length >= 0);
 
-        assert(read_stats.front().right_softclip_length + read_stats.back().left_softclip_length <= frag_length);
-        return (frag_length - read_stats.front().right_softclip_length - read_stats.back().left_softclip_length);
+        assert(read_stats.front().clippedOffsetRightBases() + read_stats.back().clippedOffsetLeftBases() <= frag_length);
+        return (frag_length - read_stats.front().clippedOffsetRightBases() - read_stats.back().clippedOffsetLeftBases());
     }
 }
 
@@ -179,7 +258,7 @@ uint32_t AlignmentSearchPath::scoreSum() const {
 
     for (auto & stats: read_stats) {
 
-        score_sum += stats.score;
+        score_sum += (stats.score - stats.internal_start_offset - stats.internal_end_offset);
     }
 
     return max(0, score_sum);

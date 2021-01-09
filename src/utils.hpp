@@ -91,7 +91,6 @@ inline uint32_t mapping_from_length(const vg::Mapping & m) {
         l += e.from_length();
     }
     return l;
-
 }
 
 // Note that edit sequences are not reverse complemented.
