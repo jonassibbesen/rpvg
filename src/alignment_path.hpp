@@ -85,8 +85,9 @@ class ReadAlignmentStats {
         void updateInternalStartOffset(const uint32_t offset, const bool is_first);
         void updateInternalEndOffset(const uint32_t offset, const bool is_last);
 
-        uint32_t clippedOffsetLeftBases();
-        uint32_t clippedOffsetRightBases();
+        uint32_t clippedOffsetLeftBases() const;
+        uint32_t clippedOffsetRightBases() const;
+        uint32_t clippedOffsetTotalBases() const;
 };
 
 class AlignmentSearchPath {
@@ -96,15 +97,11 @@ class AlignmentSearchPath {
         AlignmentSearchPath();
 
         vector<gbwt::node_type> path;
-
-        uint32_t path_idx;
-        uint32_t path_offset;
-
         gbwt::SearchState search_state;
 
-        uint32_t start_offset;        
+        uint32_t start_offset;
         uint32_t end_offset;
-        
+
         int32_t insert_length;
 
         vector<ReadAlignmentStats> read_stats;
@@ -117,7 +114,8 @@ class AlignmentSearchPath {
         double minBestScoreFraction() const;
         double maxSoftclipFraction() const;
 
-        bool isComplete() const;
+        bool isEmpty() const;
+        void clear();
 };
 
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path);

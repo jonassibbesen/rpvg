@@ -7,10 +7,10 @@
 #include "../utils.hpp"
 
 
-TEST_CASE("Empty AlignmentSearchPath is not complete") {
+TEST_CASE("New AlignmentSearchPath is empty") {
     
 	AlignmentSearchPath alignment_search_path;
-	REQUIRE(alignment_search_path.isComplete() == false);
+	REQUIRE(alignment_search_path.isEmpty());
 }
 
 TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
@@ -52,5 +52,10 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 		REQUIRE(alignment_path_neg.score_sum == alignment_path.score_sum);
 		REQUIRE(alignment_path_neg.search_state == alignment_path.search_state);
     }
-}
 
+    SECTION("Cleared AlignmentPath is empty") {
+
+    	alignment_search_path.clear();
+		REQUIRE(alignment_search_path.isEmpty());    	
+    }    
+}

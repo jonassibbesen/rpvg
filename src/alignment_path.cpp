@@ -14,7 +14,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
     for (auto & align_search_path: align_search_paths) {
 
-        if (align_search_path.isComplete()) {
+        if (!align_search_path.isEmpty()) {
 
             max_score = max(max_score, align_search_path.scoreSum());
         }
@@ -25,7 +25,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
     for (auto & align_search_path: align_search_paths) {
 
-        if (align_search_path.isComplete()) {
+        if (!align_search_path.isEmpty()) {
 
             const uint32_t score_sum = align_search_path.scoreSum();
             assert(score_sum <= max_score);
@@ -192,21 +192,25 @@ void ReadAlignmentStats::updateInternalEndOffset(const uint32_t offset, const bo
     }
 }
 
-uint32_t ReadAlignmentStats::clippedOffsetLeftBases() {
+uint32_t ReadAlignmentStats::clippedOffsetLeftBases() const {
 
+    assert(left_softclip_length >= 0);
     return (left_softclip_length + internal_start_offset);
 }
 
-uint32_t ReadAlignmentStats::clippedOffsetRightBases() {
+uint32_t ReadAlignmentStats::clippedOffsetRightBases() const {
 
+    assert(right_softclip_length >= 0);
     return (right_softclip_length + internal_end_offset);
 }
 
+uint32_t ReadAlignmentStats::clippedOffsetTotalBases() const {
+
+    return (clippedOffsetLeftBases() + clippedOffsetRightBases());
+}
+
 AlignmentSearchPath::AlignmentSearchPath() {
-
-    path_idx = 0;
-    path_offset = 0;
-
+    
     start_offset = 0;
     end_offset = 0;
 
@@ -221,7 +225,7 @@ uint32_t AlignmentSearchPath::fragmentLength() const {
     if (read_stats.size() == 1) {
 
         assert(insert_length >= 0);
-        return (read_stats.front().length + insert_length);
+        return read_stats.front().length + insert_length;
 
     } else {
 
@@ -233,8 +237,8 @@ uint32_t AlignmentSearchPath::fragmentLength() const {
         assert(read_stats.front().right_softclip_length >= 0);
         assert(read_stats.back().left_softclip_length >= 0);
 
-        assert(read_stats.front().clippedOffsetRightBases() + read_stats.back().clippedOffsetLeftBases() <= frag_length);
-        return (frag_length - read_stats.front().clippedOffsetRightBases() - read_stats.back().clippedOffsetLeftBases());
+        assert(read_stats.front().right_softclip_length + read_stats.back().left_softclip_length <= frag_length);
+        return (frag_length - read_stats.front().right_softclip_length - read_stats.back().left_softclip_length);
     }
 }
 
@@ -295,26 +299,31 @@ double AlignmentSearchPath::maxSoftclipFraction() const {
     return max_softclip_frac;
 }
 
-bool AlignmentSearchPath::isComplete() const {
+bool AlignmentSearchPath::isEmpty() const {
 
-    if (path.empty() || path_idx != path.size()) {
+    if (path.empty() || search_state.empty()) {
 
-        return false;
+        return true;
     }
 
     assert(search_state.node == path.back());
+    return false;
+}
 
-    return true;
+void AlignmentSearchPath::clear() {
+
+    path.clear();
+
+    search_state = gbwt::SearchState();
+    assert(search_state.empty());
 }
 
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path) {
 
     os << "(" << align_search_path.path << ")";
-    os << " | " << align_search_path.path_idx;
-    os << " | " << align_search_path.path_offset;
     os << " | " << gbwt::Node::id(align_search_path.search_state.node);
     os << " | " << align_search_path.search_state.size();
-    os << " | " << align_search_path.start_offset;
+    os << " | " << align_search_path.start_offset;    
     os << " | " << align_search_path.end_offset;
     os << " | " << align_search_path.insert_length;
     os << " | (" << align_search_path.read_stats << ")";
