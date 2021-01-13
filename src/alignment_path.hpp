@@ -74,21 +74,30 @@ class ReadAlignmentStats {
         int32_t score;
         uint32_t length;
 
-        int32_t left_softclip_length;
-        int32_t right_softclip_length;
+        pair<uint32_t, bool> left_softclip_length;
+        pair<uint32_t, bool> right_softclip_length;
 
-        uint32_t internal_start_offset;
-        uint32_t internal_end_offset;
+        pair<uint32_t, bool> internal_start_offset;
+        pair<uint32_t, bool> internal_end_offset;
 
-        void updateSoftClippingLengths(const vg::Path & path);
+        void updateLeftSoftClipLength(const vg::Path & path);
+        void updateRightSoftClipLength(const vg::Path & path);
 
         void updateInternalStartOffset(const uint32_t offset, const bool is_first);
         void updateInternalEndOffset(const uint32_t offset, const bool is_last);
+
+        uint32_t adjustedScore() const; 
 
         uint32_t clippedOffsetLeftBases() const;
         uint32_t clippedOffsetRightBases() const;
         uint32_t clippedOffsetTotalBases() const;
 };
+
+bool operator==(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs);
+bool operator!=(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs);
+bool operator<(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs);
+
+ostream & operator<<(ostream & os, const ReadAlignmentStats & read_stats);
 
 class AlignmentSearchPath {
 
@@ -117,6 +126,10 @@ class AlignmentSearchPath {
         bool isEmpty() const;
         void clear();
 };
+
+bool operator==(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs);
+bool operator!=(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs);
+bool operator<(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs);
 
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path);
 ostream & operator<<(ostream & os, const vector<AlignmentSearchPath> & align_search_path);

@@ -153,6 +153,7 @@ inline vg::Alignment lazy_reverse_complement_alignment(const vg::Alignment& aln,
     
     vg::Alignment aln_rc;
 
+    aln_rc.set_sequence(aln.sequence());
     aln_rc.set_score(aln.score());
     aln_rc.set_mapping_quality(aln.mapping_quality());
 
@@ -168,6 +169,7 @@ inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::Multip
     
     vg::MultipathAlignment multipath_aln_rc;
 
+    multipath_aln_rc.set_sequence(multipath_aln.sequence());
     multipath_aln_rc.set_mapping_quality(multipath_aln.mapping_quality());
 
     vector<vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());
@@ -312,8 +314,8 @@ inline uint32_t numPermutations(vector<uint32_t> values) {
     return (tgamma(values.size() + 1) / tgamma(values.size() - num_unique_values + 2));
 }
 
-template<class T>
-inline ostream & operator<<(ostream & os, const pair<T,T> & values) {
+template<class T, class T2>
+inline ostream & operator<<(ostream & os, const pair<T,T2> & values) {
 
     os << "(" << values.first << "," << values.second << ")";
     return os;

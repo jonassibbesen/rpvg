@@ -50,7 +50,6 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
     if (!align_paths.empty()) {
 
         align_paths_buffer->emplace_back(align_paths);
-        sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
     }
 }
 
@@ -471,7 +470,7 @@ int main(int argc, char* argv[]) {
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_filter, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), 0, min_mapq_filter, min_best_score_filter, max_softclip_filter);
 
         if (is_single_end) {
 
@@ -484,7 +483,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), min_mapq_filter, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), 0, min_mapq_filter, min_best_score_filter, max_softclip_filter);
 
         if (is_single_end) {
 
