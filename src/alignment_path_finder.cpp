@@ -719,7 +719,19 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
             const AlignmentSearchPath & end_align_search_path = end_align_search_paths.at(i);
 
             assert(end_align_search_path.read_stats.size() == 1);
-            assert(end_align_search_path.read_stats.back().length == end_alignment_length);
+
+            if (end_align_search_path.read_stats.back().length != end_alignment_length) {
+
+                #pragma omp critical
+                {
+                    cerr << endl;
+                    cerr << pb2json(end_alignment) << endl;
+                    cerr << end_alignment_length << endl;
+                    cerr << end_align_search_path << endl;
+                }
+            }
+
+            // assert(end_align_search_path.read_stats.back().length == end_alignment_length);
 
             auto end_alignment_start_nodes_it = end_alignment_start_nodes.emplace(end_align_search_path.path.front(), vector<uint32_t>());
             end_alignment_start_nodes_it.first->second.emplace_back(i);
@@ -746,7 +758,19 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
         const AlignmentSearchPath & start_align_search_path = start_align_search_paths.at(i);
 
         assert(start_align_search_path.read_stats.size() == 1);
-        assert(start_align_search_path.read_stats.back().length == start_alignment_length);
+
+        if (start_align_search_path.read_stats.back().length != start_alignment_length) {
+
+            #pragma omp critical
+            {
+                cerr << endl;
+                cerr << pb2json(start_alignment) << endl;
+                cerr << start_alignment_length << endl;
+                cerr << start_align_search_path << endl;
+            }
+        }
+
+        // assert(start_align_search_path.read_stats.back().length == start_alignment_length);
 
         auto node_length = paths_index.nodeLength(gbwt::Node::id(start_align_search_path.search_state.node));
         assert(start_align_search_path.end_offset <= node_length);
