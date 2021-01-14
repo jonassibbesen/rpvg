@@ -97,21 +97,19 @@ uint32_t PathsIndex::numberOfPaths() const {
     }
 }
 
-gbwt::SearchState PathsIndex::find(const gbwt::node_type gbwt_node) const {
+void PathsIndex::find(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const {
 
-    auto no_pos = gbwt::FastLocate::NO_POSITION;
-    return r_index.find(gbwt_node, no_pos);
+    gbwt_search->first = r_index.find(gbwt_node, gbwt_search->second);
 }
 
-gbwt::SearchState PathsIndex::extend(const gbwt::SearchState & gbwt_search, const gbwt::node_type gbwt_node) const {
+void PathsIndex::extend(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const {
 
-    auto no_pos = gbwt::FastLocate::NO_POSITION;
-    return r_index.extend(gbwt_search, gbwt_node, no_pos);
+    gbwt_search->first = r_index.extend(gbwt_search->first, gbwt_node, gbwt_search->second);
 }
 
-vector<gbwt::size_type> PathsIndex::locatePathIds(const gbwt::SearchState & gbwt_search) const {
+vector<gbwt::size_type> PathsIndex::locatePathIds(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search) const {
 
-    auto path_ids = r_index.locate(gbwt_search);
+    auto path_ids = r_index.locate(gbwt_search.first, gbwt_search.second);
 
     if (bidirectional()) {
 

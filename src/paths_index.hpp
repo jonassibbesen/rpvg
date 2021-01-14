@@ -30,9 +30,9 @@ class PathsIndex {
         bool bidirectional() const;
         uint32_t numberOfPaths() const;
 
-        gbwt::SearchState find(const gbwt::node_type gbwt_node) const;
-        gbwt::SearchState extend(const gbwt::SearchState & gbwt_search, const gbwt::node_type gbwt_node) const;
-        vector<gbwt::size_type> locatePathIds(const gbwt::SearchState & gbwt_search) const;
+        void find(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const;
+        void extend(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const;
+        vector<gbwt::size_type> locatePathIds(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search) const;
 
         string pathName(const uint32_t path_id) const;
         uint32_t pathLength(uint32_t path_id) const;

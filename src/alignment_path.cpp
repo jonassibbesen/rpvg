@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <numeric>
 
-AlignmentPath::AlignmentPath(const gbwt::SearchState & search_state_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in) : search_state(search_state_in), is_multimap(is_multimap_in), frag_length(frag_length_in), min_mapq(min_mapq_in), score_sum(score_sum_in) {}
+AlignmentPath::AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in) : gbwt_search(gbwt_search_in), is_multimap(is_multimap_in), frag_length(frag_length_in), min_mapq(min_mapq_in), score_sum(score_sum_in) {}
 
-AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in) : search_state(align_path_in.search_state), is_multimap(is_multimap_in), frag_length(align_path_in.fragmentLength()), min_mapq(align_path_in.minMappingQuality()), score_sum(align_path_in.scoreSum()) {}
+AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in) : gbwt_search(align_path_in.gbwt_search), is_multimap(is_multimap_in), frag_length(align_path_in.fragmentLength()), min_mapq(align_path_in.minMappingQuality()), score_sum(align_path_in.scoreSum()) {}
 
 vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const uint32_t max_score_diff, const bool is_multimap) {
 
@@ -45,7 +45,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    return (lhs.search_state == rhs.search_state && lhs.is_multimap == rhs.is_multimap && lhs.frag_length == rhs.frag_length && lhs.min_mapq == rhs.min_mapq && lhs.score_sum == rhs.score_sum);
+    return (lhs.gbwt_search == rhs.gbwt_search && lhs.is_multimap == rhs.is_multimap && lhs.frag_length == rhs.frag_length && lhs.min_mapq == rhs.min_mapq && lhs.score_sum == rhs.score_sum);
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -55,14 +55,19 @@ bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) {
 
 bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
 
-    if (lhs.search_state.node != rhs.search_state.node) {
+    if (lhs.gbwt_search.first.node != rhs.gbwt_search.first.node) {
 
-        return (lhs.search_state.node < rhs.search_state.node);    
+        return (lhs.gbwt_search.first.node < rhs.gbwt_search.first.node);    
     } 
 
-    if (lhs.search_state.range != rhs.search_state.range) {
+    if (lhs.gbwt_search.first.range != rhs.gbwt_search.first.range) {
 
-        return (lhs.search_state.range < rhs.search_state.range);    
+        return (lhs.gbwt_search.first.range < rhs.gbwt_search.first.range);    
+    } 
+
+    if (lhs.gbwt_search.second != rhs.gbwt_search.second) {
+
+        return (lhs.gbwt_search.second < rhs.gbwt_search.second);    
     } 
 
     if (lhs.is_multimap != rhs.is_multimap) {
@@ -90,8 +95,9 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
 
 ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
 
-    os << gbwt::Node::id(align_path.search_state.node);
-    os << " | " << align_path.search_state.range.first << " " << align_path.search_state.range.second;
+    os << gbwt::Node::id(align_path.gbwt_search.first.node);
+    os << " | " << align_path.gbwt_search.first.range;
+    os << " | " << align_path.gbwt_search.second;
     os << " | " << align_path.is_multimap;
     os << " | " << align_path.frag_length;
     os << " | " << align_path.min_mapq;
@@ -413,12 +419,12 @@ double AlignmentSearchPath::maxSoftclipFraction() const {
 
 bool AlignmentSearchPath::isEmpty() const {
 
-    if (path.empty() || search_state.empty()) {
+    if (path.empty() || gbwt_search.first.empty()) {
 
         return true;
     }
 
-    assert(search_state.node == path.back());
+    assert(gbwt_search.first.node == path.back());
     return false;
 }
 
@@ -426,13 +432,13 @@ void AlignmentSearchPath::clear() {
 
     path.clear();
 
-    search_state = gbwt::SearchState();
-    assert(search_state.empty());
+    gbwt_search.first = gbwt::SearchState();
+    assert(gbwt_search.first.empty());
 }
 
 bool operator==(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs) { 
 
-    return (lhs.path == rhs.path && lhs.search_state == rhs.search_state && lhs.start_offset == rhs.start_offset && lhs.end_offset == rhs.end_offset && lhs.insert_length == rhs.insert_length && lhs.read_stats == rhs.read_stats);
+    return (lhs.path == rhs.path && lhs.gbwt_search == rhs.gbwt_search && lhs.start_offset == rhs.start_offset && lhs.end_offset == rhs.end_offset && lhs.insert_length == rhs.insert_length && lhs.read_stats == rhs.read_stats);
 }
 
 bool operator!=(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs) { 
@@ -442,14 +448,19 @@ bool operator!=(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs
 
 bool operator<(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs) { 
 
-    if (lhs.search_state.node != rhs.search_state.node) {
+    if (lhs.gbwt_search.first.node != rhs.gbwt_search.first.node) {
 
-        return (lhs.search_state.node < rhs.search_state.node);    
+        return (lhs.gbwt_search.first.node < rhs.gbwt_search.first.node);    
     } 
 
-    if (lhs.search_state.range != rhs.search_state.range) {
+    if (lhs.gbwt_search.first.range != rhs.gbwt_search.first.range) {
 
-        return (lhs.search_state.range < rhs.search_state.range);    
+        return (lhs.gbwt_search.first.range < rhs.gbwt_search.first.range);    
+    } 
+
+    if (lhs.gbwt_search.second != rhs.gbwt_search.second) {
+
+        return (lhs.gbwt_search.second < rhs.gbwt_search.second);    
     } 
 
     if (lhs.start_offset != rhs.start_offset) {
@@ -491,8 +502,9 @@ bool operator<(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs)
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path) {
 
     os << "(" << align_search_path.path << ")";
-    os << " | " << gbwt::Node::id(align_search_path.search_state.node);
-    os << " | " << align_search_path.search_state.size();
+    os << " | " << gbwt::Node::id(align_search_path.gbwt_search.first.node);
+    os << " | " << align_search_path.gbwt_search.first.size();
+    os << " | " << align_search_path.gbwt_search.second;
     os << " | " << align_search_path.start_offset;    
     os << " | " << align_search_path.end_offset;
     os << " | " << align_search_path.insert_length;

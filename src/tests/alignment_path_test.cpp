@@ -59,7 +59,7 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	REQUIRE(alignment_path.frag_length == 158);
 	REQUIRE(alignment_path.min_mapq == 10);
 	REQUIRE(alignment_path.score_sum == 27);
-	REQUIRE(alignment_path.search_state.empty());
+	REQUIRE(alignment_path.gbwt_search.first.empty());
 
     SECTION("Insert length can be negative for overlapping paired-end alignments") {
 
@@ -69,7 +69,7 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 		REQUIRE(alignment_path_neg.frag_length == 50);
 		REQUIRE(alignment_path_neg.min_mapq == alignment_path.min_mapq);
 		REQUIRE(alignment_path_neg.score_sum == alignment_path.score_sum);
-		REQUIRE(alignment_path_neg.search_state == alignment_path.search_state);
+		REQUIRE(alignment_path_neg.gbwt_search == alignment_path.gbwt_search);
     }
 
     SECTION("Cleared AlignmentPath is empty") {

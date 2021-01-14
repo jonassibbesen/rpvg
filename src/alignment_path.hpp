@@ -19,10 +19,10 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const gbwt::SearchState & search_state_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in);
+        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
 
-        gbwt::SearchState search_state;
+        pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
         bool is_multimap;
 
         uint32_t frag_length;
@@ -50,9 +50,10 @@ namespace std {
 
             for (auto & align_path: align_paths) {
 
-                spp::hash_combine(seed, align_path.search_state.node);
-                spp::hash_combine(seed, align_path.search_state.range.first);
-                spp::hash_combine(seed, align_path.search_state.range.second);
+                spp::hash_combine(seed, align_path.gbwt_search.first.node);
+                spp::hash_combine(seed, align_path.gbwt_search.first.range.first);
+                spp::hash_combine(seed, align_path.gbwt_search.first.range.second);
+                spp::hash_combine(seed, align_path.gbwt_search.second);
                 spp::hash_combine(seed, align_path.is_multimap);
                 spp::hash_combine(seed, align_path.frag_length);
                 spp::hash_combine(seed, align_path.min_mapq);
@@ -106,7 +107,7 @@ class AlignmentSearchPath {
         AlignmentSearchPath();
 
         vector<gbwt::node_type> path;
-        gbwt::SearchState search_state;
+        pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
 
         uint32_t start_offset;
         uint32_t end_offset;

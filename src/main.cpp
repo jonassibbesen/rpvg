@@ -66,7 +66,7 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
                 const AlignmentPath & last_align_paths_buffer = align_paths_buffer->back().back();
 
-                if (last_align_paths_buffer.search_state == align_paths_it->search_state && last_align_paths_buffer.is_multimap == align_paths_it->is_multimap && last_align_paths_buffer.frag_length == align_paths_it->frag_length && last_align_paths_buffer.min_mapq == align_paths_it->min_mapq) {
+                if (last_align_paths_buffer.gbwt_search == align_paths_it->gbwt_search && last_align_paths_buffer.is_multimap == align_paths_it->is_multimap && last_align_paths_buffer.frag_length == align_paths_it->frag_length && last_align_paths_buffer.min_mapq == align_paths_it->min_mapq) {
 
                     assert(last_align_paths_buffer.score_sum >= align_paths_it->score_sum);
 
@@ -580,7 +580,7 @@ int main(int argc, char* argv[]) {
 
     while (align_paths_index_it != align_paths_index.end()) {
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(search_to_path_index.at(align_paths_index_it->first.front().search_state))).emplace_back(align_paths_index_it);
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(search_to_path_index.at(align_paths_index_it->first.front().gbwt_search.first))).emplace_back(align_paths_index_it);
         ++align_paths_index_it;
     }
 
@@ -715,7 +715,7 @@ int main(int argc, char* argv[]) {
 
             for (auto & align_path: align_paths->first) {
 
-                align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
+                align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.gbwt_search));
             }
 
             read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));

@@ -11,7 +11,7 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<AlignmentPath> alignment_paths(1, AlignmentPath(gbwt::SearchState(), false, 10, 10, 3));
+	vector<AlignmentPath> alignment_paths(1, AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3));
 	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
 
 	vector<PathInfo> paths(2, PathInfo(""));
@@ -48,7 +48,7 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Probabilities are calculated from multiple alignment paths") {
 
-		alignment_paths.emplace_back(AlignmentPath(gbwt::SearchState(), false, 15, 10, 5));
+		alignment_paths.emplace_back(AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 15, 10, 5));
 		alignment_path_ids.emplace_back(vector<gbwt::size_type>({50}));
 		
 		clustered_path_index.emplace(10, 2);
@@ -98,7 +98,7 @@ TEST_CASE("Identical read path probabilities can be merged") {
 	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<AlignmentPath> alignment_paths(1, AlignmentPath(gbwt::SearchState(), false, 10, 10, 3));
+	vector<AlignmentPath> alignment_paths(1, AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3));
 	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
 
 	vector<PathInfo> paths(2, PathInfo(""));
@@ -139,8 +139,8 @@ TEST_CASE("Read path probabilities can be collapsed") {
 	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}, {10, 2}, {50, 3}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<AlignmentPath> alignment_paths(1, AlignmentPath(gbwt::SearchState(), false, 10, 10, 3));
-	alignment_paths.emplace_back(AlignmentPath(gbwt::SearchState(), false, 15, 10, 5));
+	vector<AlignmentPath> alignment_paths(1, AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3));
+	alignment_paths.emplace_back(AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 15, 10, 5));
 
 	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
 	alignment_path_ids.emplace_back(vector<gbwt::size_type>({50}));

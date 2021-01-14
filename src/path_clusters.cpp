@@ -33,12 +33,12 @@ PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & pat
 
                     for (size_t j = 0; j < align_paths.first.size(); ++j) {
 
-                        auto align_path_ids = paths_index.locatePathIds(align_paths.first.at(j).search_state);
+                        auto align_path_ids = paths_index.locatePathIds(align_paths.first.at(j).gbwt_search);
 
                         if (j == 0) {
 
                             anchor_path_id = align_path_ids.front();
-                            thread_search_to_path_index.emplace(align_paths.first.at(j).search_state, anchor_path_id);
+                            thread_search_to_path_index.emplace(align_paths.first.at(j).gbwt_search.first, anchor_path_id);
                         }
 
                         auto anchor_path_mutex_idx = floor(anchor_path_id / static_cast<double>(paths_per_mutex));
@@ -103,18 +103,20 @@ void PathClusters::addNodeClusters(const PathsIndex & paths_index) {
         for (size_t i = 1; i <= paths_index.numberOfNodes(); ++i) {
 
             vector<vector<gbwt::size_type> > node_path_id_sets;
-            auto gbwt_search = paths_index.find(gbwt::Node::encode(i, false));
 
-            if (!gbwt_search.empty()) {
+            pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
+            paths_index.find(&gbwt_search, gbwt::Node::encode(i, false));
+
+            if (!gbwt_search.first.empty()) {
 
                 node_path_id_sets.emplace_back(paths_index.locatePathIds(gbwt_search));
             }
 
             if (!paths_index.bidirectional()) {
 
-                gbwt_search = paths_index.find(gbwt::Node::encode(i, true));
+                paths_index.find(&gbwt_search, gbwt::Node::encode(i, true));
 
-                if (!gbwt_search.empty()) {
+                if (!gbwt_search.first.empty()) {
 
                     node_path_id_sets.emplace_back(paths_index.locatePathIds(gbwt_search));
                 }
