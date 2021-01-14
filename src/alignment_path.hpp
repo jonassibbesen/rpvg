@@ -19,15 +19,15 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in);
+        AlignmentPath(const gbwt::SearchState & search_state_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
+
+        gbwt::SearchState search_state;
+        bool is_multimap;
 
         uint32_t frag_length;
         uint32_t min_mapq;
         uint32_t score_sum;
-
-        bool is_multimap;
-        gbwt::SearchState search_state;
 
         static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const uint32_t max_score_diff, const bool is_multimap);
 };
@@ -50,13 +50,13 @@ namespace std {
 
             for (auto & align_path: align_paths) {
 
-                spp::hash_combine(seed, align_path.frag_length);
-                spp::hash_combine(seed, align_path.min_mapq);
-                spp::hash_combine(seed, align_path.score_sum);
-                spp::hash_combine(seed, align_path.is_multimap);
                 spp::hash_combine(seed, align_path.search_state.node);
                 spp::hash_combine(seed, align_path.search_state.range.first);
                 spp::hash_combine(seed, align_path.search_state.range.second);
+                spp::hash_combine(seed, align_path.is_multimap);
+                spp::hash_combine(seed, align_path.frag_length);
+                spp::hash_combine(seed, align_path.min_mapq);
+                spp::hash_combine(seed, align_path.score_sum);
             }
 
             return seed;
@@ -86,7 +86,7 @@ class ReadAlignmentStats {
         void updateInternalStartOffset(const uint32_t offset, const bool is_first);
         void updateInternalEndOffset(const uint32_t offset, const bool is_last);
 
-        uint32_t adjustedScore() const; 
+        int32_t adjustedScore() const; 
 
         uint32_t clippedOffsetLeftBases() const;
         uint32_t clippedOffsetRightBases() const;
@@ -116,7 +116,6 @@ class AlignmentSearchPath {
         vector<ReadAlignmentStats> read_stats;
 
         uint32_t fragmentLength() const;
-
         uint32_t minMappingQuality() const;
         uint32_t scoreSum() const;
 
