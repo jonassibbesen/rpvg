@@ -179,56 +179,49 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
         } else {
 
-            const size_t align_search_paths_size = align_search_paths->size();
+            AlignmentSearchPath main_align_search_paths;
 
-            for (size_t i = 0; i < align_search_paths_size; ++i) {
+            if (!main_align_search_paths.isEmpty() && max_internal_offset > 0 && !main_align_search_paths.read_stats.back().internal_start_offset.second) {
 
-                if (align_search_paths->at(i).read_stats.back().internal_end_offset.second) {
+                main_align_search_paths = align_search_paths->front();
+            }
 
-                    align_search_paths->at(i).read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
+            for (auto & align_search_path: *align_search_paths) {
 
-                    if (align_search_paths->at(i).read_stats.back().internal_end_offset.first > max_internal_offset) {
+                if (align_search_path.read_stats.back().internal_end_offset.second) {
+
+                    align_search_path.read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
+
+                    if (align_search_path.read_stats.back().internal_end_offset.first > max_internal_offset) {
                         
-                        align_search_paths->at(i).clear();
+                        align_search_path.clear();
                     }
                 
                 } else {
 
-                    if (!align_search_paths->at(i).isEmpty() && max_internal_offset > 0 && !align_search_paths->at(i).read_stats.back().internal_start_offset.second) {
+                    extendAlignmentPath(&align_search_path, *mapping_it);
+                }
+            }
 
-                        uint32_t length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->at(i).read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->at(i).read_stats.back().length));
+            if (!main_align_search_paths.isEmpty()) {
 
-                        if (length_left <= max_internal_offset) {
+                assert(!main_align_search_paths.read_stats.back().internal_end_offset.second);
+                assert(main_align_search_paths.search_state.size() >= align_search_paths->front().search_state.size());
 
-                            auto internal_end_read_stats = align_search_paths->at(i).read_stats.back();
-                            internal_end_read_stats.updateInternalEndOffset(mapping_read_length, is_last_mapping);
+                if (main_align_search_paths.search_state.size() > align_search_paths->front().search_state.size()) {
 
-                            if (internal_end_read_stats.internal_end_offset.first <= max_internal_offset) {
+                    const uint32_t align_length_left = max(int32_t(0), static_cast<int32_t>(main_align_search_paths.read_stats.back().internal_end_offset.first) - static_cast<int32_t>(main_align_search_paths.read_stats.back().length));
 
-                                align_search_paths->emplace_back(align_search_paths->at(i));
-                                align_search_paths->back().read_stats.back() = internal_end_read_stats;
+                    if (align_length_left <= max_internal_offset) {
 
-                                extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
-                                assert(align_search_paths->back().search_state.size() >= align_search_paths->at(i).search_state.size());
+                        auto internal_end_read_stats = main_align_search_paths.read_stats.back();
+                        internal_end_read_stats.updateInternalEndOffset(mapping_read_length, is_last_mapping);
 
-                                if (align_search_paths->back().search_state.size() == align_search_paths->at(i).search_state.size()) {
+                        if (internal_end_read_stats.internal_end_offset.first <= max_internal_offset) {
 
-                                    align_search_paths->pop_back();
-                                }
-                            
-                            } else {
-
-                                extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
-                            }
-                        
-                        }  else {
-
-                            extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
+                            align_search_paths->emplace_back(main_align_search_paths);
+                            align_search_paths->back().read_stats.back() = internal_end_read_stats;               
                         }
-
-                    } else {
-
-                        extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
                     }
                 }
             }

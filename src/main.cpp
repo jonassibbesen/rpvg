@@ -13,6 +13,7 @@
 
 #include "cxxopts.hpp"
 #include "gbwt/gbwt.h"
+#include "gbwt/fast_locate.h"
 #include "sparsepp/spp.h"
 #include "vg/io/vpkg.hpp"
 #include "vg/io/stream.hpp"
@@ -467,9 +468,13 @@ int main(int argc, char* argv[]) {
     assert(vg::io::register_libvg_io());
 
     unique_ptr<handlegraph::HandleGraph> graph = vg::io::VPKG::load_one<handlegraph::HandleGraph>(option_results["graph"].as<string>());
-    unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
-    PathsIndex paths_index(*gbwt_index, *graph);
+    unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());    
+    unique_ptr<gbwt::FastLocate> r_index = vg::io::VPKG::load_one<gbwt::FastLocate>(option_results["paths"].as<string>() + ".ri");
+
+    r_index->setGBWT(*gbwt_index);
+
+    PathsIndex<gbwt::FastLocat> paths_index(*gbwt_index, *graph);
     graph.reset(nullptr);
 
     if (paths_index.index().metadata.paths() == 0) {
