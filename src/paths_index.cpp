@@ -7,7 +7,7 @@
 #include "utils.hpp"
 
 
-PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph) : index_(gbwt_index) {
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const gbwt::FastLocate & r_index, const vg::Graph & graph) : gbwt_index_(gbwt_index), r_index_(r_index) {
 
     node_lengths = vector<int32_t>(graph.node_size() + 1, -1);
     uint32_t max_node_id = 0;
@@ -30,7 +30,7 @@ PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph) :
     node_lengths.resize(max_node_id + 1);
 }
 
-PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleGraph & graph) : index_(gbwt_index) {
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const gbwt::FastLocate & r_index,  const handlegraph::HandleGraph & graph) : gbwt_index_(gbwt_index), r_index_(r_index) {
 
     node_lengths = vector<int32_t>(graph.get_node_count() + 1, -1);
     uint32_t max_node_id = 0;
@@ -53,7 +53,7 @@ PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleG
     node_lengths.resize(max_node_id + 1);
 } 
 
-const gbwt::GBWT & PathsIndex::index() const {
+const gbwt::FastLocate & PathsIndex::index() const {
 
     return index_;
 }

@@ -18,16 +18,21 @@ class PathsIndex {
 
     public: 
     	
-        PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph);
-        PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleGraph & graph);
-
-        const gbwt::GBWT & index() const;
+        PathsIndex(const gbwt::GBWT & gbwt_index_in, const gbwt::FastLocate & r_index_in, const vg::Graph & graph);
+        PathsIndex(const gbwt::GBWT & gbwt_index_in, const gbwt::FastLocate & r_index, const handlegraph::HandleGraph & graph);
 
         uint32_t numberOfNodes() const;
         bool hasNodeId(const uint32_t node_id) const;
         uint32_t nodeLength(const uint32_t node_id) const;
 
-        vector<gbwt::size_type> locatePathIds(const gbwt::SearchState & search) const;
+        vector<gbwt::edge_type> edges(const gbwt::node_type gbwt_node) const;
+
+        bool bidirectional() const;
+        uint32_t numberOfPath() const;
+
+        gbwt::SearchState find(const gbwt::node_type gbwt_node, const gbwt::SearchState & gbwt_search) const;
+        gbwt::SearchState extent(const gbwt::node_type gbwt_node, const gbwt::SearchState & gbwt_search) const;
+        vector<gbwt::size_type> locatePathIds(const gbwt::SearchState & gbwt_search) const;
 
         string pathName(const uint32_t path_id) const;
         uint32_t pathLength(uint32_t path_id) const;
@@ -35,7 +40,9 @@ class PathsIndex {
 
     private:
 
-        const gbwt::GBWT & index_;
+        const gbwt::GBWT & gbwt_index;
+        const gbwt::FastLocate & r_index;
+
         vector<int32_t> node_lengths;
 
         double calculateLowerPhi(const double value) const;

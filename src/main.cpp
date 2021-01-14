@@ -474,7 +474,7 @@ int main(int argc, char* argv[]) {
 
     r_index->setGBWT(*gbwt_index);
 
-    PathsIndex<gbwt::FastLocat> paths_index(*gbwt_index, *graph);
+    PathsIndex paths_index(*gbwt_index, *r_index, *graph);
     graph.reset(nullptr);
 
     if (paths_index.index().metadata.paths() == 0) {
