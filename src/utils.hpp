@@ -91,7 +91,6 @@ inline uint32_t mapping_from_length(const vg::Mapping & m) {
         l += e.from_length();
     }
     return l;
-
 }
 
 // Note that edit sequences are not reverse complemented.
@@ -313,8 +312,8 @@ inline uint32_t numPermutations(vector<uint32_t> values) {
     return (tgamma(values.size() + 1) / tgamma(values.size() - num_unique_values + 2));
 }
 
-template<class T>
-inline ostream & operator<<(ostream & os, const pair<T,T> & values) {
+template<class T, class T2>
+inline ostream & operator<<(ostream & os, const pair<T,T2> & values) {
 
     os << "(" << values.first << "," << values.second << ")";
     return os;
