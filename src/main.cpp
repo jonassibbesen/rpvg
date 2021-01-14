@@ -477,7 +477,7 @@ int main(int argc, char* argv[]) {
     PathsIndex paths_index(*gbwt_index, *r_index, *graph);
     graph.reset(nullptr);
 
-    if (paths_index.index().metadata.paths() == 0) {
+    if (paths_index.numberOfPaths() == 0) {
 
         cerr << "ERROR: The GBWT index does not contain any paths." << endl;
         return 1;        

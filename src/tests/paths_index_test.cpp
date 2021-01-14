@@ -2,6 +2,7 @@
 #include "catch.hpp"
 
 #include "gbwt/dynamic_gbwt.h"
+#include "gbwt/fast_locate.h"
 
 #include "../paths_index.hpp"
 #include "../utils.hpp"
@@ -54,8 +55,11 @@ TEST_CASE("Path index can calculate path lengths") {
     gbwt::GBWT gbwt_index;
     gbwt_index.load(gbwt_stream);
 
-    PathsIndex paths_index(gbwt_index, graph);
-    REQUIRE(paths_index.index().bidirectional() == false);
+    gbwt::FastLocate r_index(gbwt_index);
+    PathsIndex paths_index(gbwt_index, r_index, graph);
+
+    REQUIRE(!paths_index.bidirectional());
+    REQUIRE(paths_index.numberOfPaths() == 2);
 
     REQUIRE(paths_index.pathLength(0) == 38);
     REQUIRE(paths_index.pathLength(1) == 7);

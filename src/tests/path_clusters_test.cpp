@@ -2,6 +2,7 @@
 #include "catch.hpp"
 
 #include "gbwt/dynamic_gbwt.h"
+#include "gbwt/fast_locate.h"
 #include "sparsepp/spp.h"
 
 #include "../path_clusters.hpp"
@@ -67,8 +68,11 @@ TEST_CASE("GBWT paths can be clustered") {
 	vg::Graph graph;
 	json2pb(graph, graph_str);
 
-    PathsIndex paths_index(gbwt_index, graph);
-    REQUIRE(paths_index.index().metadata.paths() == 4);
+    gbwt::FastLocate r_index(gbwt_index);
+    PathsIndex paths_index(gbwt_index, r_index, graph);
+
+    REQUIRE(!paths_index.bidirectional());
+    REQUIRE(paths_index.numberOfPaths() == 4);
 
     spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index;
     spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
@@ -88,32 +92,35 @@ TEST_CASE("GBWT paths can be clustered") {
     SECTION("Bidirectionality affect clustering") {
 
     	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
-	    gbwt::GBWTBuilder gbwt_builder_bidi(gbwt::bit_length(gbwt::Node::encode(7, true)));
+	    gbwt::GBWTBuilder gbwt_builder_bd(gbwt::bit_length(gbwt::Node::encode(7, true)));
 
-	    gbwt_builder_bidi.insert(gbwt_thread_1, true);
-	    gbwt_builder_bidi.insert(gbwt_thread_2, true);
-	    gbwt_builder_bidi.insert(gbwt_thread_3, true);
-	    gbwt_builder_bidi.insert(gbwt_thread_4, true);
+	    gbwt_builder_bd.insert(gbwt_thread_1, true);
+	    gbwt_builder_bd.insert(gbwt_thread_2, true);
+	    gbwt_builder_bd.insert(gbwt_thread_3, true);
+	    gbwt_builder_bd.insert(gbwt_thread_4, true);
 
-	    gbwt_builder_bidi.index.addMetadata();
+	    gbwt_builder_bd.index.addMetadata();
 
 	    for (uint32_t i = 0; i < 4; ++i) {
 
-	    	gbwt_builder_bidi.index.metadata.addPath(gbwt::PathName());
+	    	gbwt_builder_bd.index.metadata.addPath(gbwt::PathName());
 	    }    
 
-	    gbwt_builder_bidi.finish();
+	    gbwt_builder_bd.finish();
 
-	    std::stringstream gbwt_stream_bidi;
-	    gbwt_builder_bidi.index.serialize(gbwt_stream_bidi);
+	    std::stringstream gbwt_stream_bd;
+	    gbwt_builder_bd.index.serialize(gbwt_stream_bd);
 
-	    gbwt::GBWT gbwt_index_bidi;
-	    gbwt_index_bidi.load(gbwt_stream_bidi);
+	    gbwt::GBWT gbwt_index_bd;
+	    gbwt_index_bd.load(gbwt_stream_bd);
 
-	    PathsIndex paths_index_bidi(gbwt_index_bidi, graph);
-	    REQUIRE(paths_index_bidi.index().metadata.paths() == 4);
+        gbwt::FastLocate r_index_bd(gbwt_index_bd);
+	    PathsIndex paths_index_bd(gbwt_index_bd, r_index_bd, graph);
 
-    	path_clusters.addNodeClusters(paths_index_bidi);
+        REQUIRE(paths_index_bd.bidirectional());
+        REQUIRE(paths_index.numberOfPaths() == 4);
+
+    	path_clusters.addNodeClusters(paths_index_bd);
 
 	    REQUIRE(path_clusters.path_to_cluster_index.size() == 4);
 	    REQUIRE(path_clusters.path_to_cluster_index == vector<uint32_t>({0, 0, 1, 0}));

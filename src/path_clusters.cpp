@@ -9,7 +9,7 @@
 static const uint32_t paths_per_mutex = 500;
 static const uint32_t clusters_per_mutex = 100;
 
-PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, spp::sparse_hash_map<gbwt::SearchState, uint32_t> * search_to_path_index) : num_threads(num_threads_in), num_paths(paths_index.index().metadata.paths()) {
+PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, spp::sparse_hash_map<gbwt::SearchState, uint32_t> * search_to_path_index) : num_threads(num_threads_in), num_paths(paths_index.numberOfPaths()) {
 
     vector<spp::sparse_hash_set<uint32_t> > connected_paths(num_paths, spp::sparse_hash_set<uint32_t>());
     vector<mutex> connected_paths_mutexes(ceil(num_paths / static_cast<double>(paths_per_mutex)));
@@ -103,16 +103,16 @@ void PathClusters::addNodeClusters(const PathsIndex & paths_index) {
         for (size_t i = 1; i <= paths_index.numberOfNodes(); ++i) {
 
             vector<vector<gbwt::size_type> > node_path_id_sets;
-            auto gbwt_search = paths_index.index().find(gbwt::Node::encode(i, false));
+            auto gbwt_search = paths_index.find(gbwt::Node::encode(i, false));
 
             if (!gbwt_search.empty()) {
 
                 node_path_id_sets.emplace_back(paths_index.locatePathIds(gbwt_search));
             }
 
-            if (!paths_index.index().bidirectional()) {
+            if (!paths_index.bidirectional()) {
 
-                gbwt_search = paths_index.index().find(gbwt::Node::encode(i, true));
+                gbwt_search = paths_index.find(gbwt::Node::encode(i, true));
 
                 if (!gbwt_search.empty()) {
 

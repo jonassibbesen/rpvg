@@ -82,7 +82,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         assert(library_type == "unstranded");
         align_search_paths = extendAlignmentPath(AlignmentSearchPath(), alignment, alignment_length);
 
-        if (!paths_index.index().bidirectional()) {
+        if (!paths_index.bidirectional()) {
 
             AlignmentType alignment_rc = lazy_reverse_complement_alignment(alignment, node_length_func);
             auto align_search_paths_rc = extendAlignmentPath(AlignmentSearchPath(), alignment_rc, alignment_length);
@@ -267,20 +267,25 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const {
 
-    if (mapping_to_length(mapping) > 0) {
+    auto cur_node = mapping_to_gbwt(mapping);
+    auto mapping_read_length = mapping_to_length(mapping);
 
-        auto cur_node = mapping_to_gbwt(mapping);
+    if (align_search_path->path.empty()) {
 
-        if (align_search_path->path.empty()) {
+        if (mapping_read_length > 0) {
 
             assert(align_search_path->search_state.node == gbwt::ENDMARKER);
 
             align_search_path->path.emplace_back(cur_node);
-            align_search_path->search_state = paths_index.index().find(cur_node);
+            align_search_path->search_state = paths_index.find(cur_node);
       
             align_search_path->start_offset = mapping.position().offset();
+            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+        }
 
-        } else {
+    } else {
+
+        if (align_search_path->path.back() == cur_node || mapping_read_length > 0) {
 
             bool is_cycle_visit = false;
 
@@ -293,11 +298,11 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
             if (align_search_path->path.back() != cur_node || is_cycle_visit) {
 
                 align_search_path->path.emplace_back(cur_node);
-                align_search_path->search_state = paths_index.index().extend(align_search_path->search_state, cur_node);
+                align_search_path->search_state = paths_index.extend(align_search_path->search_state, cur_node);
             } 
-        }
 
-        align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+        }
     }
 }
 
@@ -447,7 +452,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         AlignmentType alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_length_func);
         pairAlignmentPaths(&paired_align_search_paths, alignment_1, alignment_1_length, alignment_2_rc, alignment_2_length);
 
-        if (!paths_index.index().bidirectional()) {
+        if (!paths_index.bidirectional()) {
 
             AlignmentType alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_length_func);
             pairAlignmentPaths(&paired_align_search_paths, alignment_2, alignment_2_length, alignment_1_rc, alignment_1_length);
@@ -672,7 +677,7 @@ void AlignmentPathFinder<AlignmentType>::mergeAlignmentPaths(AlignmentSearchPath
     while (second_path_start_idx < second_align_search_path.path.size()) {
 
         main_align_search_path->path.emplace_back(second_align_search_path.path.at(second_path_start_idx));
-        main_align_search_path->search_state = paths_index.index().extend(main_align_search_path->search_state, main_align_search_path->path.back());
+        main_align_search_path->search_state = paths_index.extend(main_align_search_path->search_state, main_align_search_path->path.back());
 
         if (main_align_search_path->isEmpty()) {
 
@@ -819,7 +824,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
             continue;
         }
 
-        auto out_edges = paths_index.index().edges(cur_paired_align_search_path->search_state.node);
+        auto out_edges = paths_index.edges(cur_paired_align_search_path->search_state.node);
 
         // End current extension if no outgoing edges exist.
         if (out_edges.empty()) {
@@ -837,7 +842,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
 
             if (out_edges_it->first != gbwt::ENDMARKER) {
 
-                auto extended_path = paths_index.index().extend(cur_paired_align_search_path->search_state, out_edges_it->first);
+                auto extended_path = paths_index.extend(cur_paired_align_search_path->search_state, out_edges_it->first);
 
                 // Add new extension to queue if not empty (path found).
                 if (!extended_path.empty()) { 
@@ -856,7 +861,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
 
         if (out_edges.begin()->first != gbwt::ENDMARKER) {
             
-            cur_paired_align_search_path->search_state = paths_index.index().extend(cur_paired_align_search_path->search_state, out_edges.begin()->first);
+            cur_paired_align_search_path->search_state = paths_index.extend(cur_paired_align_search_path->search_state, out_edges.begin()->first);
 
             // End current extension if empty (no haplotypes found). 
             if (cur_paired_align_search_path->search_state.empty()) { 
