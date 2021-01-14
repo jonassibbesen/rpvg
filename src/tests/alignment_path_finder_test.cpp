@@ -1206,7 +1206,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
                             }
                         ]
                     },
-                    "next": [6],
+                    "next": [7],
                     "score": 1
                 },
                 {
@@ -1215,13 +1215,13 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
                             {
                                 "position": {"node_id": 6, "is_reverse": true},
                                 "edit": [
-                                    {"to_length": 3, "sequence": "AAA"}
+                                    {"to_length": 2, "sequence": "AA"}
                                 ]
                             }
                         ]
                     },
                     "next": [5],
-                    "score": -3
+                    "score": -2
                 },
                 {
                     "path": {
@@ -1235,6 +1235,20 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
                         ]
                     },
                     "next": [6],
+                    "score": -1
+                },
+                                {
+                    "path": {
+                        "mapping": [
+                            {
+                                "position": {"node_id": 6, "offset": 1, "is_reverse": true},
+                                "edit": [
+                                    {"to_length": 1, "sequence": "A"}
+                                ]
+                            }
+                        ]
+                    },
+                    "next": [7],
                     "score": -1
                 },
                 {                

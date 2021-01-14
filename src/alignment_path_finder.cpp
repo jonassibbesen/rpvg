@@ -267,11 +267,12 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const {
 
-    if (mapping_to_length(mapping) > 0) {
+    auto cur_node = mapping_to_gbwt(mapping);
+    auto mapping_read_length = mapping_to_length(mapping);
 
-        auto cur_node = mapping_to_gbwt(mapping);
+    if (align_search_path->path.empty()) {
 
-        if (align_search_path->path.empty()) {
+        if (mapping_read_length > 0) {
 
             assert(align_search_path->search_state.node == gbwt::ENDMARKER);
 
@@ -279,8 +280,12 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
             align_search_path->search_state = paths_index.index().find(cur_node);
       
             align_search_path->start_offset = mapping.position().offset();
+            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+        }
 
-        } else {
+    } else {
+
+        if (align_search_path->path.back() == cur_node || mapping_read_length > 0) {
 
             bool is_cycle_visit = false;
 
@@ -295,9 +300,9 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
                 align_search_path->path.emplace_back(cur_node);
                 align_search_path->search_state = paths_index.index().extend(align_search_path->search_state, cur_node);
             } 
-        }
 
-        align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+        }
     }
 }
 
