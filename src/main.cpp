@@ -564,8 +564,7 @@ int main(int argc, char* argv[]) {
     double time_align = gbwt::readTimer();
     cerr << "Found alignment paths (" << time_align - time_load << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
-    PathClusters path_clusters(num_threads, paths_index, align_paths_index, &search_to_path_index);
+    PathClusters path_clusters(num_threads, paths_index, align_paths_index);
 
     if (option_results.count("path-node-cluster")) {
 
@@ -580,7 +579,9 @@ int main(int argc, char* argv[]) {
 
     while (align_paths_index_it != align_paths_index.end()) {
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(search_to_path_index.at(align_paths_index_it->first.front().gbwt_search.first))).emplace_back(align_paths_index_it);
+        const uint32_t anchor_path_id = paths_index.locatePathIds(align_paths_index_it->first.front().gbwt_search).front();
+        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(anchor_path_id)).emplace_back(align_paths_index_it);
+
         ++align_paths_index_it;
     }
 

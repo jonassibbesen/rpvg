@@ -9,15 +9,13 @@
 static const uint32_t paths_per_mutex = 500;
 static const uint32_t clusters_per_mutex = 100;
 
-PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, spp::sparse_hash_map<gbwt::SearchState, uint32_t> * search_to_path_index) : num_threads(num_threads_in), num_paths(paths_index.numberOfPaths()) {
+PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index) : num_threads(num_threads_in), num_paths(paths_index.numberOfPaths()) {
 
     vector<spp::sparse_hash_set<uint32_t> > connected_paths(num_paths, spp::sparse_hash_set<uint32_t>());
     vector<mutex> connected_paths_mutexes(ceil(num_paths / static_cast<double>(paths_per_mutex)));
 
     #pragma omp parallel num_threads(num_threads)
     {
-        spp::sparse_hash_map<gbwt::SearchState, uint32_t> thread_search_to_path_index;
-
         #pragma omp for schedule(static, 1)
         for (size_t i = 0; i < num_threads; ++i) {
 
@@ -38,7 +36,6 @@ PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & pat
                         if (j == 0) {
 
                             anchor_path_id = align_path_ids.front();
-                            thread_search_to_path_index.emplace(align_paths.first.at(j).gbwt_search.first, anchor_path_id);
                         }
 
                         auto anchor_path_mutex_idx = floor(anchor_path_id / static_cast<double>(paths_per_mutex));
@@ -76,16 +73,6 @@ PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & pat
 
                 ++cur_align_paths_index_pos;
             }
-        }
-
-        #pragma omp critical
-        { 
-            for (auto & path: thread_search_to_path_index) {
-
-                search_to_path_index->emplace(path);
-            }
-
-            thread_search_to_path_index.clear();    
         }
     }
 

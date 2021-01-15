@@ -812,7 +812,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
 
                         paired_align_search_paths->emplace_back(complete_paired_align_search_path);                         
                     }
-                }
+                }             
             }
         }
 
