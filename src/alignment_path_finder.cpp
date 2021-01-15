@@ -377,7 +377,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
                         align_search_paths_queue.push(make_pair(align_search_path, next_subpath_idx));
                     }
 
-                } else {
+                } else if (subpath.connection_size() == 0) {
 
                     align_search_paths->emplace_back(move(align_search_path));
                 }
