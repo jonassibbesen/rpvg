@@ -6,6 +6,7 @@
 #include <string>
 
 #include "gbwt/gbwt.h"
+#include "gbwt/fast_locate.h"
 #include "handlegraph/handle_graph.hpp"
 #include "vg/io/basic_stream.hpp"
 #include "fragment_length_dist.hpp"

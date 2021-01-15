@@ -179,56 +179,49 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
         } else {
 
-            const size_t align_search_paths_size = align_search_paths->size();
+            AlignmentSearchPath main_align_search_paths;
 
-            for (size_t i = 0; i < align_search_paths_size; ++i) {
+            if (!main_align_search_paths.isEmpty() && max_internal_offset > 0 && !main_align_search_paths.read_stats.back().internal_start_offset.second) {
 
-                if (align_search_paths->at(i).read_stats.back().internal_end_offset.second) {
+                main_align_search_paths = align_search_paths->front();
+            }
 
-                    align_search_paths->at(i).read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
+            for (auto & align_search_path: *align_search_paths) {
 
-                    if (align_search_paths->at(i).read_stats.back().internal_end_offset.first > max_internal_offset) {
+                if (align_search_path.read_stats.back().internal_end_offset.second) {
+
+                    align_search_path.read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
+
+                    if (align_search_path.read_stats.back().internal_end_offset.first > max_internal_offset) {
                         
-                        align_search_paths->at(i).clear();
+                        align_search_path.clear();
                     }
                 
                 } else {
 
-                    if (!align_search_paths->at(i).isEmpty() && max_internal_offset > 0 && !align_search_paths->at(i).read_stats.back().internal_start_offset.second) {
+                    extendAlignmentPath(&align_search_path, *mapping_it);
+                }
+            }
 
-                        uint32_t length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->at(i).read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->at(i).read_stats.back().length));
+            if (!main_align_search_paths.isEmpty()) {
 
-                        if (length_left <= max_internal_offset) {
+                assert(!main_align_search_paths.read_stats.back().internal_end_offset.second);
+                assert(main_align_search_paths.search_state.size() >= align_search_paths->front().search_state.size());
 
-                            auto internal_end_read_stats = align_search_paths->at(i).read_stats.back();
-                            internal_end_read_stats.updateInternalEndOffset(mapping_read_length, is_last_mapping);
+                if (main_align_search_paths.search_state.size() > align_search_paths->front().search_state.size()) {
 
-                            if (internal_end_read_stats.internal_end_offset.first <= max_internal_offset) {
+                    const uint32_t align_length_left = max(int32_t(0), static_cast<int32_t>(main_align_search_paths.read_stats.back().internal_end_offset.first) - static_cast<int32_t>(main_align_search_paths.read_stats.back().length));
 
-                                align_search_paths->emplace_back(align_search_paths->at(i));
-                                align_search_paths->back().read_stats.back() = internal_end_read_stats;
+                    if (align_length_left <= max_internal_offset) {
 
-                                extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
-                                assert(align_search_paths->back().search_state.size() >= align_search_paths->at(i).search_state.size());
+                        auto internal_end_read_stats = main_align_search_paths.read_stats.back();
+                        internal_end_read_stats.updateInternalEndOffset(mapping_read_length, is_last_mapping);
 
-                                if (align_search_paths->back().search_state.size() == align_search_paths->at(i).search_state.size()) {
+                        if (internal_end_read_stats.internal_end_offset.first <= max_internal_offset) {
 
-                                    align_search_paths->pop_back();
-                                }
-                            
-                            } else {
-
-                                extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
-                            }
-                        
-                        }  else {
-
-                            extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
+                            align_search_paths->emplace_back(main_align_search_paths);
+                            align_search_paths->back().read_stats.back() = internal_end_read_stats;               
                         }
-
-                    } else {
-
-                        extendAlignmentPath(&(align_search_paths->at(i)), *mapping_it);
                     }
                 }
             }
@@ -274,11 +267,12 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const {
 
-    if (mapping_to_length(mapping) > 0) {
+    auto cur_node = mapping_to_gbwt(mapping);
+    auto mapping_read_length = mapping_to_length(mapping);
 
-        auto cur_node = mapping_to_gbwt(mapping);
+    if (align_search_path->path.empty()) {
 
-        if (align_search_path->path.empty()) {
+        if (mapping_read_length > 0) {
 
             assert(align_search_path->search_state.node == gbwt::ENDMARKER);
 
@@ -286,8 +280,12 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
             align_search_path->search_state = paths_index.index().find(cur_node);
       
             align_search_path->start_offset = mapping.position().offset();
+            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+        }
 
-        } else {
+    } else {
+
+        if (align_search_path->path.back() == cur_node || mapping_read_length > 0) {
 
             bool is_cycle_visit = false;
 
@@ -302,9 +300,9 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath
                 align_search_path->path.emplace_back(cur_node);
                 align_search_path->search_state = paths_index.index().extend(align_search_path->search_state, cur_node);
             } 
-        }
 
-        align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+        }
     }
 }
 
@@ -379,7 +377,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
                         align_search_paths_queue.push(make_pair(align_search_path, next_subpath_idx));
                     }
 
-                } else {
+                } else if (subpath.connection_size() == 0) {
 
                     align_search_paths->emplace_back(move(align_search_path));
                 }
@@ -771,7 +769,19 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
             const AlignmentSearchPath & end_align_search_path = end_align_search_paths.at(i);
 
             assert(end_align_search_path.read_stats.size() == 1);
-            assert(end_align_search_path.read_stats.back().length == end_alignment_length);
+
+            if (end_align_search_path.read_stats.back().length != end_alignment_length) {
+
+                #pragma omp critical
+                {
+                    cerr << endl;
+                    cerr << pb2json(end_alignment) << endl;
+                    cerr << end_alignment_length << endl;
+                    cerr << end_align_search_path << endl;
+                }
+            }
+
+            // assert(end_align_search_path.read_stats.back().length == end_alignment_length);
 
             auto end_alignment_start_nodes_it = end_alignment_start_nodes.emplace(end_align_search_path.path.front(), vector<uint32_t>());
             end_alignment_start_nodes_it.first->second.emplace_back(i);
@@ -798,7 +808,19 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
         const AlignmentSearchPath & start_align_search_path = start_align_search_paths.at(i);
 
         assert(start_align_search_path.read_stats.size() == 1);
-        assert(start_align_search_path.read_stats.back().length == start_alignment_length);
+
+        if (start_align_search_path.read_stats.back().length != start_alignment_length) {
+
+            #pragma omp critical
+            {
+                cerr << endl;
+                cerr << pb2json(start_alignment) << endl;
+                cerr << start_alignment_length << endl;
+                cerr << start_align_search_path << endl;
+            }
+        }
+
+        // assert(start_align_search_path.read_stats.back().length == start_alignment_length);
 
         auto node_length = paths_index.nodeLength(gbwt::Node::id(start_align_search_path.search_state.node));
         assert(start_align_search_path.end_offset <= node_length);
