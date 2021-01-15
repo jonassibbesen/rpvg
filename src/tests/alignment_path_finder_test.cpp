@@ -531,7 +531,10 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         REQUIRE(alignment_paths_bd.size() == 2);
 
         REQUIRE(alignment_paths_bd.front() == alignment_paths.front());
-        REQUIRE(alignment_paths_bd.at(1) == alignment_paths.at(1));     
+        REQUIRE(alignment_paths_bd.back().frag_length == alignment_paths.at(1).frag_length);
+        REQUIRE(alignment_paths_bd.back().min_mapq == alignment_paths.at(1).min_mapq);
+        REQUIRE(alignment_paths_bd.back().score_sum == alignment_paths.at(1).score_sum);
+        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.back().gbwt_search) == vector<gbwt::size_type>({1}));
     }
 }
 
