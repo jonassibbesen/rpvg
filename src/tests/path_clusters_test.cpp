@@ -75,9 +75,8 @@ TEST_CASE("GBWT paths can be clustered") {
     REQUIRE(paths_index.numberOfPaths() == 4);
 
     spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index;
-    spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
 
-    PathClusters path_clusters(1, paths_index, align_paths_index, &search_to_path_index);
+    PathClusters path_clusters(1, paths_index, align_paths_index);
     path_clusters.addNodeClusters(paths_index);
 
     REQUIRE(path_clusters.path_to_cluster_index.size() == 4);
@@ -86,8 +85,6 @@ TEST_CASE("GBWT paths can be clustered") {
     REQUIRE(path_clusters.cluster_to_paths_index.at(0) == vector<uint32_t>({0}));
     REQUIRE(path_clusters.cluster_to_paths_index.at(1) == vector<uint32_t>({1, 3}));
     REQUIRE(path_clusters.cluster_to_paths_index.at(2) == vector<uint32_t>({2}));
-
-    REQUIRE(search_to_path_index.empty());    
 
     SECTION("Bidirectionality affect clustering") {
 
