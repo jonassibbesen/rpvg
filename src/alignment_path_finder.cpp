@@ -181,7 +181,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
             AlignmentSearchPath main_align_search_paths;
 
-            if (!main_align_search_paths.isEmpty() && max_internal_offset > 0 && !main_align_search_paths.read_stats.back().internal_start_offset.second) {
+            if (!align_search_paths->front().isEmpty() && max_internal_offset > 0 && !main_align_search_paths.read_stats.back().internal_start_offset.second) {
 
                 main_align_search_paths = align_search_paths->front();
             }

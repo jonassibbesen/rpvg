@@ -289,6 +289,7 @@ int main(int argc, char* argv[]) {
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
+      ("max-par-penalty", "maximum partial path alignment penalty", cxxopts::value<uint32_t>()->default_value("0"))
       ("filt-min-mapq", "filter alignments with a mapping quality below <value>", cxxopts::value<uint32_t>()->default_value("1"))
       ("filt-best-score", "filter alignments with a best score below <value> of optimal", cxxopts::value<double>()->default_value("0.8"))
       ("filt-soft-clip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("1"))
@@ -496,13 +497,14 @@ int main(int argc, char* argv[]) {
 
     thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
 
+    const uint32_t max_partial_penalty = option_results["max-par-penalty"].as<uint32_t>();
     const uint32_t min_mapq_filter = option_results["filt-min-mapq"].as<uint32_t>();
     const double min_best_score_filter = option_results["filt-best-score"].as<double>();
     const double max_softclip_filter = option_results["filt-soft-clip"].as<double>();
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), 8, min_mapq_filter, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_penalty, min_mapq_filter, min_best_score_filter, max_softclip_filter);
 
         if (is_single_end) {
 
@@ -515,7 +517,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), 8, min_mapq_filter, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_penalty, min_mapq_filter, min_best_score_filter, max_softclip_filter);
 
         if (is_single_end) {
 
