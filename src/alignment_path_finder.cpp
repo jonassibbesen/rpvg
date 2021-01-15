@@ -181,7 +181,9 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
             AlignmentSearchPath main_align_search_paths;
 
-            if (!main_align_search_paths.isEmpty() && max_internal_offset > 0 && !main_align_search_paths.read_stats.back().internal_start_offset.second) {
+            const uint32_t align_length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->front().read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->front().read_stats.back().length));
+
+            if (!align_search_paths->front().isEmpty() && !align_search_paths->front().read_stats.back().internal_start_offset.second && max_internal_offset > 0 && align_length_left <= max_internal_offset) {
 
                 main_align_search_paths = align_search_paths->front();
             }
@@ -210,18 +212,13 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
                 if (main_align_search_paths.search_state.size() > align_search_paths->front().search_state.size()) {
 
-                    const uint32_t align_length_left = max(int32_t(0), static_cast<int32_t>(main_align_search_paths.read_stats.back().internal_end_offset.first) - static_cast<int32_t>(main_align_search_paths.read_stats.back().length));
+                    auto internal_end_read_stats = main_align_search_paths.read_stats.back();
+                    internal_end_read_stats.updateInternalEndOffset(mapping_read_length, is_last_mapping);
 
-                    if (align_length_left <= max_internal_offset) {
+                    if (internal_end_read_stats.internal_end_offset.first <= max_internal_offset) {
 
-                        auto internal_end_read_stats = main_align_search_paths.read_stats.back();
-                        internal_end_read_stats.updateInternalEndOffset(mapping_read_length, is_last_mapping);
-
-                        if (internal_end_read_stats.internal_end_offset.first <= max_internal_offset) {
-
-                            align_search_paths->emplace_back(main_align_search_paths);
-                            align_search_paths->back().read_stats.back() = internal_end_read_stats;               
-                        }
+                        align_search_paths->emplace_back(main_align_search_paths);
+                        align_search_paths->back().read_stats.back() = internal_end_read_stats;               
                     }
                 }
             }
