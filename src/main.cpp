@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <thread>
+#include <sys/stat.h>
 
 #include "cxxopts.hpp"
 #include "gbwt/gbwt.h"
@@ -260,6 +261,13 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
     return haplotype_transcript_info;
 }
 
+// https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c
+bool doesFileExist(const string name) {
+  
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0); 
+}
+
 int main(int argc, char* argv[]) {
 
     cxxopts::Options options("rpvg", "rpvg - infers path posterior probabilities and abundances from variation graph read alignments");
@@ -469,11 +477,19 @@ int main(int argc, char* argv[]) {
     assert(vg::io::register_libvg_io());
 
     unique_ptr<handlegraph::HandleGraph> graph = vg::io::VPKG::load_one<handlegraph::HandleGraph>(option_results["graph"].as<string>());
+    unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
-    unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());    
-    unique_ptr<gbwt::FastLocate> r_index = vg::io::VPKG::load_one<gbwt::FastLocate>(option_results["paths"].as<string>() + ".ri");
+    unique_ptr<gbwt::FastLocate> r_index;
 
-    r_index->setGBWT(*gbwt_index);
+    if (doesFileExist(option_results["paths"].as<string>() + ".ri")) {
+
+        r_index = move(vg::io::VPKG::load_one<gbwt::FastLocate>(option_results["paths"].as<string>() + ".ri"));
+        r_index->setGBWT(*gbwt_index);        
+
+    } else {
+
+        r_index = std::make_unique<gbwt::FastLocate>();
+    }
 
     PathsIndex paths_index(*gbwt_index, *r_index, *graph);
     graph.reset(nullptr);

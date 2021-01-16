@@ -7,7 +7,7 @@
 #include "utils.hpp"
 
 
-PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_r_indexin, const gbwt::FastLocate & r_r_indexin, const vg::Graph & graph) : gbwt_index(gbwt_r_indexin), r_index(r_r_indexin) {
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index_in, const gbwt::FastLocate & r_index_in, const vg::Graph & graph) : gbwt_index(gbwt_index_in), r_index(r_index_in) {
 
     node_lengths = vector<int32_t>(graph.node_size() + 1, -1);
     uint32_t max_node_id = 0;
@@ -30,7 +30,7 @@ PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_r_indexin, const gbwt::FastLocate
     node_lengths.resize(max_node_id + 1);
 }
 
-PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_r_indexin, const gbwt::FastLocate & r_r_indexin,  const handlegraph::HandleGraph & graph) : gbwt_index(gbwt_r_indexin), r_index(r_r_indexin) {
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index_in, const gbwt::FastLocate & r_index_in,  const handlegraph::HandleGraph & graph) : gbwt_index(gbwt_index_in), r_index(r_index_in) {
 
     node_lengths = vector<int32_t>(graph.get_node_count() + 1, -1);
     uint32_t max_node_id = 0;
@@ -99,17 +99,40 @@ uint32_t PathsIndex::numberOfPaths() const {
 
 void PathsIndex::find(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const {
 
-    gbwt_search->first = r_index.find(gbwt_node, gbwt_search->second);
+    if (r_index.empty()) {
+
+        gbwt_search->first = gbwt_index.find(gbwt_node);
+
+    } else {
+
+        gbwt_search->first = r_index.find(gbwt_node, gbwt_search->second);
+    }
 }
 
 void PathsIndex::extend(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const {
 
-    gbwt_search->first = r_index.extend(gbwt_search->first, gbwt_node, gbwt_search->second);
+    if (r_index.empty()) {
+
+        gbwt_search->first = gbwt_index.extend(gbwt_search->first, gbwt_node);
+
+    } else {
+
+        gbwt_search->first = r_index.extend(gbwt_search->first, gbwt_node, gbwt_search->second);        
+    }
 }
 
 vector<gbwt::size_type> PathsIndex::locatePathIds(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search) const {
 
-    auto path_ids = r_index.locate(gbwt_search.first, gbwt_search.second);
+    vector<gbwt::size_type> path_ids;
+
+    if (r_index.empty()) {
+
+        path_ids = gbwt_index.locate(gbwt_search.first);
+
+    } else {
+
+        path_ids = r_index.locate(gbwt_search.first, gbwt_search.second);        
+    }
 
     if (bidirectional()) {
 
