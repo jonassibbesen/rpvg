@@ -181,11 +181,14 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
             AlignmentSearchPath main_align_search_paths;
 
-            const uint32_t align_length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->front().read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->front().read_stats.back().length));
+            if (max_internal_offset > 0 && !align_search_paths->front().isEmpty() && !align_search_paths->front().read_stats.back().internal_start_offset.second) {
 
-            if (!align_search_paths->front().isEmpty() && !align_search_paths->front().read_stats.back().internal_start_offset.second && max_internal_offset > 0 && align_length_left <= max_internal_offset) {
+                const uint32_t align_length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->front().read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->front().read_stats.back().length));
 
-                main_align_search_paths = align_search_paths->front();
+                if (align_length_left <= max_internal_offset) {
+
+                    main_align_search_paths = align_search_paths->front();
+                }
             }
 
             for (auto & align_search_path: *align_search_paths) {
@@ -205,7 +208,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
                 }
             }
 
-            if (!main_align_search_paths.isEmpty()) {
+            if (max_internal_offset > 0 && !main_align_search_paths.isEmpty()) {
 
                 assert(!main_align_search_paths.read_stats.back().internal_end_offset.second);
                 assert(main_align_search_paths.gbwt_search.first.size() >= align_search_paths->front().gbwt_search.first.size());
@@ -223,7 +226,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
                 }
             }
 
-            if (align_search_paths->front().path.size() > 1 && max_internal_offset > 0 && !align_search_paths->front().read_stats.back().internal_start_offset.second) {
+            if (max_internal_offset > 0 && align_search_paths->front().path.size() > 1 && !align_search_paths->front().read_stats.back().internal_start_offset.second) {
 
                 auto internal_start_read_stats = align_search_paths->front().read_stats.back();
                 internal_start_read_stats.updateInternalStartOffset(align_search_paths->front().read_stats.back().length, true);

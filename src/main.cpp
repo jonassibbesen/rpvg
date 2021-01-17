@@ -501,7 +501,15 @@ int main(int argc, char* argv[]) {
     }
 
     double time_load = gbwt::readTimer();
-    cerr << "Loaded graph and GBWT (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+
+    if (r_index->empty()) {
+
+        cerr << "Loaded graph and GBWT (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+
+    } else {
+
+        cerr << "Loaded graph, GBWT and r-index (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;        
+    }
 
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
@@ -591,16 +599,27 @@ int main(int argc, char* argv[]) {
 
     cerr << path_clusters.cluster_to_paths_index.size() << endl;
 
-    vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
+    vector<vector<vector<align_paths_index_t::iterator> > > align_paths_clusters(path_clusters.cluster_to_paths_index.size(), vector<vector<align_paths_index_t::iterator> >(num_threads));
 
-    auto align_paths_index_it = align_paths_index.begin();
+    #pragma omp parallel num_threads(num_threads)
+    {
+        #pragma omp for schedule(static, 1)
+        for (size_t i = 0; i < num_threads; ++i) {
 
-    while (align_paths_index_it != align_paths_index.end()) {
+            auto align_paths_index_it = align_paths_index.begin();
+            advance(align_paths_index_it, i);
 
-        const uint32_t anchor_path_id = paths_index.locatePathIds(align_paths_index_it->first.front().gbwt_search).front();
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(anchor_path_id)).emplace_back(align_paths_index_it);
+            uint32_t cur_align_paths_idx = i; 
 
-        ++align_paths_index_it;
+            while (cur_align_paths_idx < align_paths_index.size()) {
+
+                const uint32_t anchor_path_id = paths_index.locatePathIds(align_paths_index_it->first.front().gbwt_search).front();
+                align_paths_clusters.at(path_clusters.path_to_cluster_index.at(anchor_path_id)).at(i).emplace_back(align_paths_index_it);
+
+                advance(align_paths_index_it, num_threads);
+                cur_align_paths_idx += num_threads;
+            }
+        }
     }
 
     double time_clust = gbwt::readTimer();
@@ -662,12 +681,20 @@ int main(int argc, char* argv[]) {
         threaded_path_cluster_estimates.at(i).reserve(ceil(align_paths_clusters.size()) / static_cast<float>(num_threads));
     }
 
-    auto align_paths_clusters_indices = vector<pair<uint64_t, uint32_t> >();
+    auto align_paths_clusters_indices = vector<pair<uint32_t, uint32_t> >();
     align_paths_clusters_indices.reserve(align_paths_clusters.size());
 
     for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
 
-        align_paths_clusters_indices.emplace_back(align_paths_clusters.at(i).size() * path_clusters.cluster_to_paths_index.at(i).size(), i);
+        uint32_t num_align_paths = 0;
+        assert(align_paths_clusters.at(i).size() ==  num_threads);
+
+        for (auto & align_paths: align_paths_clusters.at(i)) {
+
+            num_align_paths += align_paths.size();
+        }
+
+        align_paths_clusters_indices.emplace_back(num_align_paths, i);
     }
 
     sort(align_paths_clusters_indices.rbegin(), align_paths_clusters_indices.rend());
@@ -725,20 +752,23 @@ int main(int argc, char* argv[]) {
         }
 
         vector<ReadPathProbabilities> read_path_cluster_probs;
-        read_path_cluster_probs.reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
+        read_path_cluster_probs.reserve(align_paths_clusters_indices.at(i).first);
 
-        for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
+        for (auto & threaded_align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
-            vector<vector<gbwt::size_type> > align_paths_ids;
-            align_paths_ids.reserve(align_paths->first.size());
+            for (auto & align_paths: threaded_align_paths) {
 
-            for (auto & align_path: align_paths->first) {
+                vector<vector<gbwt::size_type> > align_paths_ids;
+                align_paths_ids.reserve(align_paths->first.size());
 
-                align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.gbwt_search));
+                for (auto & align_path: align_paths->first) {
+
+                    align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.gbwt_search));
+                }
+
+                read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
+                read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end);
             }
-
-            read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-            read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end);
         }
 
         sort(read_path_cluster_probs.begin(), read_path_cluster_probs.end());

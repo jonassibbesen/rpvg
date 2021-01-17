@@ -19,59 +19,59 @@ PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & pat
         #pragma omp for schedule(static, 1)
         for (size_t i = 0; i < num_threads; ++i) {
 
-            uint32_t cur_align_paths_index_pos = 0;
+            auto align_paths_index_it = align_paths_index.begin();
+            advance(align_paths_index_it, i);
 
-            for (auto & align_paths: align_paths_index) {
+            uint32_t cur_align_paths_idx = i; 
 
-                assert(!align_paths.first.empty());
+            while (cur_align_paths_idx < align_paths_index.size()) {
 
-                if (cur_align_paths_index_pos % num_threads == i) { 
+                assert(!align_paths_index_it->first.empty());
+                uint32_t anchor_path_id = 0;
 
-                    uint32_t anchor_path_id = 0;
+                for (size_t j = 0; j < align_paths_index_it->first.size(); ++j) {
 
-                    for (size_t j = 0; j < align_paths.first.size(); ++j) {
+                    auto align_path_ids = paths_index.locatePathIds(align_paths_index_it->first.at(j).gbwt_search);
 
-                        auto align_path_ids = paths_index.locatePathIds(align_paths.first.at(j).gbwt_search);
+                    if (j == 0) {
 
-                        if (j == 0) {
+                        anchor_path_id = align_path_ids.front();
+                    }
 
-                            anchor_path_id = align_path_ids.front();
-                        }
+                    auto anchor_path_mutex_idx = floor(anchor_path_id / static_cast<double>(paths_per_mutex));
 
-                        auto anchor_path_mutex_idx = floor(anchor_path_id / static_cast<double>(paths_per_mutex));
+                    for (auto & path_id: align_path_ids) {
 
-                        for (auto & path_id: align_path_ids) {
+                        if (anchor_path_id != path_id) {
 
-                            if (anchor_path_id != path_id) {
+                            auto path_mutex_idx = floor(path_id / static_cast<double>(paths_per_mutex));
 
-                                auto path_mutex_idx = floor(path_id / static_cast<double>(paths_per_mutex));
+                            if (path_mutex_idx != anchor_path_mutex_idx) {
 
-                                if (path_mutex_idx != anchor_path_mutex_idx) {
+                                lock(connected_paths_mutexes.at(anchor_path_mutex_idx), connected_paths_mutexes.at(path_mutex_idx));
 
-                                    lock(connected_paths_mutexes.at(anchor_path_mutex_idx), connected_paths_mutexes.at(path_mutex_idx));
+                            } else {
 
-                                } else {
+                                connected_paths_mutexes.at(anchor_path_mutex_idx).lock();
+                            }
+                                                    
+                            if (connected_paths.at(anchor_path_id).emplace(path_id).second) {
 
-                                    connected_paths_mutexes.at(anchor_path_mutex_idx).lock();
-                                }
-                                                        
-                                if (connected_paths.at(anchor_path_id).emplace(path_id).second) {
+                                connected_paths.at(path_id).emplace(anchor_path_id);
+                            }
 
-                                    connected_paths.at(path_id).emplace(anchor_path_id);
-                                }
+                            connected_paths_mutexes.at(anchor_path_mutex_idx).unlock();
 
-                                connected_paths_mutexes.at(anchor_path_mutex_idx).unlock();
+                            if (path_mutex_idx != anchor_path_mutex_idx) {
 
-                                if (path_mutex_idx != anchor_path_mutex_idx) {
-
-                                    connected_paths_mutexes.at(path_mutex_idx).unlock();
-                                }
+                                connected_paths_mutexes.at(path_mutex_idx).unlock();
                             }
                         }
                     }
                 }
 
-                ++cur_align_paths_index_pos;
+                advance(align_paths_index_it, num_threads);
+                cur_align_paths_idx += num_threads;
             }
         }
     }
