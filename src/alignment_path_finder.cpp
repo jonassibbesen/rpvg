@@ -571,33 +571,38 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     if (debug_idx != debug_idx2) {
 
-        #pragma omp critical
-        {
-            cerr << "\n\n###" << endl;
-            cerr << debug_paths << endl;
-            cerr << debug_idx << endl;
+        if (debug_idx == -1 || debug_idx2 == -1) {
 
-            if (debug_idx >= 0) {
+            #pragma omp critical
+            {
+                cerr << "\n\n###" << endl;
+                cerr << debug_paths << endl;
+                cerr << debug_idx << endl;
 
-                cerr << paired_align_search_paths.at(debug_idx) << endl;
+                if (debug_idx >= 0) {
+
+                    cerr << paired_align_search_paths.at(debug_idx) << endl;
+                }
+
+                cerr << debug_paths2 << endl;
+                cerr << debug_idx2 << endl;
+
+                if (debug_idx2 >= 0) {
+
+                    cerr << paired_align_search_paths.at(debug_idx2) << endl;
+                }
+                
+                cerr << endl;
+                cerr << paired_align_search_paths << endl;
+                cerr << endl;
+                cerr << paired_align_paths << endl;
+                cerr << endl;
+                cerr << pb2json(alignment_1) << endl;
+                cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+                cerr << endl;
+                cerr << pb2json(alignment_2) << endl;
+                cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
             }
-
-            cerr << debug_paths2 << endl;
-            cerr << debug_idx2 << endl;
-
-            if (debug_idx2 >= 0) {
-
-                cerr << paired_align_search_paths.at(debug_idx2) << endl;
-            }
-            
-            cerr << endl;
-            cerr << paired_align_search_paths << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_1) << endl;
-            cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-            cerr << endl;
-            cerr << pb2json(alignment_2) << endl;
-            cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
         }
     }
 
