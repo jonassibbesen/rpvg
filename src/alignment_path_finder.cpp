@@ -468,77 +468,138 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     // Debug start
 
-    // string debug_paths = "";
-    // int32_t debug_idx = -1;
+    string debug_paths = "";
+    int32_t debug_idx = -1;
 
-    // string debug_paths2 = "";
-    // int32_t debug_idx2 = -1;
+    string debug_paths2 = "";
+    int32_t debug_idx2 = -1;
 
-    // for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+    for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
 
-    //     if (paired_align_search_paths.at(i).complete()) {
+        if (!paired_align_search_paths.at(i).isEmpty()) {
 
-    //         for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).gbwt_search)) {
+            for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).gbwt_search)) {
 
-    //             auto path_name = paths_index.pathName(path_id);
+                auto path_name = paths_index.pathName(path_id);
 
-    //             if (
-    //                 path_name == "ENST00000580018.3_15" || 
-    //                 path_name == "ENST00000374259.7" || 
-    //                 path_name == "ENST00000325307.11" || 
-    //                 path_name == "ENST00000216252.3_19" || 
-    //                 path_name == "ENST00000271638.2"
-    //             ) {   
+                if (
+                    // path_name == "ENST00000346234.6_28" || 
+                    //  path_name == "ENST00000461096.6_28" || 
+                    //  path_name == "ENST00000317897.4_26" || 
+                    //  path_name == "ENST00000594159.1_9" || 
+                    //  path_name == "ENST00000396062.3_21" || 
+                    //  path_name == "ENST00000296677.4_79" || 
+                    //  path_name == "ENST00000568280.1_20" || 
+                    //  path_name == "ENST00000370206.8_3" || 
+                    //  path_name == "ENST00000379375.5_66" || 
+                    //  path_name == "ENST00000275766.1_44" || 
+                    //  path_name == "ENST00000317811.5" || 
+                    //  path_name == "ENST00000378045.4" || 
+                    //  path_name == "ENST00000329235.6_9" || 
+                    //  path_name == "ENST00000596580.2_72" || 
+                    //  path_name == "ENST00000368847.4_38" ||
+                    //  path_name == "ENST00000580018.3_15" || 
+                    //  path_name == "ENST00000374259.7" || 
+                    //  path_name == "ENST00000325307.11" || 
+                    //  path_name == "ENST00000216252.3_19" || 
+                    //  path_name == "ENST00000271638.2" ||
+                    //  path_name == "ENST00000253788.11_9" ||
+                    //  path_name == "ENST00000323699.8_55" ||
+                    //  path_name == "ENST00000378119.8_158" ||
+                    //  path_name == "ENST00000228506.7_157" ||
+                    //  path_name == "ENST00000340913.10" ||
+                    //  path_name == "ENST00000592588.6" ||
+                    //  path_name == "ENST00000584577.5" ||
+                    //  path_name == "ENST00000223641.4" ||
+                    //  path_name == "ENST00000591776.5" ||
+                    //  path_name == "ENST00000221975.6" 
+                     path_name == "ENST00000215909.9_8" ||
+                     path_name == "ENST00000225964.9_340" ||
+                     path_name == "ENST00000646664.1" ||
+                     path_name == "ENST00000394077.7" ||
+                     path_name == "ENST00000375820.9_2"                    
+                ) {   
 
-    //                 debug_paths = path_name; 
-    //                 debug_idx = i;         
+                    debug_paths = path_name; 
+                    debug_idx = i;         
                 
-    //             } else if (
-    //                 path_name == "ENST00000580018.3_16" || 
-    //                 path_name == "ENST00000374259.7_19" || 
-    //                 path_name == "ENST00000325307.11_24" || 
-    //                 path_name == "ENST00000216252.3_24" || 
-    //                 path_name == "ENST00000271638.2_8"
-    //                 ) {  
+                } else if (
+                    // path_name == "ENST00000346234.6_38" || 
+                    //  path_name == "ENST00000461096.6" || 
+                    //  path_name == "ENST00000317897.4_29" || 
+                    //  path_name == "ENST00000594159.1_55" || 
+                    //  path_name == "ENST00000396062.3" || 
+                    //  path_name == "ENST00000296677.4_88" || 
+                    //  path_name == "ENST00000568280.1_45" || 
+                    //  path_name == "ENST00000370206.8_55" || 
+                    //  path_name == "ENST00000379375.5_43" || 
+                    //  path_name == "ENST00000275766.1" || 
+                    //  path_name == "ENST00000317811.5_46" || 
+                    //  path_name == "ENST00000378045.4_11" || 
+                    //  path_name == "ENST00000329235.6_14" || 
+                    //  path_name == "ENST00000596580.2_175" || 
+                    //  path_name == "ENST00000368847.4_110" ||
+                    //  path_name == "ENST00000580018.3_16" || 
+                    //  path_name == "ENST00000374259.7_19" || 
+                    //  path_name == "ENST00000325307.11_24" || 
+                    //  path_name == "ENST00000216252.3_24" || 
+                    //  path_name == "ENST00000271638.2_8" || 
+                    //  path_name == "ENST00000253788.11_6" ||
+                    //  path_name == "ENST00000323699.8_56" ||
+                    //  path_name == "ENST00000378119.8_161" ||
+                    //  path_name == "ENST00000228506.7_171" ||
+                    //  path_name == "ENST00000340913.10_40" ||
+                    //  path_name == "ENST00000592588.6_3" ||
+                    //  path_name == "ENST00000584577.5_6" ||
+                    //  path_name == "ENST00000223641.4_1" ||
+                    //  path_name == "ENST00000591776.5_4" ||
+                    //  path_name == "ENST00000221975.6_4" 
+                     path_name == "ENST00000215909.9" ||
+                     path_name == "ENST00000225964.9_374" ||
+                     path_name == "ENST00000646664.1_74" ||
+                     path_name == "ENST00000394077.7_16" ||
+                     path_name == "ENST00000394077.7_21" ||
+                     path_name == "ENST00000375820.9_437" 
+                    ) {  
 
-    //                 debug_paths2 = path_name; 
-    //                 debug_idx2 = i;         
-    //             }                
-    //         }
-    //     }
-    // }
+                    debug_paths2 = path_name; 
+                    debug_idx2 = i;         
+                }                
+            }
+        }
+    }
 
-    // if (debug_idx != debug_idx2) {
+    if (debug_idx != debug_idx2) {
 
-    //     #pragma omp critical
-    //     {
-    //         cerr << "\n\n###" << endl;
-    //         cerr << debug_paths << endl;
-    //         cerr << debug_idx << endl;
+        #pragma omp critical
+        {
+            cerr << "\n\n###" << endl;
+            cerr << debug_paths << endl;
+            cerr << debug_idx << endl;
 
-    //         if (debug_idx >= 0) {
+            if (debug_idx >= 0) {
 
-    //             cerr << paired_align_search_paths.at(debug_idx) << endl;
-    //         }
+                cerr << paired_align_search_paths.at(debug_idx) << endl;
+            }
 
-    //         cerr << debug_paths2 << endl;
-    //         cerr << debug_idx2 << endl;
+            cerr << debug_paths2 << endl;
+            cerr << debug_idx2 << endl;
 
-    //         if (debug_idx2 >= 0) {
+            if (debug_idx2 >= 0) {
 
-    //             cerr << paired_align_search_paths.at(debug_idx2) << endl;
-    //         }
+                cerr << paired_align_search_paths.at(debug_idx2) << endl;
+            }
             
-    //         cerr << endl;
-    //         cerr << paired_align_search_paths << endl;
-    //         cerr << endl;
-    //         cerr << pb2json(alignment_1) << endl;
-    //         cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-    //         cerr << endl;
-    //         cerr << pb2json(alignment_2) << endl;
-    //         cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
-    //     }
-    // }
+            cerr << endl;
+            cerr << paired_align_search_paths << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_1) << endl;
+            cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_2) << endl;
+            cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+        }
+    }
 
     // Debug end
 
