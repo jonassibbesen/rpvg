@@ -168,7 +168,9 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
         if (align_search_paths->front().read_stats.back().internal_end_offset.second) {
 
+            assert(max_internal_offset > 0);
             assert(align_search_paths->size() == 1);
+
             align_search_paths->front().read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
 
             if (align_search_paths->front().read_stats.back().internal_end_offset.first > max_internal_offset) {
@@ -183,9 +185,9 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
             if (max_internal_offset > 0 && !align_search_paths->front().isEmpty() && !align_search_paths->front().read_stats.back().internal_start_offset.second) {
 
-                const uint32_t align_length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->front().read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->front().read_stats.back().length));
+                const uint32_t min_align_length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->front().read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->front().read_stats.back().length));
 
-                if (align_length_left <= max_internal_offset) {
+                if (min_align_length_left <= max_internal_offset) {
 
                     main_align_search_paths = align_search_paths->front();
                 }
@@ -195,6 +197,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
                 if (align_search_path.read_stats.back().internal_end_offset.second) {
 
+                    assert(max_internal_offset > 0);
                     align_search_path.read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
 
                     if (align_search_path.read_stats.back().internal_end_offset.first > max_internal_offset) {
@@ -268,42 +271,34 @@ template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const {
 
     auto cur_node = mapping_to_gbwt(mapping);
-    auto mapping_read_length = mapping_to_length(mapping);
 
     if (align_search_path->path.empty()) {
 
-        if (mapping_read_length > 0) {
+        assert(align_search_path->gbwt_search.first.node == gbwt::ENDMARKER);
 
-            assert(align_search_path->gbwt_search.first.node == gbwt::ENDMARKER);
-
-            align_search_path->path.emplace_back(cur_node);
-            paths_index.find(&(align_search_path->gbwt_search), cur_node);
-      
-            align_search_path->start_offset = mapping.position().offset();
-            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
-        }
+        align_search_path->path.emplace_back(cur_node);
+        paths_index.find(&(align_search_path->gbwt_search), cur_node);
+  
+        align_search_path->start_offset = mapping.position().offset();
 
     } else {
 
-        if (align_search_path->path.back() == cur_node || mapping_read_length > 0) {
+        bool is_cycle_visit = false;
 
-            bool is_cycle_visit = false;
+        if (align_search_path->path.back() == cur_node && mapping.position().offset() != align_search_path->end_offset) {
 
-            if (align_search_path->path.back() == cur_node && mapping.position().offset() != align_search_path->end_offset) {
-
-                assert(mapping.position().offset() == 0);
-                is_cycle_visit = true;      
-            }
-
-            if (align_search_path->path.back() != cur_node || is_cycle_visit) {
-
-                align_search_path->path.emplace_back(cur_node);
-                paths_index.extend(&(align_search_path->gbwt_search), cur_node);
-            } 
-
-            align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
+            assert(mapping.position().offset() == 0);
+            is_cycle_visit = true;      
         }
+
+        if (align_search_path->path.back() != cur_node || is_cycle_visit) {
+
+            align_search_path->path.emplace_back(cur_node);
+            paths_index.extend(&(align_search_path->gbwt_search), cur_node);
+        } 
     }
+
+    align_search_path->end_offset = mapping.position().offset() + mapping_from_length(mapping);
 }
 
 template<class AlignmentType>
@@ -368,7 +363,9 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
             assert(align_search_path.read_stats.back().left_softclip_length.second);
             assert(align_search_path.read_stats.back().left_softclip_length.first <= align_search_path.read_stats.back().length);
 
-            if (!align_search_path.isEmpty() || (align_search_path.read_stats.back().length - align_search_path.read_stats.back().left_softclip_length.first) <= max_internal_offset) {
+            auto cur_align_length = align_search_path.read_stats.back().length - align_search_path.read_stats.back().left_softclip_length.first;
+
+            if (!align_search_path.isEmpty() || (max_internal_offset > 0 && cur_align_length <= max_internal_offset)) {
 
                 if (subpath.next_size() > 0) {
 
