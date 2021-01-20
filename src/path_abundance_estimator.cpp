@@ -508,11 +508,11 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
                     //  path.name == "ENST00000223641.4" ||
                     //  path.name == "ENST00000591776.5" ||
                     //  path.name == "ENST00000221975.6" 
-                     path.name == "ENST00000215909.9_8" ||
-                     path.name == "ENST00000225964.9_340" ||
-                     path.name == "ENST00000646664.1" ||
-                     path.name == "ENST00000394077.7" ||
-                     path.name == "ENST00000375820.9_2"    
+                     path.name == "ENST00000215909.9_8"
+                     // path.name == "ENST00000225964.9_340" ||
+                     // path.name == "ENST00000646664.1" ||
+                     // path.name == "ENST00000394077.7" ||
+                     // path.name == "ENST00000375820.9_2"    
                 ) {       
 
                   debug = true;     

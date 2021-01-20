@@ -510,11 +510,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                     //  path_name == "ENST00000223641.4" ||
                     //  path_name == "ENST00000591776.5" ||
                     //  path_name == "ENST00000221975.6" 
-                     path_name == "ENST00000215909.9_8" ||
-                     path_name == "ENST00000225964.9_340" ||
-                     path_name == "ENST00000646664.1" ||
-                     path_name == "ENST00000394077.7" ||
-                     path_name == "ENST00000375820.9_2"                    
+                     path_name == "ENST00000215909.9_8"
+                     // path_name == "ENST00000225964.9_340" ||
+                     // path_name == "ENST00000646664.1" ||
+                     // path_name == "ENST00000394077.7" ||
+                     // path_name == "ENST00000375820.9_2"                    
                 ) {   
 
                     debug_paths = path_name; 
@@ -551,12 +551,12 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                     //  path_name == "ENST00000223641.4_1" ||
                     //  path_name == "ENST00000591776.5_4" ||
                     //  path_name == "ENST00000221975.6_4" 
-                     path_name == "ENST00000215909.9" ||
-                     path_name == "ENST00000225964.9_374" ||
-                     path_name == "ENST00000646664.1_74" ||
-                     path_name == "ENST00000394077.7_16" ||
-                     path_name == "ENST00000394077.7_21" ||
-                     path_name == "ENST00000375820.9_437" 
+                     path_name == "ENST00000215909.9"
+                     // path_name == "ENST00000225964.9_374" ||
+                     // path_name == "ENST00000646664.1_74" ||
+                     // path_name == "ENST00000394077.7_16" ||
+                     // path_name == "ENST00000394077.7_21" ||
+                     // path_name == "ENST00000375820.9_437" 
                     ) {  
 
                     debug_paths2 = path_name; 
@@ -568,38 +568,35 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     if (debug_idx != debug_idx2) {
 
-        if (debug_idx == -1 || debug_idx2 == -1) {
+        #pragma omp critical
+        {
+            cerr << "\n\n###" << endl;
+            cerr << debug_paths << endl;
+            cerr << debug_idx << endl;
 
-            #pragma omp critical
-            {
-                cerr << "\n\n###" << endl;
-                cerr << debug_paths << endl;
-                cerr << debug_idx << endl;
+            if (debug_idx >= 0) {
 
-                if (debug_idx >= 0) {
-
-                    cerr << paired_align_search_paths.at(debug_idx) << endl;
-                }
-
-                cerr << debug_paths2 << endl;
-                cerr << debug_idx2 << endl;
-
-                if (debug_idx2 >= 0) {
-
-                    cerr << paired_align_search_paths.at(debug_idx2) << endl;
-                }
-                
-                cerr << endl;
-                cerr << paired_align_search_paths << endl;
-                cerr << endl;
-                cerr << paired_align_paths << endl;
-                cerr << endl;
-                cerr << pb2json(alignment_1) << endl;
-                cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
-                cerr << endl;
-                cerr << pb2json(alignment_2) << endl;
-                cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
+                cerr << paired_align_search_paths.at(debug_idx) << endl;
             }
+
+            cerr << debug_paths2 << endl;
+            cerr << debug_idx2 << endl;
+
+            if (debug_idx2 >= 0) {
+
+                cerr << paired_align_search_paths.at(debug_idx2) << endl;
+            }
+            
+            cerr << endl;
+            cerr << paired_align_search_paths << endl;
+            cerr << endl;
+            cerr << paired_align_paths << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_1) << endl;
+            cerr << string_quality_short_to_char(alignment_1.quality()) << endl;
+            cerr << endl;
+            cerr << pb2json(alignment_2) << endl;
+            cerr << string_quality_short_to_char(alignment_2.quality()) << endl;
         }
     }
 
