@@ -130,6 +130,7 @@ ReadAlignmentStats::ReadAlignmentStats() {
 
     internal_start_offset = make_pair(0, false);
     internal_end_offset = make_pair(0, false);
+    internal_end_next_node = gbwt::ENDMARKER;
 }
 
 void ReadAlignmentStats::updateLeftSoftClipLength(const vg::Path & path) {
@@ -313,6 +314,7 @@ ostream & operator<<(ostream & os, const ReadAlignmentStats & read_stats) {
     os << "," << read_stats.right_softclip_length;
     os << "," << read_stats.internal_start_offset;
     os << "," << read_stats.internal_end_offset;
+    os << "," << read_stats.internal_end_next_node;
 
     return os;
 }

@@ -80,6 +80,7 @@ class ReadAlignmentStats {
 
         pair<uint32_t, bool> internal_start_offset;
         pair<uint32_t, bool> internal_end_offset;
+        gbwt::node_type internal_end_next_node;
 
         void updateLeftSoftClipLength(const vg::Path & path);
         void updateRightSoftClipLength(const vg::Path & path);

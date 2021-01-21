@@ -105,15 +105,17 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
 
     SECTION("Single-end read alignment finds alignment path(s)") {    
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));
+        REQUIRE(!alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.front().frag_length == 8);
         REQUIRE(alignment_paths.front().min_mapq == 10);
         REQUIRE(alignment_paths.front().score_sum == 4);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(alignment_paths.back().is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.back().frag_length == alignment_paths.front().frag_length);
         REQUIRE(alignment_paths.back().min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths.back().score_sum == alignment_paths.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({1}));
     }
 
     SECTION("Reverse-complement single-end read alignment finds alignment path(s)") {
@@ -182,10 +184,11 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
         auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths_bd.size() == 1);
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_bd.front().gbwt_search) == vector<gbwt::size_type>({0}));
+        REQUIRE(alignment_paths_bd.front().is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths_bd.front().frag_length == alignment_paths.front().frag_length);
         REQUIRE(alignment_paths_bd.front().min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths_bd.front().score_sum == alignment_paths.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_bd.front().gbwt_search) == vector<gbwt::size_type>({0}));
     }
 }
     
@@ -323,20 +326,23 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
 
     SECTION("Paired-end read alignment finds alignment path(s)") {
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));
+        REQUIRE(!alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.front().frag_length == 19);
         REQUIRE(alignment_paths.front().min_mapq == 10);
         REQUIRE(alignment_paths.front().score_sum == 10);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(1).gbwt_search) == vector<gbwt::size_type>({2}));
+        REQUIRE(alignment_paths.at(1).is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.at(1).frag_length == 17);
         REQUIRE(alignment_paths.at(1).min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths.at(1).score_sum == alignment_paths.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.at(1).gbwt_search) == vector<gbwt::size_type>({2}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(alignment_paths.back().is_multimap == alignment_paths.at(1).is_multimap);
         REQUIRE(alignment_paths.back().frag_length == alignment_paths.at(1).frag_length);
         REQUIRE(alignment_paths.back().min_mapq == alignment_paths.at(1).min_mapq);
         REQUIRE(alignment_paths.back().score_sum == alignment_paths.at(1).score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({1}));
     }
 
     SECTION("Incorrect oriented paired-end read alignment finds empty alignment path") {
@@ -456,15 +462,17 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         auto alignment_paths_ov_1 = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_1_rc);
         REQUIRE(alignment_paths_ov_1.size() == 2);
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.front().gbwt_search) == vector<gbwt::size_type>({0, 2}));
+        REQUIRE(!alignment_paths_ov_1.front().is_multimap);
         REQUIRE(alignment_paths_ov_1.front().frag_length == 8);
         REQUIRE(alignment_paths_ov_1.front().min_mapq == 10);
         REQUIRE(alignment_paths_ov_1.front().score_sum == 16);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.front().gbwt_search) == vector<gbwt::size_type>({0, 2}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.back().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(alignment_paths_ov_1.back().is_multimap == alignment_paths_ov_1.front().is_multimap);
         REQUIRE(alignment_paths_ov_1.back().frag_length == alignment_paths_ov_1.front().frag_length);
         REQUIRE(alignment_paths_ov_1.back().min_mapq == alignment_paths_ov_1.front().min_mapq);
         REQUIRE(alignment_paths_ov_1.back().score_sum == alignment_paths_ov_1.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.back().gbwt_search) == vector<gbwt::size_type>({1}));
 
         auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
         alignment_2_rc.set_sequence("AAAA");
@@ -472,15 +480,17 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         auto alignment_paths_ov_2 = alignment_path_finder.findPairedAlignmentPaths(alignment_2, alignment_2_rc);
         REQUIRE(alignment_paths_ov_2.size() == 2);
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.front().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(!alignment_paths_ov_2.front().is_multimap);
         REQUIRE(alignment_paths_ov_2.front().frag_length == 4);
         REQUIRE(alignment_paths_ov_2.front().min_mapq == 20);
         REQUIRE(alignment_paths_ov_2.front().score_sum == 4);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.front().gbwt_search) == vector<gbwt::size_type>({1}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.back().gbwt_search) == vector<gbwt::size_type>({0, 2, 3}));
+        REQUIRE(alignment_paths_ov_2.back().is_multimap == alignment_paths_ov_2.front().is_multimap);
         REQUIRE(alignment_paths_ov_2.back().frag_length == alignment_paths_ov_2.front().frag_length);
         REQUIRE(alignment_paths_ov_2.back().min_mapq == alignment_paths_ov_2.front().min_mapq);
         REQUIRE(alignment_paths_ov_2.back().score_sum == alignment_paths_ov_2.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.back().gbwt_search) == vector<gbwt::size_type>({0, 2, 3}));
     }
 
     SECTION("Incorrect overlapping paired-end read alignment finds empty alignment path") {
@@ -531,10 +541,12 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         REQUIRE(alignment_paths_bd.size() == 2);
 
         REQUIRE(alignment_paths_bd.front() == alignment_paths.front());
+
+        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.back().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(alignment_paths_bd.back().is_multimap == alignment_paths.at(1).is_multimap);        
         REQUIRE(alignment_paths_bd.back().frag_length == alignment_paths.at(1).frag_length);
         REQUIRE(alignment_paths_bd.back().min_mapq == alignment_paths.at(1).min_mapq);
         REQUIRE(alignment_paths_bd.back().score_sum == alignment_paths.at(1).score_sum);
-        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.back().gbwt_search) == vector<gbwt::size_type>({1}));
     }
 }
 
@@ -545,7 +557,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
             "node": [
                 {"id": 1, "sequence": "AAAA"},
                 {"id": 2, "sequence": "AAAA"},
-                {"id": 3, "sequence": "AAAA"},
+                {"id": 3, "sequence": "AAAA"}
             ],
             "edge": [
                 {"from": 1, "to": 2},
@@ -557,9 +569,6 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
 
     vg::Graph graph;
     json2pb(graph, graph_str);
-
-    vector<uint32_t> node_frag_lengths = {0, 4, 4, 4, 4};
-    function<size_t(const uint32_t)> node_frag_length_func = [&](const uint32_t node_id) { return node_frag_lengths.at(node_id); };
 
     gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(6, true)));
@@ -643,20 +652,23 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
 
     SECTION("Paired-end read alignment finds circular alignment path(s)") {
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({1}));                
+        REQUIRE(!alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.front().frag_length == 18);
         REQUIRE(alignment_paths.front().min_mapq == 10);
         REQUIRE(alignment_paths.front().score_sum == 4);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({1}));                
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(1).gbwt_search) == vector<gbwt::size_type>({0}));        
+        REQUIRE(alignment_paths.at(1).is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.at(1).frag_length == 10);
         REQUIRE(alignment_paths.at(1).min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths.at(1).score_sum == alignment_paths.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.at(1).gbwt_search) == vector<gbwt::size_type>({0}));        
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({2}));   
+        REQUIRE(alignment_paths.back().is_multimap == alignment_paths.at(1).is_multimap);
         REQUIRE(alignment_paths.back().frag_length == alignment_paths.front().frag_length);
         REQUIRE(alignment_paths.back().min_mapq == alignment_paths.at(1).min_mapq);
         REQUIRE(alignment_paths.back().score_sum == alignment_paths.at(1).score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({2}));   
     }
 
     SECTION("Non-circular paired-end read alignment finds non-circular alignment path(s)") {
@@ -821,15 +833,17 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
 
+        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.front().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(alignment_paths_bd.front().is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths_bd.front().frag_length == alignment_paths.front().frag_length);
         REQUIRE(alignment_paths_bd.front().min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths_bd.front().score_sum == alignment_paths.front().score_sum);
-        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.front().gbwt_search) == vector<gbwt::size_type>({1}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_bd.back().gbwt_search) == vector<gbwt::size_type>({0}));                
+        REQUIRE(alignment_paths_bd.back().is_multimap == alignment_paths.at(1).is_multimap);
         REQUIRE(alignment_paths_bd.back().frag_length == alignment_paths.at(1).frag_length);
         REQUIRE(alignment_paths_bd.back().min_mapq == alignment_paths.at(1).min_mapq);
         REQUIRE(alignment_paths_bd.back().score_sum == alignment_paths.at(1).score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_bd.back().gbwt_search) == vector<gbwt::size_type>({0}));                
     }
 }
 
@@ -843,7 +857,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
                 {"id": 3, "sequence": "AAA"},
                 {"id": 4, "sequence": "AA"},
                 {"id": 5, "sequence": "AAA"},
-                {"id": 6, "sequence": "AAA"},
+                {"id": 6, "sequence": "AAA"}
             ],
             "edge": [
                 {"from": 1, "to": 3},
@@ -989,15 +1003,17 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
 
     SECTION("Single-end multipath read alignment finds alignment path(s)") {
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));
+        REQUIRE(!alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.front().frag_length == 8);
         REQUIRE(alignment_paths.front().min_mapq == 10);
         REQUIRE(alignment_paths.front().score_sum == 8);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({1}));               
+        REQUIRE(alignment_paths.back().is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.back().frag_length == alignment_paths.front().frag_length);
         REQUIRE(alignment_paths.back().min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths.back().score_sum == 6);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({1}));               
     }
 
     SECTION("Reverse-complement single-end multipath read alignment finds alignment path(s)") {
@@ -1054,10 +1070,12 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
         auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths_bd.size() == 2);
 
+        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.back().gbwt_search) == vector<gbwt::size_type>({0}));
+        REQUIRE(alignment_paths_bd.front().is_multimap == alignment_paths.back().is_multimap);
         REQUIRE(alignment_paths_bd.front().frag_length == alignment_paths.back().frag_length);
         REQUIRE(alignment_paths_bd.front().min_mapq == alignment_paths.back().min_mapq);
         REQUIRE(alignment_paths_bd.front().score_sum == alignment_paths.back().score_sum);
-        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.back().gbwt_search) == vector<gbwt::size_type>({0}));
+
         REQUIRE(alignment_paths_bd.back() == alignment_paths.front());
     }
 }
@@ -1074,7 +1092,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
                 {"id": 5, "sequence": "AA"},
                 {"id": 6, "sequence": "A"},
                 {"id": 7, "sequence": "AA"},
-                {"id": 8, "sequence": "AAA"},
+                {"id": 8, "sequence": "AAA"}
             ],
             "edge": [
                 {"from": 1, "to": 3},
@@ -1319,20 +1337,23 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
     SECTION("Paired-end multipath read alignment finds alignment path(s)") {
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({1}));                
+        REQUIRE(!alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.front().frag_length == 16);
         REQUIRE(alignment_paths.front().min_mapq == 10);
         REQUIRE(alignment_paths.front().score_sum == 9);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({1}));                
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(1).gbwt_search) == vector<gbwt::size_type>({0})); 
+        REQUIRE(alignment_paths.at(1).is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.at(1).frag_length == 12);
         REQUIRE(alignment_paths.at(1).min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths.at(1).score_sum == 1);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.at(1).gbwt_search) == vector<gbwt::size_type>({0})); 
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({2}));                              
+        REQUIRE(alignment_paths.back().is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths.back().frag_length == alignment_paths.front().frag_length);
         REQUIRE(alignment_paths.back().min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths.back().score_sum == alignment_paths.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({2}));                              
     }
 
     SECTION("Incorrect oriented paired-end multipath read alignment finds empty alignment path") {
@@ -1441,10 +1462,11 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         alignment_paths_ov = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_ov.size() == 1);
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov.front().gbwt_search) == vector<gbwt::size_type>({0}));   
+        REQUIRE(alignment_paths_ov.front().is_multimap == alignment_paths.at(1).is_multimap);
         REQUIRE(alignment_paths_ov.front().frag_length == 11);
         REQUIRE(alignment_paths_ov.front().min_mapq == alignment_paths.at(1).min_mapq);
         REQUIRE(alignment_paths_ov.front().score_sum == alignment_paths.at(1).score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov.front().gbwt_search) == vector<gbwt::size_type>({0}));   
 
         alignment_1.mutable_subpath(5)->add_next(6);
 
@@ -1476,20 +1498,23 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         auto alignment_paths_ov_1 = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_1_rc);
         REQUIRE(alignment_paths_ov_1.size() == 3);
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.front().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(!alignment_paths_ov_1.front().is_multimap);
         REQUIRE(alignment_paths_ov_1.front().frag_length == 6);
         REQUIRE(alignment_paths_ov_1.front().min_mapq == 10);
         REQUIRE(alignment_paths_ov_1.front().score_sum == 12);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.front().gbwt_search) == vector<gbwt::size_type>({1}));
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.at(1).gbwt_search) == vector<gbwt::size_type>({0}));                
+        REQUIRE(alignment_paths_ov_1.at(1).is_multimap == alignment_paths_ov_1.front().is_multimap);
         REQUIRE(alignment_paths_ov_1.at(1).frag_length == alignment_paths_ov_1.front().frag_length);
         REQUIRE(alignment_paths_ov_1.at(1).min_mapq == alignment_paths_ov_1.front().min_mapq);
         REQUIRE(alignment_paths_ov_1.at(1).score_sum == 6);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.at(1).gbwt_search) == vector<gbwt::size_type>({0}));                
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.back().gbwt_search) == vector<gbwt::size_type>({2}));                
+        REQUIRE(alignment_paths_ov_1.back().is_multimap == alignment_paths_ov_1.at(1).is_multimap);
         REQUIRE(alignment_paths_ov_1.back().frag_length == alignment_paths_ov_1.at(1).frag_length);
         REQUIRE(alignment_paths_ov_1.back().min_mapq == alignment_paths_ov_1.at(1).min_mapq);
         REQUIRE(alignment_paths_ov_1.back().score_sum == alignment_paths_ov_1.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_1.back().gbwt_search) == vector<gbwt::size_type>({2}));                
 
         auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
         alignment_2_rc.set_sequence("AAAAAAA");
@@ -1497,20 +1522,23 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         auto alignment_paths_ov_2 = alignment_path_finder.findPairedAlignmentPaths(alignment_2, alignment_2_rc);
         REQUIRE(alignment_paths_ov_2.size() == 3);
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.front().gbwt_search) == vector<gbwt::size_type>({1}));                
+        REQUIRE(!alignment_paths_ov_2.front().is_multimap);
         REQUIRE(alignment_paths_ov_2.front().frag_length == 8);
         REQUIRE(alignment_paths_ov_2.front().min_mapq == 20);
         REQUIRE(alignment_paths_ov_2.front().score_sum == 6);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.front().gbwt_search) == vector<gbwt::size_type>({1}));                
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.at(1).gbwt_search) == vector<gbwt::size_type>({0}));                
+        REQUIRE(alignment_paths_ov_2.at(1).is_multimap == alignment_paths_ov_2.front().is_multimap);
         REQUIRE(alignment_paths_ov_2.at(1).frag_length == 9);
         REQUIRE(alignment_paths_ov_2.at(1).min_mapq == alignment_paths_ov_2.front().min_mapq);
         REQUIRE(alignment_paths_ov_2.at(1).score_sum == 0);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.at(1).gbwt_search) == vector<gbwt::size_type>({0}));                
 
+        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.back().gbwt_search) == vector<gbwt::size_type>({2}));                
+        REQUIRE(alignment_paths_ov_2.back().is_multimap == alignment_paths_ov_2.front().is_multimap);
         REQUIRE(alignment_paths_ov_2.back().frag_length == alignment_paths_ov_2.front().frag_length);
         REQUIRE(alignment_paths_ov_2.back().min_mapq == alignment_paths_ov_2.at(1).min_mapq);
         REQUIRE(alignment_paths_ov_2.back().score_sum == alignment_paths_ov_2.front().score_sum);
-        REQUIRE(paths_index.locatePathIds(alignment_paths_ov_2.back().gbwt_search) == vector<gbwt::size_type>({2}));                
     }
 
     SECTION("Paired-end multipath read alignment finds forward alignment path(s) in bidirectional index") {
@@ -1539,10 +1567,12 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
 
+        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.front().gbwt_search) == vector<gbwt::size_type>({1}));
+        REQUIRE(alignment_paths_bd.front().is_multimap == alignment_paths.front().is_multimap);
         REQUIRE(alignment_paths_bd.front().frag_length == alignment_paths.front().frag_length);
         REQUIRE(alignment_paths_bd.front().min_mapq == alignment_paths.front().min_mapq);
         REQUIRE(alignment_paths_bd.front().score_sum == alignment_paths.front().score_sum);
-        REQUIRE(paths_index_bd.locatePathIds(alignment_paths_bd.front().gbwt_search) == vector<gbwt::size_type>({1}));
+
         REQUIRE(alignment_paths_bd.back() == alignment_paths.at(1));
     }
 
@@ -1632,3 +1662,298 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     }
 }
 
+TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath alignment") {
+
+    const string graph_str = R"(
+        {
+            "node": [
+                {"id": 1, "sequence": "AA"},
+                {"id": 2, "sequence": "A"},
+                {"id": 3, "sequence": "A"},
+                {"id": 4, "sequence": "A"},
+                {"id": 5, "sequence": "AAA"},
+                {"id": 6, "sequence": "AAA"},
+                {"id": 7, "sequence": "AAA"},
+                {"id": 8, "sequence": "AA"},
+                {"id": 9, "sequence": "AAA"},
+                {"id": 10, "sequence": "A"}
+            ],
+            "edge": [
+                {"from": 1, "to": 2},
+                {"from": 1, "to": 3},
+                {"from": 1, "to": 4},
+                {"from": 2, "to": 5},
+                {"from": 3, "to": 5},
+                {"from": 4, "to": 5},
+                {"from": 5, "to": 6},
+                {"from": 6, "to": 7},
+                {"from": 7, "to": 8},
+                {"from": 7, "to": 9},
+                {"from": 8, "to": 9},
+                {"from": 9, "to": 10}
+            ]
+        }
+    )";
+
+    vg::Graph graph;
+    json2pb(graph, graph_str);
+
+    gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+    gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(10, true)));
+
+    gbwt::vector_type gbwt_thread_1(8);
+    gbwt::vector_type gbwt_thread_2(6);
+    gbwt::vector_type gbwt_thread_3(7);
+   
+    gbwt_thread_1[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_1[1] = gbwt::Node::encode(2, false);
+    gbwt_thread_1[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_1[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_1[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_1[5] = gbwt::Node::encode(8, false);
+    gbwt_thread_1[6] = gbwt::Node::encode(9, false);
+    gbwt_thread_1[7] = gbwt::Node::encode(10, false);
+
+    gbwt_thread_2[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_2[1] = gbwt::Node::encode(3, false);
+    gbwt_thread_2[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_2[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_2[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_2[5] = gbwt::Node::encode(9, false);
+
+    gbwt_thread_3[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_3[1] = gbwt::Node::encode(4, false);
+    gbwt_thread_3[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_3[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_3[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_3[5] = gbwt::Node::encode(9, false);
+    gbwt_thread_3[6] = gbwt::Node::encode(10, false);
+
+    gbwt_builder.insert(gbwt_thread_1, false);
+    gbwt_builder.insert(gbwt_thread_2, false);
+    gbwt_builder.insert(gbwt_thread_3, false);
+
+    gbwt_builder.finish();
+
+    std::stringstream gbwt_stream;
+    gbwt_builder.index.serialize(gbwt_stream);
+
+    gbwt::GBWT gbwt_index;
+    gbwt_index.load(gbwt_stream);
+
+    const string alignment_1_str = R"(
+        {
+            "start": [0],
+            "subpath": [
+                {
+                    "path": {
+                        "mapping": [
+                            {
+                                "position": {"node_id": 1, "offset": 1},
+                                "edit": [
+                                    {"from_length": 1, "to_length": 1}
+                                ]
+                            }
+                        ]
+                    },
+                    "next": [1,2],
+                    "score": 1
+                },
+                {
+                    "path": {
+                        "mapping": [
+                            {
+                                "position": {"node_id": 2},
+                                "edit": [
+                                    {"from_length": 1, "to_length": 1}
+                                ]
+                            }
+                        ]
+                    },
+                    "next": [3],
+                    "score": 1
+                },
+                {
+                    "path": {
+                        "mapping": [
+                            {
+                                "position": {"node_id": 3},
+                                "edit": [
+                                    {"from_length": 1, "to_length": 1}
+                                ]
+                            }
+                        ]
+                    },
+                    "next": [3],
+                    "score": 1
+                },
+                {                
+                    "path": {
+                        "mapping": [
+                            {
+                                "position": {"node_id": 5},
+                                "edit": [
+                                    {"from_length": 3, "to_length": 3}
+                                ]
+                            },
+                            {
+                                "position": {"node_id": 6},
+                                "edit": [
+                                    {"from_length": 1, "to_length": 1}
+                                ]
+                            }
+                        ]
+                    },
+                    "score": 4
+                }
+            ],
+            "sequence": "AAAAAA",
+            "mapping_quality": 10
+        }
+    )";
+
+    vg::MultipathAlignment alignment_1;
+    json2pb(alignment_1, alignment_1_str);
+
+    const string alignment_2_str = R"(
+        {
+            "start": [0],
+            "subpath": [
+                {
+                    "path": {
+                        "mapping": [
+                            {
+                                "position": {"node_id": 10, "is_reverse": true},
+                                "edit": [
+                                    {"from_length": 1, "to_length": 1}
+                                ]
+                            },
+                            {
+                                "position": {"node_id": 9, "is_reverse": true},
+                                "edit": [
+                                    {"from_length": 3, "to_length": 3}
+                                ]
+                            },
+                            {
+                                "position": {"node_id": 7, "is_reverse": true},
+                                "edit": [
+                                    {"from_length": 3, "to_length": 3}
+                                ]
+                            }
+                        ]
+                    },
+                    "score": 7
+                }
+            ],
+            "sequence": "AAAAAAA",
+            "mapping_quality": 20
+        }
+    )";
+
+    vg::MultipathAlignment alignment_2;
+    json2pb(alignment_2, alignment_2_str);
+
+    gbwt::FastLocate r_index(gbwt_index);
+    PathsIndex paths_index(gbwt_index, r_index, graph);
+    
+    REQUIRE(!paths_index.bidirectional());
+    REQUIRE(paths_index.numberOfPaths() == 3);
+
+    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, "unstranded", 1000, 4, 0, 0, 1);
+
+    auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
+    REQUIRE(alignment_paths.size() == 9);
+
+    SECTION("Paired-end multipath read alignment finds partial alignment path(s)") {
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));                
+        REQUIRE(!alignment_paths.front().is_multimap);
+        REQUIRE(alignment_paths.front().frag_length == 17);
+        REQUIRE(alignment_paths.front().min_mapq == 10);
+        REQUIRE(alignment_paths.front().score_sum == 10);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(1).gbwt_search) == vector<gbwt::size_type>({0})); 
+        REQUIRE(alignment_paths.at(1).is_multimap == alignment_paths.front().is_multimap);
+        REQUIRE(alignment_paths.at(1).frag_length == alignment_paths.front().frag_length);
+        REQUIRE(alignment_paths.at(1).min_mapq == alignment_paths.front().min_mapq);
+        REQUIRE(alignment_paths.at(1).score_sum == 8);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(2).gbwt_search) == vector<gbwt::size_type>({2})); 
+        REQUIRE(alignment_paths.at(2).is_multimap == alignment_paths.at(1).is_multimap);
+        REQUIRE(alignment_paths.at(2).frag_length == 15);
+        REQUIRE(alignment_paths.at(2).min_mapq == alignment_paths.at(1).min_mapq);
+        REQUIRE(alignment_paths.at(2).score_sum == 11);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(3).gbwt_search) == vector<gbwt::size_type>({2})); 
+        REQUIRE(alignment_paths.at(3).is_multimap == alignment_paths.at(2).is_multimap);
+        REQUIRE(alignment_paths.at(3).frag_length == alignment_paths.at(2).frag_length);
+        REQUIRE(alignment_paths.at(3).min_mapq == alignment_paths.at(2).min_mapq);
+        REQUIRE(alignment_paths.at(3).score_sum == alignment_paths.at(1).score_sum);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(4).gbwt_search) == vector<gbwt::size_type>({1,2})); 
+        REQUIRE(alignment_paths.at(4).is_multimap == alignment_paths.at(3).is_multimap);
+        REQUIRE(alignment_paths.at(4).frag_length == alignment_paths.at(3).frag_length);
+        REQUIRE(alignment_paths.at(4).min_mapq == alignment_paths.at(3).min_mapq);
+        REQUIRE(alignment_paths.at(4).score_sum == alignment_paths.front().score_sum);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(5).gbwt_search) == vector<gbwt::size_type>({1})); 
+        REQUIRE(alignment_paths.at(5).is_multimap == alignment_paths.at(4).is_multimap);
+        REQUIRE(alignment_paths.at(5).frag_length == alignment_paths.at(4).frag_length);
+        REQUIRE(alignment_paths.at(5).min_mapq == alignment_paths.at(4).min_mapq);
+        REQUIRE(alignment_paths.at(5).score_sum == 12);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(6).gbwt_search) == vector<gbwt::size_type>({1})); 
+        REQUIRE(alignment_paths.at(6).is_multimap == alignment_paths.at(5).is_multimap);
+        REQUIRE(alignment_paths.at(6).frag_length == alignment_paths.at(5).frag_length);
+        REQUIRE(alignment_paths.at(6).min_mapq == alignment_paths.at(5).min_mapq);
+        REQUIRE(alignment_paths.at(6).score_sum == 9);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.at(7).gbwt_search) == vector<gbwt::size_type>({0,1,2})); 
+        REQUIRE(alignment_paths.at(7).is_multimap == alignment_paths.at(6).is_multimap);
+        REQUIRE(alignment_paths.at(7).frag_length == alignment_paths.at(6).frag_length);
+        REQUIRE(alignment_paths.at(7).min_mapq == alignment_paths.at(6).min_mapq);
+        REQUIRE(alignment_paths.at(7).score_sum == 7);
+
+        REQUIRE(paths_index.locatePathIds(alignment_paths.back().gbwt_search) == vector<gbwt::size_type>({0})); 
+        REQUIRE(alignment_paths.back().is_multimap == alignment_paths.at(7).is_multimap);
+        REQUIRE(alignment_paths.back().frag_length == alignment_paths.at(7).frag_length);
+        REQUIRE(alignment_paths.back().min_mapq == alignment_paths.at(7).min_mapq);
+        REQUIRE(alignment_paths.back().score_sum == alignment_paths.at(6).score_sum);
+    }
+
+    SECTION("Partial alignment pairs from a paired-end multipath alignment are filtered based on maximum internal offset") {
+
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int3(paths_index, "unstranded", 1000, 3, 0, 0, 1);
+
+        auto alignment_paths_int3 = alignment_path_finder_int3.findPairedAlignmentPaths(alignment_1, alignment_2);        
+        REQUIRE(alignment_paths_int3.size() == 6);
+        
+        REQUIRE(alignment_paths_int3.front() == alignment_paths.front());
+        REQUIRE(alignment_paths_int3.at(1) == alignment_paths.at(1));
+        REQUIRE(alignment_paths_int3.at(2) == alignment_paths.at(2));
+        REQUIRE(alignment_paths_int3.at(3) == alignment_paths.at(3));
+        REQUIRE(alignment_paths_int3.at(4) == alignment_paths.at(4));
+        REQUIRE(alignment_paths_int3.back() == alignment_paths.at(5));
+
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int2(paths_index, "unstranded", 1000, 2, 0, 0, 1);
+
+        auto alignment_paths_int2 = alignment_path_finder_int2.findPairedAlignmentPaths(alignment_1, alignment_2);        
+        REQUIRE(alignment_paths_int2.size() == 3);
+
+        REQUIRE(alignment_paths_int2.front() == alignment_paths.at(2));
+        REQUIRE(alignment_paths_int2.at(1) == alignment_paths.at(4));
+        REQUIRE(alignment_paths_int2.back() == alignment_paths.at(5));
+        
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int1(paths_index, "unstranded", 1000, 1, 0, 0, 1);
+
+        auto alignment_paths_int1 = alignment_path_finder_int1.findPairedAlignmentPaths(alignment_1, alignment_2);        
+        REQUIRE(alignment_paths_int1.size() == 1);
+
+        REQUIRE(alignment_paths_int1.front() == alignment_paths.at(5));
+
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int0(paths_index, "unstranded", 1000, 0, 0, 0, 1);
+
+        auto alignment_paths_int0 = alignment_path_finder_int0.findPairedAlignmentPaths(alignment_1, alignment_2);        
+        REQUIRE(alignment_paths_int0.empty());        
+    }
+}
