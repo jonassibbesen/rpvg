@@ -39,18 +39,22 @@ class AlignmentPathFinder {
 		
        	bool alignmentStartInGraph(const AlignmentType & alignment) const;
 
-		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const uint32_t alignment_length) const;
-		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const uint32_t alignment_length, const uint32_t subpath_idx) const;
+       	int32_t optimalAlignmentScore(const string & sequence, const string & quality) const;
+		int32_t optimalAlignmentScore(const vg::Alignment & alignment) const;
+		int32_t optimalAlignmentScore(const vg::MultipathAlignment & alignment) const;
+
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const;
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment, const uint32_t subpath_idx) const;
 
 		void extendAlignmentPath(vector<AlignmentSearchPath> * align_search_paths, const vg::Path & path, const bool is_first_path, const bool is_last_path, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts) const;
 		void extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const;
 
-		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t alignment_length) const;
-		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t alignment_length, const uint32_t subpath_idx, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts) const;
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment) const;
+		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment, const uint32_t subpath_idx, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts) const;
 		void extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t subpath_idx, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts) const;
 		
 		void mergeAlignmentPaths(AlignmentSearchPath * main_align_search_path, uint32_t main_path_start_idx, const AlignmentSearchPath & second_align_search_path) const;
-		void pairAlignmentPaths(vector<AlignmentSearchPath> * paired_align_search_paths, const AlignmentType & start_alignment, const uint32_t start_alignment_length, const AlignmentType & end_alignment, const uint32_t end_alignment_length) const;
+		void pairAlignmentPaths(vector<AlignmentSearchPath> * paired_align_search_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment) const;
 
 		vector<gbwt::node_type> getAlignmentStartNodes(const vg::Alignment & alignment) const;
 		vector<gbwt::node_type> getAlignmentStartNodes(const vg::MultipathAlignment & alignment) const;
@@ -64,7 +68,7 @@ class AlignmentPathFinder {
 		bool isAlignmentDisconnected(const vg::Alignment & alignment) const;
 		bool isAlignmentDisconnected(const vg::MultipathAlignment & alignment) const;
 
-		bool filterAlignmentSearchPaths(const vector<AlignmentSearchPath> & align_search_paths) const;
+		bool filterAlignmentSearchPaths(const vector<AlignmentSearchPath> & align_search_paths, const vector<int32_t> & optimal_align_scores) const;
 };
 
 

@@ -47,12 +47,12 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	REQUIRE(alignment_search_path.read_stats.back().adjustedScore() == 7);
 	REQUIRE(alignment_search_path.read_stats.back().clippedOffsetTotalBases() == 2);
 
-	REQUIRE(doubleCompare(alignment_search_path.fragmentLength(), 158));
-	REQUIRE(doubleCompare(alignment_search_path.minMappingQuality(), 10));
-	REQUIRE(doubleCompare(alignment_search_path.scoreSum(), 27));
+	REQUIRE(Utils::doubleCompare(alignment_search_path.fragmentLength(), 158));
+	REQUIRE(Utils::doubleCompare(alignment_search_path.minMappingQuality(), 10));
+	REQUIRE(Utils::doubleCompare(alignment_search_path.scoreSum(), 27));
 
-	REQUIRE(doubleCompare(alignment_search_path.minBestScoreFraction(), 0.2));
-	REQUIRE(doubleCompare(alignment_search_path.maxSoftclipFraction(), 0.4));
+	REQUIRE(Utils::doubleCompare(alignment_search_path.minOptimalScoreFraction(vector<int32_t>({100, 10})), 0.2));
+	REQUIRE(Utils::doubleCompare(alignment_search_path.maxSoftclipFraction(), 0.4));
 
 	AlignmentPath alignment_path(alignment_search_path, false);
 	

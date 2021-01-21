@@ -243,7 +243,7 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
 
         if (parse_haplotype_ids) {
 
-            for (auto & haplotype: splitString(element, ',')) {
+            for (auto & haplotype: Utils::splitString(element, ',')) {
 
                 auto haplotype_id_index_it = haplotype_id_index.emplace(haplotype, haplotype_id_index.size());
                 assert(haplotype_transcript_info_it.first->second.source_ids.emplace(haplotype_id_index_it.first->second).second);
@@ -299,8 +299,9 @@ int main(int argc, char* argv[]) {
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("max-par-penalty", "maximum partial path alignment penalty", cxxopts::value<uint32_t>()->default_value("0"))
       ("filt-min-mapq", "filter alignments with a mapping quality below <value>", cxxopts::value<uint32_t>()->default_value("1"))
-      ("filt-best-score", "filter alignments with a best score below <value> of optimal", cxxopts::value<double>()->default_value("0.8"))
+      ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0"))
       ("filt-soft-clip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("1"))
+      ("base-noise-prob", "base probability that alignment is incorrect", cxxopts::value<double>()->default_value("0"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
       ;
@@ -372,27 +373,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const string library_type = option_results["strand-specific"].as<string>();
+    const uint32_t num_threads = option_results["threads"].as<uint32_t>();
+    assert(num_threads > 0);
 
-    if (library_type != "unstranded" && library_type != "fr" && library_type != "rf") {
-
-        cerr << "ERROR: Strand-specific library type provided (--strand-specific) not supported. Options: unstranded, fr or rf." << endl;
-        return 1;
-    }
-
-    const uint32_t ploidy = option_results["ploidy"].as<uint32_t>();
-
-    if (ploidy == 0) {
-
-        cerr << "ERROR: Ploidy (--ploidy) can not be 0." << endl;
-        return 1;        
-    }
-
-    if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
-
-        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
-        return 1;
-    }
+    omp_set_num_threads(num_threads);
 
     uint64_t rng_seed = 0; 
 
@@ -409,14 +393,17 @@ int main(int argc, char* argv[]) {
     cerr << "Running rpvg (commit: " << GIT_COMMIT << ")" << endl;
     cerr << "Random number generator seed: " << rng_seed << endl;
 
-    bool is_single_end = option_results.count("single-end");
-    bool is_long_reads = option_results.count("long-reads");
-    bool is_single_path = option_results.count("single-path");
+    const string library_type = option_results["strand-specific"].as<string>();
 
-    if (is_long_reads) {
+    if (library_type != "unstranded" && library_type != "fr" && library_type != "rf") {
 
-        is_single_end = true;
+        cerr << "ERROR: Strand-specific library type provided (--strand-specific) not supported. Options: unstranded, fr or rf." << endl;
+        return 1;
     }
+
+    const bool is_single_end = (option_results.count("single-end") || option_results.count("long-reads"));
+    const bool is_long_reads = option_results.count("long-reads");
+    const bool is_single_path = option_results.count("single-path");
 
     if (option_results.count("frag-mean") != option_results.count("frag-sd")) {
 
@@ -465,12 +452,45 @@ int main(int argc, char* argv[]) {
 
     cerr << endl;
 
+    const uint32_t max_partial_penalty = option_results["max-par-penalty"].as<uint32_t>();
+    const uint32_t min_mapq_filter = option_results["filt-min-mapq"].as<uint32_t>();
+    
+    const double min_best_score_filter = option_results["filt-best-score"].as<double>();
+    assert(min_best_score_filter >= 0 && min_best_score_filter <= 1);
+
+    const double max_softclip_filter = option_results["filt-soft-clip"].as<double>();
+    assert(max_softclip_filter >= 0 && max_softclip_filter <= 1);
+
+    const double base_noise_prob = option_results["base-noise-prob"].as<double>();
+    assert(base_noise_prob >= 0 && base_noise_prob <= 1);
+
+    const double prob_precision = option_results["prob-precision"].as<double>();
+    assert(prob_precision >= 0 && prob_precision <= 1);
+
+    const uint32_t ploidy = option_results["ploidy"].as<uint32_t>();
+
+    if (ploidy == 0) {
+
+        cerr << "ERROR: Ploidy (--ploidy) can not be 0." << endl;
+        return 1;        
+    }
+
+    if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
+
+        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
+        return 1;
+    }
+
     assert(pre_fragment_length_dist.isValid());
 
-    const uint32_t num_threads = option_results["threads"].as<uint32_t>();
+    const bool equal_haps = option_results.count("equal-haps");
+    const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
+    const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
 
-    assert(num_threads > 0);
-    omp_set_num_threads(num_threads);
+    const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
+    const uint32_t max_em_its = option_results["max-em-its"].as<uint32_t>();
+    const double min_em_conv = option_results["min-em-conv"].as<double>();
+    const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
 
     double time_init = gbwt::readTimer();
 
@@ -520,11 +540,6 @@ int main(int argc, char* argv[]) {
     FragmentLengthDist fragment_length_dist;
 
     thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
-
-    const uint32_t max_partial_penalty = option_results["max-par-penalty"].as<uint32_t>();
-    const uint32_t min_mapq_filter = option_results["filt-min-mapq"].as<uint32_t>();
-    const double min_best_score_filter = option_results["filt-best-score"].as<double>();
-    const double max_softclip_filter = option_results["filt-soft-clip"].as<double>();
 
     if (is_single_path) {
         
@@ -626,15 +641,6 @@ int main(int argc, char* argv[]) {
     cerr << "Clustered alignment paths (" << time_clust - time_align << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     spp::sparse_hash_map<string, PathInfo> haplotype_transcript_info;
-
-    const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
-    const double prob_precision = option_results["prob-precision"].as<double>();
-    const uint32_t max_em_its = option_results["max-em-its"].as<uint32_t>();
-    const double min_em_conv = option_results["min-em-conv"].as<double>();
-    const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
-    const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
-    const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
-    const bool equal_haps = option_results.count("equal-haps");
 
     PathEstimator * path_estimator;
 
@@ -767,7 +773,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-                read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end);
+                read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end, base_noise_prob);
             }
         }
 

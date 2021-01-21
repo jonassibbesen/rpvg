@@ -28,7 +28,7 @@ TEST_CASE("Path index can calculate path lengths") {
     )";
 
 	vg::Graph graph;
-	json2pb(graph, graph_str);
+	Utils::json2pb(graph, graph_str);
 
 	gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(4, true)));
@@ -68,13 +68,13 @@ TEST_CASE("Path index can calculate path lengths") {
 
 		FragmentLengthDist fragment_length_dist(5, 2);
 
-    	REQUIRE(doubleCompare(paths_index.effectivePathLength(0, fragment_length_dist), 32.889504274642021));
-    	REQUIRE(doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 2.4592743581826583));
+    	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(0, fragment_length_dist), 32.889504274642021));
+    	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 2.4592743581826583));
 
     	fragment_length_dist = FragmentLengthDist(20, 1);
 
-    	REQUIRE(doubleCompare(paths_index.effectivePathLength(0, fragment_length_dist), 18));
-    	REQUIRE(doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 1));
+    	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(0, fragment_length_dist), 18));
+    	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 1));
 	}
 }
 

@@ -12,13 +12,13 @@ static const double burn_it_scaling = 0.025;
 static const uint32_t min_gibbs_it = 100; 
 static const double gibbs_it_scaling = 0.05; 
 
-bool probabilityCountRowSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, const pair<Eigen::RowVectorXd, uint32_t> & rhs) { 
+bool probabilityCountRowSorter(const pair<Utils::RowVectorXd, uint32_t> & lhs, const pair<Utils::RowVectorXd, uint32_t> & rhs) { 
 
     assert(lhs.first.cols() == rhs.first.cols());
 
     for (size_t i = 0; i < lhs.first.cols(); ++i) {
 
-        if (!doubleCompare(lhs.first(i), rhs.first(i))) {
+        if (!Utils::doubleCompare(lhs.first(i), rhs.first(i))) {
 
             return (lhs.first(i) < rhs.first(i));    
         }         
@@ -32,13 +32,13 @@ bool probabilityCountRowSorter(const pair<Eigen::RowVectorXd, uint32_t> & lhs, c
     return false;
 }
 
-bool probabilityCountColSorter(const pair<Eigen::ColVectorXd, uint32_t> & lhs, const pair<Eigen::ColVectorXd, uint32_t> & rhs) { 
+bool probabilityCountColSorter(const pair<Utils::ColVectorXd, uint32_t> & lhs, const pair<Utils::ColVectorXd, uint32_t> & rhs) { 
 
     assert(lhs.first.rows() == rhs.first.rows());
 
     for (size_t i = 0; i < lhs.first.rows(); ++i) {
 
-        if (!doubleCompare(lhs.first(i), rhs.first(i))) {
+        if (!Utils::doubleCompare(lhs.first(i), rhs.first(i))) {
 
             return (lhs.first(i) < rhs.first(i));    
         }         
@@ -54,13 +54,13 @@ bool probabilityCountColSorter(const pair<Eigen::ColVectorXd, uint32_t> & lhs, c
 
 PathEstimator::PathEstimator(const double prob_precision_in) : prob_precision(prob_precision_in) {}
 
-void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const uint32_t num_paths) const {
+void PathEstimator::constructProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const uint32_t num_paths) const {
 
     assert(!cluster_probs.empty());
 
-    *read_path_probs = Eigen::ColMatrixXd::Zero(cluster_probs.size(), num_paths);
-    *noise_probs = Eigen::ColVectorXd(cluster_probs.size());
-    *read_counts = Eigen::RowVectorXui(cluster_probs.size());
+    *read_path_probs = Utils::ColMatrixXd::Zero(cluster_probs.size(), num_paths);
+    *noise_probs = Utils::ColVectorXd(cluster_probs.size());
+    *read_counts = Utils::RowVectorXui(cluster_probs.size());
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
@@ -75,7 +75,7 @@ void PathEstimator::constructProbabilityMatrix(Eigen::ColMatrixXd * read_path_pr
     }
 }
 
-void PathEstimator::constructPartialProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const {
+void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const {
 
     assert(!cluster_probs.empty());
     assert(!path_ids.empty());
@@ -87,9 +87,9 @@ void PathEstimator::constructPartialProbabilityMatrix(Eigen::ColMatrixXd * read_
         path_id_idx.at(path_ids.at(i)) = i;
     }
 
-    *read_path_probs = Eigen::ColMatrixXd::Zero(cluster_probs.size(), path_ids.size());
-    *noise_probs = Eigen::ColVectorXd(cluster_probs.size());
-    *read_counts = Eigen::RowVectorXui(cluster_probs.size());
+    *read_path_probs = Utils::ColMatrixXd::Zero(cluster_probs.size(), path_ids.size());
+    *noise_probs = Utils::ColVectorXd(cluster_probs.size());
+    *read_counts = Utils::RowVectorXui(cluster_probs.size());
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
@@ -108,7 +108,7 @@ void PathEstimator::constructPartialProbabilityMatrix(Eigen::ColMatrixXd * read_
     }
 }
 
-void PathEstimator::constructGroupedProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::ColVectorXd * noise_probs, Eigen::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<vector<uint32_t> > & path_groups, const uint32_t num_paths) const {
+void PathEstimator::constructGroupedProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<vector<uint32_t> > & path_groups, const uint32_t num_paths) const {
 
     assert(!cluster_probs.empty());
     assert(!path_groups.empty());
@@ -125,9 +125,9 @@ void PathEstimator::constructGroupedProbabilityMatrix(Eigen::ColMatrixXd * read_
         }
     }
 
-    *read_path_probs = Eigen::ColMatrixXd::Zero(cluster_probs.size(), path_groups.size());
-    *noise_probs = Eigen::ColVectorXd(cluster_probs.size());
-    *read_counts = Eigen::RowVectorXui(cluster_probs.size());
+    *read_path_probs = Utils::ColMatrixXd::Zero(cluster_probs.size(), path_groups.size());
+    *noise_probs = Utils::ColVectorXd(cluster_probs.size());
+    *read_counts = Utils::RowVectorXui(cluster_probs.size());
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
@@ -146,7 +146,7 @@ void PathEstimator::constructGroupedProbabilityMatrix(Eigen::ColMatrixXd * read_
     }
 }
 
-void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, const Eigen::ColVectorXd & noise_probs) const {
+void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, const Utils::ColVectorXd & noise_probs) const {
 
     assert(read_path_probs->rows() == noise_probs.rows());
 
@@ -158,12 +158,12 @@ void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Eigen::ColMatrixXd * r
     read_path_probs->col(read_path_probs->cols() - 1) = noise_probs;
 }
 
-void PathEstimator::rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) const {
+void PathEstimator::rowSortProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::RowVectorXui * read_counts) const {
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
 
-    vector<pair<Eigen::RowVectorXd, uint32_t> > read_path_prob_rows;
+    vector<pair<Utils::RowVectorXd, uint32_t> > read_path_prob_rows;
     read_path_prob_rows.reserve(read_path_probs->rows());
 
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
@@ -180,7 +180,7 @@ void PathEstimator::rowSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
     }    
 }
 
-void PathEstimator::readCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs, Eigen::RowVectorXui * read_counts) const {
+void PathEstimator::readCollapseProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::RowVectorXui * read_counts) const {
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
@@ -222,11 +222,11 @@ void PathEstimator::readCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path
     read_counts->conservativeResize(read_counts->rows(), prev_unique_probs_row + 1);
 }
 
-void PathEstimator::colSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs) const {
+void PathEstimator::colSortProbabilityMatrix(Utils::ColMatrixXd * read_path_probs) const {
 
     assert(read_path_probs->cols() > 0);
 
-    vector<pair<Eigen::ColVectorXd, uint32_t> > read_path_prob_cols;
+    vector<pair<Utils::ColVectorXd, uint32_t> > read_path_prob_cols;
     read_path_prob_cols.reserve(read_path_probs->cols());
 
     for (size_t i = 0; i < read_path_probs->cols(); ++i) {
@@ -242,7 +242,7 @@ void PathEstimator::colSortProbabilityMatrix(Eigen::ColMatrixXd * read_path_prob
     }    
 }
 
-void PathEstimator::pathCollapseProbabilityMatrix(Eigen::ColMatrixXd * read_path_probs) const {
+void PathEstimator::pathCollapseProbabilityMatrix(Utils::ColMatrixXd * read_path_probs) const {
 
     assert(read_path_probs->cols() > 0);    
     colSortProbabilityMatrix(read_path_probs);
@@ -293,7 +293,7 @@ vector<double> PathEstimator::calcPathLogFrequences(const vector<uint32_t> & pat
     return path_log_freqs;
 }
 
-void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) const {
+void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) const {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
@@ -315,7 +315,7 @@ void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path
 
         assert(path_cluster_estimates->path_group_sets.at(i).size() == group_size);
 
-        Eigen::ColVectorXd group_read_probs = noise_probs;
+        Utils::ColVectorXd group_read_probs = noise_probs;
 
         for (auto & path_idx: path_cluster_estimates->path_group_sets.at(i)) {
 
@@ -329,9 +329,9 @@ void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path
             path_cluster_estimates->posteriors(0, i) += path_log_freqs.at(path_idx);
         }
 
-        path_cluster_estimates->posteriors(0, i) += log(numPermutations(path_cluster_estimates->path_group_sets.at(i)));
+        path_cluster_estimates->posteriors(0, i) += log(Utils::numPermutations(path_cluster_estimates->path_group_sets.at(i)));
 
-        sum_log_posterior = add_log(sum_log_posterior, path_cluster_estimates->posteriors(0, i));
+        sum_log_posterior = Utils::add_log(sum_log_posterior, path_cluster_estimates->posteriors(0, i));
     }
 
     for (size_t i = 0; i < path_cluster_estimates->posteriors.cols(); ++i) {
@@ -340,7 +340,7 @@ void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path
     }
 }
 
-void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) const {
+void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) const {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
@@ -375,7 +375,7 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
 
     sort(marginal_posteriors.rbegin(), marginal_posteriors.rend());
 
-    const Eigen::ColVectorXd max_read_probs = read_path_probs.rowwise().maxCoeff();
+    const Utils::ColVectorXd max_read_probs = read_path_probs.rowwise().maxCoeff();
 
     vector<double> log_likelihoods;
 
@@ -386,7 +386,7 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
 
         const uint32_t first_path_idx = marginal_posteriors.at(i).second;
 
-        Eigen::ColVectorXd group_read_probs_base = noise_probs;
+        Utils::ColVectorXd group_read_probs_base = noise_probs;
         group_read_probs_base += read_path_probs.col(first_path_idx);
 
         double max_log_likelihood_best = read_counts.cast<double>() * (group_read_probs_base + max_read_probs).array().log().matrix();
@@ -402,7 +402,7 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
             const uint32_t second_path_idx = marginal_posteriors.at(j).second;
 
             log_likelihoods.emplace_back(read_counts.cast<double>() * (group_read_probs_base + read_path_probs.col(second_path_idx)).array().log().matrix());
-            log_likelihoods.back() += path_log_freqs.at(first_path_idx) + path_log_freqs.at(second_path_idx) + log(numPermutations(vector<uint32_t>({first_path_idx, second_path_idx})));
+            log_likelihoods.back() += path_log_freqs.at(first_path_idx) + path_log_freqs.at(second_path_idx) + log(Utils::numPermutations(vector<uint32_t>({first_path_idx, second_path_idx})));
 
             if (log_likelihoods.back() - max_log_likelihood < max_log_likelihood_diff) {
 
@@ -411,14 +411,14 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
             }
 
             max_log_likelihood = max(max_log_likelihood, log_likelihoods.back());
-            sum_log_posterior = add_log(sum_log_posterior, log_likelihoods.back());
+            sum_log_posterior = Utils::add_log(sum_log_posterior, log_likelihoods.back());
 
             path_cluster_estimates->path_group_sets.emplace_back(vector<uint32_t>({first_path_idx, second_path_idx}));
         }
     }
 
     assert(log_likelihoods.size() == path_cluster_estimates->path_group_sets.size());
-    path_cluster_estimates->posteriors = Eigen::RowVectorXd(1, log_likelihoods.size());
+    path_cluster_estimates->posteriors = Utils::RowVectorXd(1, log_likelihoods.size());
 
     for (size_t i = 0; i < path_cluster_estimates->posteriors.cols(); ++i) {
 
@@ -426,7 +426,7 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
     }
 }
 
-void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::ColVectorXd & noise_probs, const Eigen::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size, mt19937 * mt_rng) const {
+void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXui & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size, mt19937 * mt_rng) const {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
@@ -478,7 +478,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
                 if (group_path_sampler_cache_it.second) {
 
-                    Eigen::ColVectorXd group_read_probs = noise_probs;
+                    Utils::ColVectorXd group_read_probs = noise_probs;
 
                     for (uint32_t k = 0; k < group_size; ++k) {
 
@@ -498,7 +498,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
                         group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + read_path_probs.col(k)).array().log().matrix());
                         group_probs.back() += path_log_freqs.at(k);
 
-                        sum_log_group_probs = add_log(sum_log_group_probs, group_probs.back());
+                        sum_log_group_probs = Utils::add_log(sum_log_group_probs, group_probs.back());
                     }
 
                     for (auto & prob: group_probs) {
@@ -532,7 +532,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
         }
     }
 
-    path_cluster_estimates->posteriors = Eigen::RowVectorXd(1, path_group_sample_counts.size());
+    path_cluster_estimates->posteriors = Utils::RowVectorXd(1, path_group_sample_counts.size());
 
     for (size_t i = 0; i < path_cluster_estimates->posteriors.cols(); ++i) {
 

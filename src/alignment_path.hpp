@@ -121,7 +121,7 @@ class AlignmentSearchPath {
         uint32_t minMappingQuality() const;
         uint32_t scoreSum() const;
 
-        double minBestScoreFraction() const;
+        double minOptimalScoreFraction(const vector<int32_t> & optimal_align_scores) const;
         double maxSoftclipFraction() const;
 
         bool isEmpty() const;

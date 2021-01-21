@@ -388,18 +388,22 @@ uint32_t AlignmentSearchPath::scoreSum() const {
     return max(0, score_sum);
 }
 
-double AlignmentSearchPath::minBestScoreFraction() const {
+double AlignmentSearchPath::minOptimalScoreFraction(const vector<int32_t> & optimal_align_scores) const {
 
-    double min_best_score_frac = 1;
+    double min_optim_score_frac = 1;
+
     assert(!read_stats.empty());
+    assert(optimal_align_scores.size() == read_stats.size());
 
-    for (auto & stats: read_stats) {
+    for (size_t i = 0; i < read_stats.size(); ++i) {
 
-        assert(stats.adjustedScore() <= static_cast<int32_t>(stats.length));
-        min_best_score_frac = min(min_best_score_frac, stats.adjustedScore() / static_cast<double>(stats.length));
+        assert(optimal_align_scores.at(i) <= static_cast<int32_t>(read_stats.at(i).length));
+        assert(read_stats.at(i).adjustedScore() <= optimal_align_scores.at(i));
+
+        min_optim_score_frac = min(min_optim_score_frac, read_stats.at(i).adjustedScore() / static_cast<double>(optimal_align_scores.at(i)));
     }
 
-    return max(0.0, min_best_score_frac);
+    return max(0.0, min_optim_score_frac);
 }
 
 double AlignmentSearchPath::maxSoftclipFraction() const {

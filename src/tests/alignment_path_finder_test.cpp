@@ -28,7 +28,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
     )";
 
 	vg::Graph graph;
-	json2pb(graph, graph_str);
+	Utils::json2pb(graph, graph_str);
 
     vector<uint32_t> node_frag_lengths = {0, 4, 1, 1, 8};
     function<size_t(const uint32_t)> node_frag_length_func = [&](const uint32_t node_id) { return node_frag_lengths.at(node_id); };
@@ -90,7 +90,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
     )";
 
     vg::Alignment alignment_1;
-    json2pb(alignment_1, alignment_1_str);
+    Utils::json2pb(alignment_1, alignment_1_str);
 
     gbwt::FastLocate r_index(gbwt_index);
     PathsIndex paths_index(gbwt_index, r_index, graph);
@@ -120,7 +120,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
 
     SECTION("Reverse-complement single-end read alignment finds alignment path(s)") {
 
-        auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
+        auto alignment_1_rc = Utils::lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
         alignment_1_rc.set_sequence("AAAAAAAA");
         
         auto alignment_paths_rc = alignment_path_finder.findAlignmentPaths(alignment_1_rc);
@@ -218,7 +218,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
     )";
 
     vg::Graph graph;
-    json2pb(graph, graph_str);
+    Utils::json2pb(graph, graph_str);
 
     vector<uint32_t> node_frag_lengths = {0, 4, 1, 1, 8, 2, 7};
     function<size_t(const uint32_t)> node_frag_length_func = [&](const uint32_t node_id) { return node_frag_lengths.at(node_id); };
@@ -288,7 +288,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
     )";
 
     vg::Alignment alignment_1;
-    json2pb(alignment_1, alignment_1_str);
+    Utils::json2pb(alignment_1, alignment_1_str);
 
     const string alignment_2_str = R"(
         {
@@ -311,7 +311,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
     )";
 
     vg::Alignment alignment_2;
-    json2pb(alignment_2, alignment_2_str);
+    Utils::json2pb(alignment_2, alignment_2_str);
 
     gbwt::FastLocate r_index(gbwt_index);
     PathsIndex paths_index(gbwt_index, r_index, graph);
@@ -347,7 +347,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
 
     SECTION("Incorrect oriented paired-end read alignment finds empty alignment path") {
 
-        auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
+        auto alignment_2_rc = Utils::lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
         alignment_2_rc.set_sequence("AAAA");
 
         auto alignment_paths_rc = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2_rc);
@@ -456,7 +456,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
 
     SECTION("Perfect overlapping paired-end read alignment finds alignment path(s)") {
 
-        auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
+        auto alignment_1_rc = Utils::lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
         alignment_1_rc.set_sequence("AAAAAAAA");
 
         auto alignment_paths_ov_1 = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_1_rc);
@@ -474,7 +474,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         REQUIRE(alignment_paths_ov_1.back().min_mapq == alignment_paths_ov_1.front().min_mapq);
         REQUIRE(alignment_paths_ov_1.back().score_sum == alignment_paths_ov_1.front().score_sum);
 
-        auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
+        auto alignment_2_rc = Utils::lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
         alignment_2_rc.set_sequence("AAAA");
 
         auto alignment_paths_ov_2 = alignment_path_finder.findPairedAlignmentPaths(alignment_2, alignment_2_rc);
@@ -568,7 +568,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
     )";
 
     vg::Graph graph;
-    json2pb(graph, graph_str);
+    Utils::json2pb(graph, graph_str);
 
     gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(6, true)));
@@ -616,7 +616,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
     )";
 
     vg::Alignment alignment_1;
-    json2pb(alignment_1, alignment_1_str);
+    Utils::json2pb(alignment_1, alignment_1_str);
 
     const string alignment_2_str = R"(
         {
@@ -637,7 +637,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
     )";
 
     vg::Alignment alignment_2;
-    json2pb(alignment_2, alignment_2_str);
+    Utils::json2pb(alignment_2, alignment_2_str);
 
     gbwt::FastLocate r_index(gbwt_index);
     PathsIndex paths_index(gbwt_index, r_index, graph);
@@ -870,7 +870,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
     )";
 
     vg::Graph graph;
-    json2pb(graph, graph_str);
+    Utils::json2pb(graph, graph_str);
 
     vector<uint32_t> node_frag_lengths = {0, 1, 1, 3, 2, 3, 3};
     function<size_t(const uint32_t)> node_frag_length_func = [&](const uint32_t node_id) { return node_frag_lengths.at(node_id); };
@@ -988,7 +988,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
     )";
 
     vg::MultipathAlignment alignment_1;
-    json2pb(alignment_1, alignment_1_str);
+    Utils::json2pb(alignment_1, alignment_1_str);
 
     gbwt::FastLocate r_index(gbwt_index);
     PathsIndex paths_index(gbwt_index, r_index, graph);
@@ -1018,7 +1018,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
 
     SECTION("Reverse-complement single-end multipath read alignment finds alignment path(s)") {
 
-        auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
+        auto alignment_1_rc = Utils::lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
         alignment_1_rc.set_sequence("AAAAAAAA");
         
         auto alignment_paths_rc = alignment_path_finder.findAlignmentPaths(alignment_1_rc);
@@ -1109,7 +1109,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     )";
 
     vg::Graph graph;
-    json2pb(graph, graph_str);
+    Utils::json2pb(graph, graph_str);
 
     vector<uint32_t> node_frag_lengths = {0, 1, 4, 2, 4, 2, 1, 2, 3};
     function<size_t(const uint32_t)> node_frag_length_func = [&](const uint32_t node_id) { return node_frag_lengths.at(node_id); };
@@ -1197,7 +1197,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     )";
 
     vg::MultipathAlignment alignment_1;
-    json2pb(alignment_1, alignment_1_str);
+    Utils::json2pb(alignment_1, alignment_1_str);
 
     const string alignment_2_str = R"(
         {
@@ -1322,7 +1322,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     )";
 
     vg::MultipathAlignment alignment_2;
-    json2pb(alignment_2, alignment_2_str);
+    Utils::json2pb(alignment_2, alignment_2_str);
 
     gbwt::FastLocate r_index(gbwt_index);
     PathsIndex paths_index(gbwt_index, r_index, graph);
@@ -1358,7 +1358,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
     SECTION("Incorrect oriented paired-end multipath read alignment finds empty alignment path") {
 
-        auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
+        auto alignment_2_rc = Utils::lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
         alignment_2_rc.set_sequence("AAAAAAA");
         
         auto alignment_paths_rc = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2_rc);
@@ -1492,7 +1492,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
     SECTION("Perfect overlapping paired-end multipath read alignment finds alignment path(s)") {
 
-        auto alignment_1_rc = lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
+        auto alignment_1_rc = Utils::lazy_reverse_complement_alignment(alignment_1, node_frag_length_func);
         alignment_1_rc.set_sequence("AAAAAA");
 
         auto alignment_paths_ov_1 = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_1_rc);
@@ -1516,7 +1516,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         REQUIRE(alignment_paths_ov_1.back().min_mapq == alignment_paths_ov_1.at(1).min_mapq);
         REQUIRE(alignment_paths_ov_1.back().score_sum == alignment_paths_ov_1.front().score_sum);
 
-        auto alignment_2_rc = lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
+        auto alignment_2_rc = Utils::lazy_reverse_complement_alignment(alignment_2, node_frag_length_func);
         alignment_2_rc.set_sequence("AAAAAAA");
 
         auto alignment_paths_ov_2 = alignment_path_finder.findPairedAlignmentPaths(alignment_2, alignment_2_rc);
@@ -1696,7 +1696,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
     )";
 
     vg::Graph graph;
-    json2pb(graph, graph_str);
+    Utils::json2pb(graph, graph_str);
 
     gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(10, true)));
@@ -1813,7 +1813,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
     )";
 
     vg::MultipathAlignment alignment_1;
-    json2pb(alignment_1, alignment_1_str);
+    Utils::json2pb(alignment_1, alignment_1_str);
 
     const string alignment_2_str = R"(
         {
@@ -1851,7 +1851,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
     )";
 
     vg::MultipathAlignment alignment_2;
-    json2pb(alignment_2, alignment_2_str);
+    Utils::json2pb(alignment_2, alignment_2_str);
 
     gbwt::FastLocate r_index(gbwt_index);
     PathsIndex paths_index(gbwt_index, r_index, graph);

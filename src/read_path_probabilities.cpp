@@ -41,7 +41,7 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
+void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double base_noise_prob) {
 
     assert(!align_paths.empty());
     assert(align_paths.size() == align_paths_ids.size());
@@ -50,7 +50,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
     if (align_paths.front().min_mapq > 0) {
 
-        noise_prob = phred_to_prob(align_paths.front().min_mapq);
+        noise_prob = max(base_noise_prob, Utils::phred_to_prob(align_paths.front().min_mapq));
         assert(noise_prob < 1 && noise_prob > 0);
 
         vector<double> align_paths_log_probs;
@@ -59,7 +59,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
         for (auto & align_path: align_paths) {
 
             assert(align_paths.front().min_mapq == align_path.min_mapq);
-            align_paths_log_probs.emplace_back(score_log_base * align_path.score_sum);
+            align_paths_log_probs.emplace_back(Utils::score_log_base * align_path.score_sum);
 
             if (!is_single_end) {
 
@@ -78,9 +78,9 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
                 uint32_t path_idx = clustered_path_index_it->second;
 
-                if (doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
+                if (Utils::doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
 
-                    assert(doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
+                    assert(Utils::doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
                     read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
 
                 } else {
@@ -95,7 +95,7 @@ void ReadPathProbabilities::calcReadPathProbabilities(const vector<AlignmentPath
 
         for (auto & log_prob: read_path_log_probs) {
 
-            read_path_log_probs_sum = add_log(read_path_log_probs_sum, log_prob);
+            read_path_log_probs_sum = Utils::add_log(read_path_log_probs_sum, log_prob);
         }
 
         assert(read_path_log_probs_sum > numeric_limits<double>::lowest());
@@ -175,7 +175,7 @@ vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbabi
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 
-    if (lhs.readCount() == rhs.readCount() && doubleCompare(lhs.noiseProbability(), rhs.noiseProbability())) {
+    if (lhs.readCount() == rhs.readCount() && Utils::doubleCompare(lhs.noiseProbability(), rhs.noiseProbability())) {
 
         if (lhs.probabilities().size() == rhs.probabilities().size()) {
 
@@ -186,7 +186,7 @@ bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities &
                     return false;
                 }  
 
-                if (!doubleCompare(lhs.probabilities().at(i).second, rhs.probabilities().at(i).second)) {
+                if (!Utils::doubleCompare(lhs.probabilities().at(i).second, rhs.probabilities().at(i).second)) {
 
                     return false;
                 }
@@ -206,7 +206,7 @@ bool operator!=(const ReadPathProbabilities & lhs, const ReadPathProbabilities &
 
 bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 
-    if (!doubleCompare(lhs.noiseProbability(), rhs.noiseProbability())) {
+    if (!Utils::doubleCompare(lhs.noiseProbability(), rhs.noiseProbability())) {
 
         return (lhs.noiseProbability() < rhs.noiseProbability());    
     } 
@@ -223,7 +223,7 @@ bool operator<(const ReadPathProbabilities & lhs, const ReadPathProbabilities & 
             return (lhs.probabilities().at(i).first < rhs.probabilities().at(i).first);    
         }  
 
-        if (!doubleCompare(lhs.probabilities().at(i).second, rhs.probabilities().at(i).second)) {
+        if (!Utils::doubleCompare(lhs.probabilities().at(i).second, rhs.probabilities().at(i).second)) {
 
             return (lhs.probabilities().at(i).second < rhs.probabilities().at(i).second);    
         }         

@@ -66,7 +66,7 @@ TEST_CASE("GBWT paths can be clustered") {
     )";
 
 	vg::Graph graph;
-	json2pb(graph, graph_str);
+	Utils::json2pb(graph, graph_str);
 
     gbwt::FastLocate r_index(gbwt_index);
     PathsIndex paths_index(gbwt_index, r_index, graph);

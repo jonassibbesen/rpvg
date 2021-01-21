@@ -8,9 +8,9 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
 
     if (!cluster_probs.empty()) {
 
-        Eigen::ColMatrixXd read_path_probs;
-        Eigen::ColVectorXd noise_probs;
-        Eigen::RowVectorXui read_counts;
+        Utils::ColMatrixXd read_path_probs;
+        Utils::ColVectorXd noise_probs;
+        Utils::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, path_cluster_estimates->paths.size());
 
@@ -40,9 +40,9 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
 
     if (!cluster_probs.empty()) {
 
-        Eigen::ColMatrixXd read_path_probs;
-        Eigen::ColVectorXd noise_probs;
-        Eigen::RowVectorXui read_counts;
+        Utils::ColMatrixXd read_path_probs;
+        Utils::ColVectorXd noise_probs;
+        Utils::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, path_cluster_estimates->paths.size());
 
