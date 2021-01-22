@@ -30,8 +30,7 @@ class ReadPathProbabilities {
         void addReadCount(const uint32_t read_count_in);
         void calcAlignPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double base_noise_prob);
 
-        bool mergeIdentical(const ReadPathProbabilities & probs_2);
-        // vector<pair<double, vector<uint32_t> > > collapsedProbs() const;
+        bool quickMergeIdentical(const ReadPathProbabilities & probs_2);
 
     private:
 

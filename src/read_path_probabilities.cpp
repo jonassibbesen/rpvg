@@ -114,7 +114,9 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
 
                     if (abs(path_probs_it->first - read_path_log_probs.at(i)) < prob_precision) {
 
+                        path_probs_it->first = ((path_probs_it->first * path_probs_it->second.size() + read_path_log_probs.at(i)) / (path_probs_it->second.size() + 1));
                         path_probs_it->second.emplace_back(i);
+
                         break;
                     }
                     
@@ -123,16 +125,17 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
 
                 if (path_probs_it == path_probs.end()) {
 
-                    path_probs.emplace_back(read_path_log_probs.at(i), vector<uint32_t>(1, i));
+                    path_probs.emplace_back(read_path_log_probs.at(i), vector<uint32_t>({static_cast<uint32_t>(i)}));
                 }
             }
         }
 
         assert(!path_probs.empty());
+        sort(path_probs.begin(), path_probs.end());
     }
 }
 
-bool ReadPathProbabilities::mergeIdentical(const ReadPathProbabilities & probs_2) {
+bool ReadPathProbabilities::quickMergeIdentical(const ReadPathProbabilities & probs_2) {
 
     if (pathProbs().size() != probs_2.pathProbs().size()) {
 
@@ -160,35 +163,6 @@ bool ReadPathProbabilities::mergeIdentical(const ReadPathProbabilities & probs_2
 
     return false;
 }
-
-// vector<pair<double, vector<uint32_t> > > ReadPathProbabilities::collapsedProbs() const {
-
-//     vector<pair<double, vector<uint32_t> > > collapsed_probs;
-
-//     for (auto & prob: pathProbs()) {
-
-//         auto collapsed_probs_it = collapsed_probs.begin();
-
-//         while (collapsed_probs_it != collapsed_probs.end()) {
-
-//             if (abs(collapsed_probs_it->first - prob.second) < prob_precision) {
-
-//                 collapsed_probs_it->second.emplace_back(prob.first);
-//                 break;
-//             }
-            
-//             ++collapsed_probs_it;
-//         }
-
-//         if (collapsed_probs_it == collapsed_probs.end()) {
-
-//             collapsed_probs.emplace_back(prob.second, vector<uint32_t>(1, prob.first));
-//         }
-//     }
-
-//     sort(collapsed_probs.begin(), collapsed_probs.end());
-//     return collapsed_probs;
-// }
 
 bool operator==(const ReadPathProbabilities & lhs, const ReadPathProbabilities & rhs) { 
 

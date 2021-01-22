@@ -785,7 +785,7 @@ int main(int argc, char* argv[]) {
 
             for (size_t i = 1; i < read_path_cluster_probs.size(); ++i) {
 
-                if (!read_path_cluster_probs.at(prev_unique_probs_idx).mergeIdentical(read_path_cluster_probs.at(i))) {
+                if (!read_path_cluster_probs.at(prev_unique_probs_idx).quickMergeIdentical(read_path_cluster_probs.at(i))) {
 
                     if (prev_unique_probs_idx + 1 < i) {
 
