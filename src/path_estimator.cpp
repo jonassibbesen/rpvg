@@ -64,13 +64,16 @@ void PathEstimator::constructProbabilityMatrix(Utils::ColMatrixXd * read_path_pr
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
-        for (auto & prob: cluster_probs.at(i).probabilities()) {
+        for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
-            assert(prob.first < num_paths);
-            (*read_path_probs)(i, prob.first) = prob.second;
+            for (auto & path: path_probs.second) {
+
+                assert(path < num_paths);
+                (*read_path_probs)(i, path) = path_probs.first;
+            }
         }
 
-        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProbability();
+        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProb();
         (*read_counts)(0, i) = cluster_probs.at(i).readCount();
     }
 }
@@ -93,17 +96,20 @@ void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
-        for (auto & prob: cluster_probs.at(i).probabilities()) {
+        for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
-            assert(prob.first < num_paths);
+            for (auto & path: path_probs.second) {
+    
+                assert(path < num_paths);
 
-            if (path_id_idx.at(prob.first) >= 0) {
+                if (path_id_idx.at(path) >= 0) {
 
-                (*read_path_probs)(i, path_id_idx.at(prob.first)) = prob.second;
+                    (*read_path_probs)(i, path_id_idx.at(path)) = path_probs.first;
+                }
             }
         }
 
-        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProbability();
+        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProb();
         (*read_counts)(0, i) = cluster_probs.at(i).readCount();
     }
 }
@@ -131,17 +137,20 @@ void PathEstimator::constructGroupedProbabilityMatrix(Utils::ColMatrixXd * read_
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
-        for (auto & prob: cluster_probs.at(i).probabilities()) {
+        for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
-            assert(prob.first < num_paths);
+            for (auto & path: path_probs.second) {
 
-            for (auto & group_id: path_id_group_idx.at(prob.first)) {
+                assert(path < num_paths);
 
-                (*read_path_probs)(i, group_id) += prob.second;
+                for (auto & group_id: path_id_group_idx.at(path)) {
+
+                    (*read_path_probs)(i, group_id) += path_probs.first;
+                }
             }
         }
 
-        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProbability();
+        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProb();
         (*read_counts)(0, i) = cluster_probs.at(i).readCount();
     }
 }

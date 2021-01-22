@@ -270,12 +270,15 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
                 read_counts(i) = 0;
             }
 
-            for (auto & prob: cluster_probs.at(i).probabilities()) {
+            for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
-                assert(prob.second > 0);
+                for (auto & path: path_probs.second) {
 
-                read_path_cover(i, prob.first) = true;
-                path_weights(prob.first) += log(prob.second) * read_counts(i);                 
+                    assert(path_probs.first > 0);
+
+                    read_path_cover(i, path) = true;
+                    path_weights(path) += log(path_probs.first) * read_counts(i);  
+                }               
             }
         }
 

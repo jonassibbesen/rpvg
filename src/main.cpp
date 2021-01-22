@@ -773,7 +773,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-                read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end, base_noise_prob);
+                read_path_cluster_probs.back().calcAlignPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end, base_noise_prob);
             }
         }
 
@@ -785,7 +785,7 @@ int main(int argc, char* argv[]) {
 
             for (size_t i = 1; i < read_path_cluster_probs.size(); ++i) {
 
-                if (!read_path_cluster_probs.at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(read_path_cluster_probs.at(i))) {
+                if (!read_path_cluster_probs.at(prev_unique_probs_idx).mergeIdentical(read_path_cluster_probs.at(i))) {
 
                     if (prev_unique_probs_idx + 1 < i) {
 

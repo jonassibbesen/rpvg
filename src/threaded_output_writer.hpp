@@ -44,14 +44,12 @@ class ProbabilityClusterWriter : public ThreadedOutputWriter {
         ProbabilityClusterWriter(const string filename_prefix, const uint32_t num_threads, const double prob_precision_in);
         ~ProbabilityClusterWriter() {};
 
-        void addCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths);
+        void addCluster(const vector<ReadPathProbabilities> & read_path_cluster_probs, const vector<PathInfo> & cluster_paths);
 
     private:
 
         const double prob_precision;
         const uint32_t prob_precision_digits;
-
-        void addCollapsedProbabilities(stringstream * prob_out_sstream, const ReadPathProbabilities & probs);
 };
 
 class GibbsSamplesWriter : public ThreadedOutputWriter {

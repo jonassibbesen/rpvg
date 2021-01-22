@@ -37,38 +37,11 @@ void ThreadedOutputWriter::write() {
 
 ProbabilityClusterWriter::ProbabilityClusterWriter(const string filename_prefix, const uint32_t num_threads, const double prob_precision_in) : ThreadedOutputWriter(filename_prefix + "_probs.txt.gz", "wg", num_threads), prob_precision(prob_precision_in), prob_precision_digits(ceil(-1 * log10(prob_precision))) {}
 
-void ProbabilityClusterWriter::addCollapsedProbabilities(stringstream * out_sstream, const ReadPathProbabilities & read_path_probs) {
-
-    *out_sstream << read_path_probs.readCount() << " " << read_path_probs.noiseProbability();
-
-    for (auto & collapsed_probs: read_path_probs.collapsedProbabilities()) {
-
-        *out_sstream << " " << collapsed_probs.first << ":";
-
-        bool is_first = true;
-
-        for (auto idx: collapsed_probs.second) {
-
-            if (is_first) {
-
-                *out_sstream << idx;
-                is_first = false;
-
-            } else {
-
-                *out_sstream << "," << idx;
-            }
-        }
-    }
-
-    *out_sstream << endl;
-}
-
-void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & cluster_probs, const vector<PathInfo> & cluster_paths) {
+void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & read_path_cluster_probs, const vector<PathInfo> & cluster_paths) {
 
     assert(!cluster_paths.empty());
 
-    if (!cluster_probs.empty()) {
+    if (!read_path_cluster_probs.empty()) {
 
         auto out_sstream = new stringstream;
 
@@ -83,14 +56,35 @@ void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & 
 
         *out_sstream << endl;
 
-        if (!cluster_probs.empty()) {
+        if (!read_path_cluster_probs.empty()) {
 
             *out_sstream << setprecision(prob_precision_digits);
 
-            for (auto & probs: cluster_probs) {
+            for (auto & read_path_probs: read_path_cluster_probs) {
 
-                assert(probs.probabilities().size() <= cluster_paths.size());
-                addCollapsedProbabilities(out_sstream, probs);
+                *out_sstream << read_path_probs.readCount() << " " << read_path_probs.noiseProb();
+
+                for (auto & path_probs: read_path_probs.pathProbs()) {
+
+                    *out_sstream << " " << path_probs.first << ":";
+
+                    bool is_first = true;
+
+                    for (auto path: path_probs.second) {
+
+                        if (is_first) {
+
+                            *out_sstream << path;
+                            is_first = false;
+
+                        } else {
+
+                            *out_sstream << "," << path;
+                        }
+                    }
+                }
+
+                *out_sstream << endl;
             }
         }
 
