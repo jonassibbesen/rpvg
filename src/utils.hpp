@@ -172,6 +172,18 @@ namespace Utils {
         return l;
     }
 
+    inline char quality_short_to_char(short i) {
+        return static_cast<char>(i + 33);
+    }
+
+    inline string string_quality_short_to_char(const string& quality) {
+        string buffer; buffer.resize(quality.size());
+        for (int i = 0; i < quality.size(); ++i) {
+            buffer[i] = quality_short_to_char(quality[i]);
+        }
+        return buffer;
+    }
+
     // Note that edit sequences are not reverse complemented.
     // Original function in vg repo: reverse_complement_mapping().
     inline vg::Mapping lazy_reverse_complement_mapping(const vg::Mapping& mapping,
@@ -232,8 +244,8 @@ namespace Utils {
         
         vg::Alignment aln_rc;
 
-        aln_rc.set_sequence(aln.sequence());
-        aln_rc.set_quality(aln.quality());
+        aln_rc.set_sequence(string(aln.sequence().rbegin(), aln.sequence().rend()));
+        aln_rc.set_quality(string(aln.quality().rbegin(), aln.quality().rend()));
 
         aln_rc.set_score(aln.score());
         aln_rc.set_mapping_quality(aln.mapping_quality());
@@ -243,16 +255,15 @@ namespace Utils {
         return aln_rc;
     }
 
-
     // Reverse complements multipath alignment. Note that sequences, paths and edit sequences 
     // are not reverse complemented. Original name in vg repo: rev_comp_multipath_alignment().
     inline vg::MultipathAlignment lazy_reverse_complement_alignment(const vg::MultipathAlignment& multipath_aln, const function<int64_t(int64_t)>& node_length) {
         
         vg::MultipathAlignment multipath_aln_rc;
 
-        multipath_aln_rc.set_sequence(multipath_aln.sequence());
-        multipath_aln_rc.set_quality(multipath_aln.quality());
-        
+        multipath_aln_rc.set_sequence(string(multipath_aln.sequence().rbegin(), multipath_aln.sequence().rend()));
+        multipath_aln_rc.set_quality(string(multipath_aln.quality().rbegin(), multipath_aln.quality().rend()));
+
         multipath_aln_rc.set_mapping_quality(multipath_aln.mapping_quality());
 
         vector<vector<size_t> > reverse_edge_lists(multipath_aln.subpath_size());
@@ -339,6 +350,7 @@ namespace Utils {
 
     static const int8_t default_match = 1;
     static const int8_t default_mismatch = 4;
+    static const int8_t default_full_length_bonus = 5;
 
     static const int8_t score_matrix[16] = {
          default_match,    -default_mismatch, -default_mismatch, -default_mismatch,
@@ -419,7 +431,29 @@ namespace Utils {
         return qual_adj_mat;
     }
 
+    inline vector<int8_t> qual_adjusted_bonuses(uint32_t max_qual = 255) {
+        
+        
+        double p_full_len = exp(score_log_base * default_full_length_bonus) / (1.0 + exp(score_log_base * default_full_length_bonus));
+        
+        vector<int8_t> qual_adj_bonuses(max_qual + 1);
+        
+        int lowest_meaningful_qual = ceil(-10.0 * log10(0.75));
+        // hack because i want the minimum qual value from illumina (2) to have zero score, but phred
+        // values are spaced out in a way to approximate this singularity well
+        ++lowest_meaningful_qual;
+        
+        for (int q = lowest_meaningful_qual; q <= max_qual; ++q) {
+            double err = pow(10.0, -q / 10.0);
+            double score = log(((1.0 - err * 4.0 / 3.0) * p_full_len + (err * 4.0 / 3.0) * (1.0 - p_full_len)) / (1.0 - p_full_len)) / score_log_base;
+            qual_adj_bonuses[q] = round(score);
+        }
+        
+        return qual_adj_bonuses;
+    }
+
     static const vector<int8_t> qual_score_matrix = qual_adjusted_matrix();
+    static const vector<int8_t> qual_full_length_bonuses = qual_adjusted_bonuses();
 
     //------------------------------------------------------------------------------
 }

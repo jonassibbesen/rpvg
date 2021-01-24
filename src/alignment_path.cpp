@@ -397,9 +397,7 @@ double AlignmentSearchPath::minOptimalScoreFraction(const vector<int32_t> & opti
 
     for (size_t i = 0; i < read_stats.size(); ++i) {
 
-        assert(optimal_align_scores.at(i) <= static_cast<int32_t>(read_stats.at(i).length));
         assert(read_stats.at(i).adjustedScore() <= optimal_align_scores.at(i));
-
         min_optim_score_frac = min(min_optim_score_frac, read_stats.at(i).adjustedScore() / static_cast<double>(optimal_align_scores.at(i)));
     }
 

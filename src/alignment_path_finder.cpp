@@ -46,17 +46,19 @@ int32_t AlignmentPathFinder<AlignmentType>::optimalAlignmentScore(const string &
 
     if (quality.empty()) {
 
-        return sequence.size();
+        return sequence.size() * Utils::default_match + 2 * Utils::default_full_length_bonus;
 
     } else {
 
         int32_t optimal_score = 0;
         assert(sequence.size() == quality.size());
 
-        for (int32_t i = 0; i < sequence.size(); i++) {
+        for (size_t i = 0; i < sequence.size(); i++) {
 
-            optimal_score += Utils::qual_score_matrix[25 * quality.at(i) + 6 * Utils::nt_table[sequence.at(i)]];
+            optimal_score += Utils::qual_score_matrix.at(25 * quality.at(i) + 6 * Utils::nt_table[sequence.at(i)]);
         }
+
+        optimal_score += Utils::qual_full_length_bonuses.at(quality.front()) + Utils::qual_full_length_bonuses.at(quality.back());
 
         return optimal_score;
     }
@@ -427,22 +429,6 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
         align_search_paths_queue.pop();
     }
 }
-
-// Debug start
-
-char quality_short_to_char(short i) {
-    return static_cast<char>(i + 33);
-}
-
-string string_quality_short_to_char(const string& quality) {
-    string buffer; buffer.resize(quality.size());
-    for (int i = 0; i < quality.size(); ++i) {
-        buffer[i] = quality_short_to_char(quality[i]);
-    }
-    return buffer;
-}
-
-// Debug end
 
 template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
