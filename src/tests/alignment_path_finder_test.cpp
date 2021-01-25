@@ -1825,6 +1825,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
                             {
                                 "position": {"node_id": 10, "is_reverse": true},
                                 "edit": [
+                                    {"to_length": 2, "sequence": "AA"},
                                     {"from_length": 1, "to_length": 1}
                                 ]
                             },
@@ -1837,7 +1838,8 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
                             {
                                 "position": {"node_id": 7, "is_reverse": true},
                                 "edit": [
-                                    {"from_length": 3, "to_length": 3}
+                                    {"from_length": 3, "to_length": 3},
+                                    {"to_length": 1, "sequence": "A"}
                                 ]
                             }
                         ]
@@ -1845,7 +1847,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
                     "score": 7
                 }
             ],
-            "sequence": "AAAAAAA",
+            "sequence": "AAAAAAAAAA",
             "mapping_quality": 20
         }
     )";
@@ -1868,7 +1870,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
 
         REQUIRE(paths_index.locatePathIds(alignment_paths.front().gbwt_search) == vector<gbwt::size_type>({0}));                
         REQUIRE(!alignment_paths.front().is_multimap);
-        REQUIRE(alignment_paths.front().frag_length == 17);
+        REQUIRE(alignment_paths.front().frag_length == 19);
         REQUIRE(alignment_paths.front().min_mapq == 10);
         REQUIRE(alignment_paths.front().score_sum == 10);
 
@@ -1880,7 +1882,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
 
         REQUIRE(paths_index.locatePathIds(alignment_paths.at(2).gbwt_search) == vector<gbwt::size_type>({2})); 
         REQUIRE(alignment_paths.at(2).is_multimap == alignment_paths.at(1).is_multimap);
-        REQUIRE(alignment_paths.at(2).frag_length == 15);
+        REQUIRE(alignment_paths.at(2).frag_length == 17);
         REQUIRE(alignment_paths.at(2).min_mapq == alignment_paths.at(1).min_mapq);
         REQUIRE(alignment_paths.at(2).score_sum == 11);
 

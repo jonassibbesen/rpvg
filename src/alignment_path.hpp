@@ -65,29 +65,47 @@ namespace std {
     };
 }
 
-class ReadAlignmentStats {
+
+class InternalAlignment {
 
     public: 
 
-        ReadAlignmentStats();
+        InternalAlignment();
+
+        bool is_internal;
+        uint32_t penalty;
+
+        uint32_t offset;
+        uint32_t max_offset;
+};
+
+bool operator==(const InternalAlignment & lhs, const InternalAlignment & rhs);
+bool operator!=(const InternalAlignment & lhs, const InternalAlignment & rhs);
+bool operator<(const InternalAlignment & lhs, const InternalAlignment & rhs);
+
+ostream & operator<<(ostream & os, const InternalAlignment & read_align_stats);
+
+
+class AlignmentStats {
+
+    public: 
+
+        AlignmentStats();
 
         uint32_t mapq;
         int32_t score;
         uint32_t length;
 
-        pair<uint32_t, bool> left_softclip_length;
-        pair<uint32_t, bool> right_softclip_length;
+        uint32_t left_softclip_length;
+        uint32_t right_softclip_length;
 
-        pair<uint32_t, bool> internal_start_offset;
-        pair<uint32_t, bool> internal_end_offset;
+        InternalAlignment internal_start;
+        InternalAlignment internal_end;
 
         gbwt::node_type internal_end_next_node;
 
         void updateLeftSoftClipLength(const vg::Path & path);
         void updateRightSoftClipLength(const vg::Path & path);
-
-        void updateInternalStartOffset(const uint32_t offset, const bool is_first);
-        void updateInternalEndOffset(const uint32_t offset, const bool is_last);
 
         int32_t adjustedScore() const; 
 
@@ -96,11 +114,12 @@ class ReadAlignmentStats {
         uint32_t clippedOffsetTotalBases() const;
 };
 
-bool operator==(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs);
-bool operator!=(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs);
-bool operator<(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs);
+bool operator==(const AlignmentStats & lhs, const AlignmentStats & rhs);
+bool operator!=(const AlignmentStats & lhs, const AlignmentStats & rhs);
+bool operator<(const AlignmentStats & lhs, const AlignmentStats & rhs);
 
-ostream & operator<<(ostream & os, const ReadAlignmentStats & read_stats);
+ostream & operator<<(ostream & os, const AlignmentStats & read_align_stats);
+
 
 class AlignmentSearchPath {
 
@@ -116,7 +135,7 @@ class AlignmentSearchPath {
 
         int32_t insert_length;
 
-        vector<ReadAlignmentStats> read_stats;
+        vector<AlignmentStats> read_align_stats;
 
         uint32_t fragmentLength() const;
         uint32_t minMappingQuality() const;

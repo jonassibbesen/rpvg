@@ -119,24 +119,74 @@ ostream & operator<<(ostream & os, const vector<AlignmentPath> & align_path) {
 }
 
 
-ReadAlignmentStats::ReadAlignmentStats() {
+InternalAlignment::InternalAlignment() {
+
+    is_internal = false;
+    penalty = 0;
+    offset = 0;
+
+    max_offset = 0;    
+}
+
+bool operator==(const InternalAlignment & lhs, const InternalAlignment & rhs) { 
+
+    return (lhs.is_internal == rhs.is_internal && lhs.penalty == rhs.penalty && lhs.offset == rhs.offset && lhs.max_offset == rhs.max_offset);
+}
+
+bool operator!=(const InternalAlignment & lhs, const InternalAlignment & rhs) { 
+
+    return !(lhs == rhs);
+}
+
+bool operator<(const InternalAlignment & lhs, const InternalAlignment & rhs) { 
+
+    if (lhs.is_internal != rhs.is_internal) {
+
+        return (lhs.is_internal < rhs.is_internal);    
+    } 
+
+    if (lhs.penalty != rhs.penalty) {
+
+        return (lhs.penalty < rhs.penalty);    
+    } 
+
+    if (lhs.offset != rhs.offset) {
+
+        return (lhs.offset < rhs.offset);    
+    } 
+
+    if (lhs.max_offset != rhs.max_offset) {
+
+        return (lhs.max_offset < rhs.max_offset);    
+    } 
+
+    return false;
+}
+
+ostream & operator<<(ostream & os, const InternalAlignment & internal_align) {
+
+    os << internal_align.is_internal;
+    os << "," << internal_align.penalty;
+    os << "," << internal_align.offset;
+    os << "," << internal_align.max_offset;
+
+    return os;
+}
+
+
+AlignmentStats::AlignmentStats() {
 
     mapq = 0;
     score = 0;
     length = 0;
 
-    left_softclip_length = make_pair(0, false);
-    right_softclip_length = make_pair(0, false);
+    left_softclip_length = 0;
+    right_softclip_length = 0;
 
-    internal_start_offset = make_pair(0, false);
-    internal_end_offset = make_pair(0, false);
     internal_end_next_node = gbwt::ENDMARKER;
 }
 
-void ReadAlignmentStats::updateLeftSoftClipLength(const vg::Path & path) {
-
-    assert(!left_softclip_length.second);
-    left_softclip_length.second = true;
+void AlignmentStats::updateLeftSoftClipLength(const vg::Path & path) {
 
     auto mapping_it = path.mapping().cbegin();
     assert(mapping_it != path.mapping().cend());
@@ -146,14 +196,11 @@ void ReadAlignmentStats::updateLeftSoftClipLength(const vg::Path & path) {
 
     if (first_edit.from_length() == 0) {
 
-        left_softclip_length.first = first_edit.to_length();   
+        left_softclip_length = first_edit.to_length();   
     } 
 }
 
-void ReadAlignmentStats::updateRightSoftClipLength(const vg::Path & path) {
-
-    assert(!right_softclip_length.second);
-    right_softclip_length.second = true;
+void AlignmentStats::updateRightSoftClipLength(const vg::Path & path) {
 
     auto mapping_rit = path.mapping().rbegin();
     assert(mapping_rit != path.mapping().rend());   
@@ -163,109 +210,41 @@ void ReadAlignmentStats::updateRightSoftClipLength(const vg::Path & path) {
 
     if (last_edit.from_length() == 0) {
 
-        right_softclip_length.first = last_edit.to_length();   
+        right_softclip_length = last_edit.to_length();   
     }
 }
 
-void ReadAlignmentStats::updateInternalStartOffset(const uint32_t offset, const bool is_first) {
+int32_t AlignmentStats::adjustedScore() const {
 
-    if (!internal_start_offset.second) {
-
-        internal_start_offset.first = 0;
-    }
-
-    internal_start_offset.second = true;
-    internal_start_offset.first += offset;
-
-    if (is_first) {
-
-        assert(left_softclip_length.second);
-        assert(left_softclip_length.first <= offset);
-
-        internal_start_offset.first -= left_softclip_length.first;
-    }
+    return (score - static_cast<int32_t>(internal_start.penalty) - static_cast<int32_t>(internal_end.penalty));
 }
 
-void ReadAlignmentStats::updateInternalEndOffset(const uint32_t offset, const bool is_last) {
+uint32_t AlignmentStats::clippedOffsetLeftBases() const {
 
-    if (!internal_end_offset.second) {
-
-        internal_end_offset.first = 0;
-    }
-
-    internal_end_offset.second = true;
-    internal_end_offset.first += offset;
-
-    if (is_last) {
-
-        assert(right_softclip_length.second);
-        assert(right_softclip_length.first <= offset);
-
-        internal_end_offset.first -= right_softclip_length.first;
-    }
+    return (left_softclip_length + internal_start.offset);
 }
 
-int32_t ReadAlignmentStats::adjustedScore() const {
+uint32_t AlignmentStats::clippedOffsetRightBases() const {
 
-    int32_t adjust_score = score;
-
-    if (internal_start_offset.second) {
-
-        adjust_score -= internal_start_offset.first;
-    }
-
-    if (internal_end_offset.second) {
-
-        adjust_score -= internal_end_offset.first;
-    }
-
-    return adjust_score;
+    return (right_softclip_length + internal_end.offset);
 }
 
-uint32_t ReadAlignmentStats::clippedOffsetLeftBases() const {
-
-    assert(left_softclip_length.second);
-
-    if (internal_start_offset.second) {
-
-        return (left_softclip_length.first + internal_start_offset.first);
-
-    } else {
-
-        return left_softclip_length.first;
-    }
-}
-
-uint32_t ReadAlignmentStats::clippedOffsetRightBases() const {
-
-    assert(right_softclip_length.second);
-
-    if (internal_end_offset.second) {
-
-        return (right_softclip_length.first + internal_end_offset.first);
-
-    } else {
-
-        return right_softclip_length.first;
-    }
-}
-
-uint32_t ReadAlignmentStats::clippedOffsetTotalBases() const {
+uint32_t AlignmentStats::clippedOffsetTotalBases() const {
 
     return (clippedOffsetLeftBases() + clippedOffsetRightBases());
 }
 
-bool operator==(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs) { 
+bool operator==(const AlignmentStats & lhs, const AlignmentStats & rhs) { 
 
-    return (lhs.mapq == rhs.mapq && lhs.score == rhs.score && lhs.length == rhs.length && lhs.left_softclip_length == rhs.left_softclip_length && lhs.right_softclip_length == rhs.right_softclip_length && lhs.internal_start_offset == rhs.internal_start_offset && lhs.internal_end_offset == rhs.internal_end_offset);
+    return (lhs.mapq == rhs.mapq && lhs.score == rhs.score && lhs.length == rhs.length && lhs.left_softclip_length == rhs.left_softclip_length && lhs.right_softclip_length == rhs.right_softclip_length && lhs.internal_start == rhs.internal_start && lhs.internal_end == rhs.internal_end && lhs.internal_end_next_node == rhs.internal_end_next_node);
 }
 
-bool operator!=(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs) { 
+bool operator!=(const AlignmentStats & lhs, const AlignmentStats & rhs) { 
 
     return !(lhs == rhs);
 }
 
-bool operator<(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs) { 
+bool operator<(const AlignmentStats & lhs, const AlignmentStats & rhs) { 
 
     if (lhs.mapq != rhs.mapq) {
 
@@ -292,29 +271,34 @@ bool operator<(const ReadAlignmentStats & lhs, const ReadAlignmentStats & rhs) {
         return (lhs.right_softclip_length < rhs.right_softclip_length);    
     } 
 
-    if (lhs.internal_start_offset != rhs.internal_start_offset) {
+    if (lhs.internal_start != rhs.internal_start) {
 
-        return (lhs.internal_start_offset < rhs.internal_start_offset);    
+        return (lhs.internal_start < rhs.internal_start);    
     } 
 
-    if (lhs.internal_end_offset != rhs.internal_end_offset) {
+    if (lhs.internal_end != rhs.internal_end) {
 
-        return (lhs.internal_end_offset < rhs.internal_end_offset);    
+        return (lhs.internal_end < rhs.internal_end);    
+    } 
+
+    if (lhs.internal_end_next_node != rhs.internal_end_next_node) {
+
+        return (lhs.internal_end_next_node < rhs.internal_end_next_node);    
     } 
 
     return false;
 }
 
-ostream & operator<<(ostream & os, const ReadAlignmentStats & read_stats) {
+ostream & operator<<(ostream & os, const AlignmentStats & read_align_stats) {
 
-    os << read_stats.mapq;
-    os << "," << read_stats.score;
-    os << "," << read_stats.length;
-    os << "," << read_stats.left_softclip_length;
-    os << "," << read_stats.right_softclip_length;
-    os << "," << read_stats.internal_start_offset;
-    os << "," << read_stats.internal_end_offset;
-    os << "," << read_stats.internal_end_next_node;
+    os << read_align_stats.mapq;
+    os << "," << read_align_stats.score;
+    os << "," << read_align_stats.length;
+    os << "," << read_align_stats.left_softclip_length;
+    os << "," << read_align_stats.right_softclip_length;
+    os << ",(" << read_align_stats.internal_start << ")";
+    os << ",(" << read_align_stats.internal_end << ")";
+    os << "," << read_align_stats.internal_end_next_node;
 
     return os;
 }
@@ -330,44 +314,44 @@ AlignmentSearchPath::AlignmentSearchPath() {
 
 uint32_t AlignmentSearchPath::fragmentLength() const {
 
-    assert(!read_stats.empty());
-    assert(read_stats.size() <= 2);
+    assert(!read_align_stats.empty());
+    assert(read_align_stats.size() <= 2);
 
-    if (read_stats.size() == 1) {
+    if (read_align_stats.size() == 1) {
 
         assert(insert_length >= 0);
 
         if (insert_length == 0) {
 
-            return read_stats.front().length;
+            return read_align_stats.front().length;
         
         } else {
 
-            int32_t frag_length = read_stats.front().length + insert_length;
+            int32_t frag_length = read_align_stats.front().length + insert_length;
             assert(frag_length >= 0);
 
-            assert(read_stats.front().clippedOffsetRightBases() <= frag_length);
-            return frag_length - read_stats.front().clippedOffsetRightBases();
+            assert(read_align_stats.front().clippedOffsetRightBases() <= frag_length);
+            return frag_length - read_align_stats.front().clippedOffsetRightBases();
         }
 
     } else {
 
-        assert(read_stats.size() == 2);
+        assert(read_align_stats.size() == 2);
 
-        int32_t frag_length = read_stats.front().length + read_stats.back().length + insert_length;
+        int32_t frag_length = read_align_stats.front().length + read_align_stats.back().length + insert_length;
         assert(frag_length >= 0);
 
-        assert(read_stats.front().clippedOffsetRightBases() + read_stats.back().clippedOffsetLeftBases() <= frag_length);
-        return (frag_length - read_stats.front().clippedOffsetRightBases() - read_stats.back().clippedOffsetLeftBases());
+        assert(read_align_stats.front().clippedOffsetRightBases() + read_align_stats.back().clippedOffsetLeftBases() <= frag_length);
+        return (frag_length - read_align_stats.front().clippedOffsetRightBases() - read_align_stats.back().clippedOffsetLeftBases());
     }
 }
 
 uint32_t AlignmentSearchPath::minMappingQuality() const {
 
     uint32_t min_mapq = std::numeric_limits<uint32_t>::max();
-    assert(!read_stats.empty());
+    assert(!read_align_stats.empty());
 
-    for (auto & stats: read_stats) {
+    for (auto & stats: read_align_stats) {
 
         min_mapq = min(min_mapq, stats.mapq);
     }
@@ -378,9 +362,9 @@ uint32_t AlignmentSearchPath::minMappingQuality() const {
 uint32_t AlignmentSearchPath::scoreSum() const {
 
     int32_t score_sum = 0;
-    assert(!read_stats.empty());
+    assert(!read_align_stats.empty());
 
-    for (auto & stats: read_stats) {
+    for (auto & stats: read_align_stats) {
 
         score_sum += stats.adjustedScore();
     }
@@ -392,13 +376,13 @@ double AlignmentSearchPath::minOptimalScoreFraction(const vector<int32_t> & opti
 
     double min_optim_score_frac = 1;
 
-    assert(!read_stats.empty());
-    assert(optimal_align_scores.size() == read_stats.size());
+    assert(!read_align_stats.empty());
+    assert(optimal_align_scores.size() == read_align_stats.size());
 
-    for (size_t i = 0; i < read_stats.size(); ++i) {
+    for (size_t i = 0; i < read_align_stats.size(); ++i) {
 
-        assert(read_stats.at(i).adjustedScore() <= optimal_align_scores.at(i));
-        min_optim_score_frac = min(min_optim_score_frac, read_stats.at(i).adjustedScore() / static_cast<double>(optimal_align_scores.at(i)));
+        assert(read_align_stats.at(i).adjustedScore() <= optimal_align_scores.at(i));
+        min_optim_score_frac = min(min_optim_score_frac, read_align_stats.at(i).adjustedScore() / static_cast<double>(optimal_align_scores.at(i)));
     }
 
     return max(0.0, min_optim_score_frac);
@@ -407,15 +391,12 @@ double AlignmentSearchPath::minOptimalScoreFraction(const vector<int32_t> & opti
 double AlignmentSearchPath::maxSoftclipFraction() const {
 
     double max_softclip_frac = 0;
-    assert(!read_stats.empty());
+    assert(!read_align_stats.empty());
 
-    for (auto & stats: read_stats) {
+    for (auto & stats: read_align_stats) {
 
-        assert(stats.left_softclip_length.second);
-        assert(stats.right_softclip_length.second);
-
-        assert(stats.left_softclip_length.first + stats.right_softclip_length.first <= stats.length);
-        max_softclip_frac = max(max_softclip_frac, (stats.left_softclip_length.first + stats.right_softclip_length.first) / static_cast<double>(stats.length));
+        assert(stats.left_softclip_length + stats.right_softclip_length <= stats.length);
+        max_softclip_frac = max(max_softclip_frac, (stats.left_softclip_length + stats.right_softclip_length) / static_cast<double>(stats.length));
     }
 
     return max_softclip_frac;
@@ -442,7 +423,7 @@ void AlignmentSearchPath::clear() {
 
 bool operator==(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs) { 
 
-    return (lhs.path == rhs.path && lhs.gbwt_search == rhs.gbwt_search && lhs.start_offset == rhs.start_offset && lhs.end_offset == rhs.end_offset && lhs.insert_length == rhs.insert_length && lhs.read_stats == rhs.read_stats);
+    return (lhs.path == rhs.path && lhs.gbwt_search == rhs.gbwt_search && lhs.start_offset == rhs.start_offset && lhs.end_offset == rhs.end_offset && lhs.insert_length == rhs.insert_length && lhs.read_align_stats == rhs.read_align_stats);
 }
 
 bool operator!=(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs) { 
@@ -482,9 +463,9 @@ bool operator<(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs)
         return (lhs.insert_length < rhs.insert_length);    
     } 
 
-    if (lhs.read_stats != rhs.read_stats) {
+    if (lhs.read_align_stats != rhs.read_align_stats) {
 
-        return (lhs.read_stats < rhs.read_stats);    
+        return (lhs.read_align_stats < rhs.read_align_stats);    
     } 
 
     if (lhs.path.size() != rhs.path.size()) {
@@ -512,7 +493,7 @@ ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path
     os << " | " << align_search_path.start_offset;    
     os << " | " << align_search_path.end_offset;
     os << " | " << align_search_path.insert_length;
-    os << " | (" << align_search_path.read_stats << ")";
+    os << " | (" << align_search_path.read_align_stats << ")";
 
     return os;
 }

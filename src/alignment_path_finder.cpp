@@ -11,7 +11,7 @@ static const uint32_t max_score_diff = 20;
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_internal_offset_in, const uint32_t min_mapq_filter_in, const double min_best_score_filter_in, const double max_softclip_filter_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_frag_length(max_pair_frag_length_in), max_internal_offset(max_internal_offset_in), min_mapq_filter(min_mapq_filter_in), min_best_score_filter(min_best_score_filter_in), max_softclip_filter(max_softclip_filter_in) {}
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_penalty_in, const uint32_t min_mapq_filter_in, const double min_best_score_filter_in, const double max_softclip_filter_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_frag_length(max_pair_frag_length_in), max_partial_penalty(max_partial_penalty_in), min_mapq_filter(min_mapq_filter_in), min_best_score_filter(min_best_score_filter_in), max_softclip_filter(max_softclip_filter_in) {}
         
 template<class AlignmentType>
 bool AlignmentPathFinder<AlignmentType>::alignmentHasPath(const vg::Alignment & alignment) const {
@@ -42,38 +42,116 @@ bool AlignmentPathFinder<AlignmentType>::alignmentStartInGraph(const AlignmentTy
 }
 
 template<class AlignmentType>
-int32_t AlignmentPathFinder<AlignmentType>::optimalAlignmentScore(const string & sequence, const string & quality) const {
+int32_t AlignmentPathFinder<AlignmentType>::alignmentScore(const char & quality) const {
+
+    return Utils::qual_score_matrix.at(25 * quality);
+}
+
+template<class AlignmentType>
+int32_t AlignmentPathFinder<AlignmentType>::alignmentScore(const string & quality, const uint32_t & start_offset, const uint32_t & length) const {
 
     if (quality.empty()) {
 
-        return sequence.size() * Utils::default_match + 2 * Utils::default_full_length_bonus;
+        return length;
+    }
 
-    } else {
+    assert(start_offset + length <= quality.size());
+    int32_t optimal_score = 0;
 
-        int32_t optimal_score = 0;
-        assert(sequence.size() == quality.size());
+    for (size_t i = start_offset; i < start_offset + length; ++i) {
 
-        for (size_t i = 0; i < sequence.size(); i++) {
+        optimal_score += alignmentScore(quality.at(i));
+    } 
 
-            optimal_score += Utils::qual_score_matrix.at(25 * quality.at(i) + 6 * Utils::nt_table[sequence.at(i)]);
+    return optimal_score;
+}
+
+template<class AlignmentType>
+uint32_t AlignmentPathFinder<AlignmentType>::maxInternalStartOffset(const string & quality, const uint32_t seq_length, const uint32_t init_offset) const {
+
+    assert(init_offset < seq_length);
+
+    if (quality.empty()) {
+
+        return min(init_offset + max_partial_penalty, seq_length);
+    }
+
+    assert(quality.size() == seq_length);
+
+    uint32_t max_start_offset = init_offset;
+    int32_t offset_score = 0;
+
+    while (max_start_offset < seq_length) {
+
+        offset_score += alignmentScore(quality.at(max_start_offset));
+
+        if (offset_score > max_partial_penalty) {
+
+            break;
         }
 
-        optimal_score += Utils::qual_full_length_bonuses.at(quality.front()) + Utils::qual_full_length_bonuses.at(quality.back());
-
-        return optimal_score;
+        ++max_start_offset;
     }
+
+    return max_start_offset;
+}
+
+template<class AlignmentType>
+uint32_t AlignmentPathFinder<AlignmentType>::maxInternalEndOffset(const string & quality, const uint32_t seq_length, const uint32_t init_offset) const {
+
+    assert(init_offset < seq_length);
+
+    if (quality.empty()) {
+
+        return max(init_offset + max_partial_penalty, uint32_t(0));
+    }
+
+    assert(quality.size() == seq_length);
+
+    uint32_t max_end_offset = init_offset;
+    int32_t offset_score = 0;
+
+    while (max_end_offset < seq_length) {
+
+        offset_score += alignmentScore(quality.at(seq_length - max_end_offset - 1));
+
+        if (offset_score > max_partial_penalty) {
+
+            break;
+        }
+
+        ++max_end_offset;
+    }
+
+    return max_end_offset;
+}
+
+template<class AlignmentType>
+int32_t AlignmentPathFinder<AlignmentType>::optimalAlignmentScore(const string & quality, const uint32_t seq_length) const {
+
+    if (quality.empty()) {
+
+        return seq_length * Utils::default_match + 2 * Utils::default_full_length_bonus;
+    } 
+
+    assert(quality.size() == seq_length);
+
+    int32_t optimal_score = alignmentScore(quality, 0, seq_length);
+    optimal_score += Utils::qual_full_length_bonuses.at(quality.front()) + Utils::qual_full_length_bonuses.at(quality.back());
+
+    return optimal_score;
 }
 
 template<class AlignmentType>
 int32_t AlignmentPathFinder<AlignmentType>::optimalAlignmentScore(const vg::Alignment & alignment) const {
 
-    return optimalAlignmentScore(alignment.sequence(), alignment.quality());
+    return optimalAlignmentScore(alignment.quality(), alignment.sequence().size());
 }
 
 template<class AlignmentType>
 int32_t AlignmentPathFinder<AlignmentType>::optimalAlignmentScore(const vg::MultipathAlignment & alignment) const {
 
-    return optimalAlignmentScore(alignment.sequence(), alignment.quality());
+    return optimalAlignmentScore(alignment.quality(), alignment.sequence().size());
 }
 
 template<class AlignmentType>
@@ -158,40 +236,44 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
     
-    extended_align_search_path.front().read_stats.emplace_back(ReadAlignmentStats());
-    extended_align_search_path.front().read_stats.back().mapq = alignment.mapping_quality();
-    extended_align_search_path.front().read_stats.back().score = alignment.score();
+    extended_align_search_path.front().read_align_stats.emplace_back(AlignmentStats());
+    extended_align_search_path.front().read_align_stats.back().mapq = alignment.mapping_quality();
+    extended_align_search_path.front().read_align_stats.back().score = alignment.score();
+
+    const uint32_t max_left_softclip_length = getMaxAlignmentStartSoftClip(alignment);
+    assert(max_left_softclip_length <= alignment.sequence().size());
 
     const uint32_t max_right_softclip_length = getMaxAlignmentEndSoftClip(alignment);
     assert(max_right_softclip_length <= alignment.sequence().size());
 
-    extended_align_search_path.front().read_stats.back().internal_end_offset.first = alignment.sequence().size() - max_right_softclip_length;
-    
+    extended_align_search_path.front().read_align_stats.back().internal_start.max_offset = maxInternalStartOffset(alignment.quality(), alignment.sequence().size(), max_left_softclip_length);
+    extended_align_search_path.front().read_align_stats.back().internal_end.max_offset = maxInternalEndOffset(alignment.quality(), alignment.sequence().size(), max_right_softclip_length);
+
     spp::sparse_hash_set<gbwt::node_type> internal_node_starts;
-    extendAlignmentPath(&extended_align_search_path, alignment.path(), true, true, &internal_node_starts);
+    extendAlignmentPath(&extended_align_search_path, alignment.path(), true, true, &internal_node_starts, alignment.quality(), alignment.sequence().size());
 
     return extended_align_search_path;
 }
 
 template<class AlignmentType>
-void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSearchPath> * align_search_paths, const vg::Path & path, const bool is_first_path, const bool is_last_path, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts) const {
+void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSearchPath> * align_search_paths, const vg::Path & path, const bool is_first_path, const bool is_last_path, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts, const string & quality, const uint32_t seq_length) const {
 
     assert(align_search_paths->size() == 1);
-    assert(!align_search_paths->front().read_stats.empty());
+    assert(!align_search_paths->front().read_align_stats.empty());
 
     auto mapping_it = path.mapping().cbegin();
     assert(mapping_it != path.mapping().cend());
 
+    AlignmentStats * first_read_align_stats = &(align_search_paths->front().read_align_stats.back()); 
+
     if (is_first_path) {
 
-        align_search_paths->front().read_stats.back().updateLeftSoftClipLength(path);
-        assert(align_search_paths->front().read_stats.back().left_softclip_length.second);
+        first_read_align_stats->updateLeftSoftClipLength(path);
     }
 
     if (is_last_path) {
 
-        align_search_paths->front().read_stats.back().updateRightSoftClipLength(path);
-        assert(align_search_paths->front().read_stats.back().right_softclip_length.second);
+        first_read_align_stats->updateRightSoftClipLength(path);
     }
 
     auto end_mapping_it = path.mapping().cend();
@@ -206,76 +288,94 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
         const bool is_last_mapping = (is_last_path && mapping_it == end_mapping_it);
 
-        if (align_search_paths->front().read_stats.back().internal_end_offset.second) {
+        AlignmentSearchPath main_align_search_path;
 
-            assert(max_internal_offset > 0);
-            assert(align_search_paths->size() == 1);
+        if (max_partial_penalty > 0 && !align_search_paths->front().isEmpty() && !first_read_align_stats->internal_start.is_internal && !first_read_align_stats->internal_end.is_internal) {
 
-            align_search_paths->front().read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
+            assert(first_read_align_stats->length <= seq_length);
 
-            if (align_search_paths->front().read_stats.back().internal_end_offset.first > max_internal_offset) {
+            if (seq_length - first_read_align_stats->length <= first_read_align_stats->internal_end.max_offset) {
 
-                align_search_paths->front().clear();
-                return;          
+                main_align_search_path = align_search_paths->front();
             }
+        }
 
-        } else {
+        for (auto & align_search_path: *align_search_paths) {
 
-            AlignmentSearchPath main_align_search_paths;
+            if (align_search_path.read_align_stats.back().internal_end.is_internal) {
 
-            if (max_internal_offset > 0 && !align_search_paths->front().isEmpty() && !align_search_paths->front().read_stats.back().internal_start_offset.second) {
+                assert(max_partial_penalty > 0);
 
-                const uint32_t min_align_length_left = max(int32_t(0), static_cast<int32_t>(align_search_paths->front().read_stats.back().internal_end_offset.first) - static_cast<int32_t>(align_search_paths->front().read_stats.back().length));
+                AlignmentStats * internal_end_read_align_stats = &(align_search_path.read_align_stats.back());
 
-                if (min_align_length_left <= max_internal_offset) {
+                if (is_last_mapping) {
 
-                    main_align_search_paths = align_search_paths->front();
-                }
-            }
+                    assert(internal_end_read_align_stats->right_softclip_length <= mapping_read_length);
 
-            for (auto & align_search_path: *align_search_paths) {
+                    internal_end_read_align_stats->internal_end.offset += mapping_read_length - internal_end_read_align_stats->right_softclip_length;
+                    internal_end_read_align_stats->internal_end.penalty += alignmentScore(quality, internal_end_read_align_stats->length, mapping_read_length - internal_end_read_align_stats->right_softclip_length);
 
-                if (align_search_path.read_stats.back().internal_end_offset.second) {
-
-                    assert(max_internal_offset > 0);
-                    align_search_path.read_stats.back().updateInternalEndOffset(mapping_read_length, is_last_mapping);
-
-                    if (align_search_path.read_stats.back().internal_end_offset.first > max_internal_offset) {
-                        
-                        align_search_path.clear();
-                    }
-                
                 } else {
 
-                    extendAlignmentPath(&align_search_path, *mapping_it);
+                    internal_end_read_align_stats->internal_end.offset += mapping_read_length;
+                    internal_end_read_align_stats->internal_end.penalty += alignmentScore(quality, internal_end_read_align_stats->length, mapping_read_length);
+                }
+
+                if (internal_end_read_align_stats->internal_end.penalty > max_partial_penalty) {
+                    
+                    align_search_path.clear();
+                }
+            
+            } else {
+
+                extendAlignmentPath(&align_search_path, *mapping_it);
+            }
+        }
+
+        if (max_partial_penalty > 0 && !main_align_search_path.isEmpty()) {
+
+            assert(!main_align_search_path.read_align_stats.back().internal_end.is_internal);
+            assert(main_align_search_path.gbwt_search.first.size() >= align_search_paths->front().gbwt_search.first.size());
+
+            if (main_align_search_path.gbwt_search.first.size() > align_search_paths->front().gbwt_search.first.size()) {
+
+                auto internal_end_read_align_stats = main_align_search_path.read_align_stats.back();
+                internal_end_read_align_stats.internal_end.is_internal = true;
+
+                if (is_last_mapping) {
+
+                    assert(internal_end_read_align_stats.right_softclip_length <= mapping_read_length);
+
+                    internal_end_read_align_stats.internal_end.offset += mapping_read_length - internal_end_read_align_stats.right_softclip_length;
+                    internal_end_read_align_stats.internal_end.penalty += alignmentScore(quality, internal_end_read_align_stats.length, mapping_read_length - internal_end_read_align_stats.right_softclip_length);
+
+                } else {
+
+                    internal_end_read_align_stats.internal_end.offset += mapping_read_length;
+                    internal_end_read_align_stats.internal_end.penalty += alignmentScore(quality, internal_end_read_align_stats.length, mapping_read_length);
+                }
+
+                if (internal_end_read_align_stats.internal_end.penalty <= max_partial_penalty) {
+
+                    align_search_paths->emplace_back(main_align_search_path);
+                    align_search_paths->back().read_align_stats.back() = internal_end_read_align_stats;
+                    align_search_paths->back().read_align_stats.back().internal_end_next_node = cur_node;
                 }
             }
+        }
 
-            if (max_internal_offset > 0 && !main_align_search_paths.isEmpty()) {
+        if (max_partial_penalty > 0 && align_search_paths->at(last_new_start_idx).path.size() > 1 && internal_node_starts->find(cur_node) == internal_node_starts->end() && !first_read_align_stats->internal_end.is_internal) {
 
-                assert(!main_align_search_paths.read_stats.back().internal_end_offset.second);
-                assert(main_align_search_paths.gbwt_search.first.size() >= align_search_paths->front().gbwt_search.first.size());
+            if (align_search_paths->at(last_new_start_idx).read_align_stats.back().length <= align_search_paths->at(last_new_start_idx).read_align_stats.back().internal_start.max_offset) {
 
-                if (main_align_search_paths.gbwt_search.first.size() > align_search_paths->front().gbwt_search.first.size()) {
+                auto internal_start_read_align_stats = align_search_paths->at(last_new_start_idx).read_align_stats.back();
+                assert(internal_start_read_align_stats.left_softclip_length <= internal_start_read_align_stats.length);
 
-                    auto internal_end_read_stats = main_align_search_paths.read_stats.back();
-                    internal_end_read_stats.updateInternalEndOffset(mapping_read_length, is_last_mapping);
+                internal_start_read_align_stats.internal_start.is_internal = true;
+                internal_start_read_align_stats.internal_start.offset = internal_start_read_align_stats.length - internal_start_read_align_stats.left_softclip_length;
+                internal_start_read_align_stats.internal_start.penalty = alignmentScore(quality, internal_start_read_align_stats.left_softclip_length, internal_start_read_align_stats.internal_start.offset);
 
-                    if (internal_end_read_stats.internal_end_offset.first <= max_internal_offset) {
-
-                        align_search_paths->emplace_back(main_align_search_paths);
-                        align_search_paths->back().read_stats.back() = internal_end_read_stats;
-                        align_search_paths->back().read_stats.back().internal_end_next_node = cur_node;
-                    }
-                }
-            }
-
-            if (max_internal_offset > 0 && align_search_paths->at(last_new_start_idx).path.size() > 1 && internal_node_starts->find(cur_node) == internal_node_starts->end()) {
-
-                auto internal_start_read_stats = align_search_paths->at(last_new_start_idx).read_stats.back();
-                internal_start_read_stats.updateInternalStartOffset(internal_start_read_stats.length, true);
-
-                if (internal_start_read_stats.internal_start_offset.first <= max_internal_offset) {
+                if (internal_start_read_align_stats.internal_start.penalty <= max_partial_penalty) {
 
                     AlignmentSearchPath new_start_align_search_path;
                     extendAlignmentPath(&new_start_align_search_path, *mapping_it);
@@ -287,7 +387,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
                         if (new_start_align_search_path.gbwt_search.first.size() > align_search_paths->at(last_new_start_idx).gbwt_search.first.size()) {
 
                             align_search_paths->emplace_back(new_start_align_search_path);
-                            align_search_paths->back().read_stats = vector<ReadAlignmentStats>(1, internal_start_read_stats);
+                            align_search_paths->back().read_align_stats = vector<AlignmentStats>(1, internal_start_read_align_stats);
 
                             last_new_start_idx = align_search_paths->size() - 1;
                             assert(internal_node_starts->emplace(cur_node).second);
@@ -299,7 +399,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPath(vector<AlignmentSea
 
         for (auto & align_search_path: *align_search_paths) {
 
-            align_search_path.read_stats.back().length += mapping_read_length;
+            align_search_path.read_align_stats.back().length += mapping_read_length;
         }
 
         ++mapping_it;
@@ -367,21 +467,25 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
 
     vector<AlignmentSearchPath> extended_align_search_path(1, align_search_path);
     
-    extended_align_search_path.front().read_stats.emplace_back(ReadAlignmentStats());
-    extended_align_search_path.front().read_stats.back().mapq = alignment.mapping_quality();
+    extended_align_search_path.front().read_align_stats.emplace_back(AlignmentStats());
+    extended_align_search_path.front().read_align_stats.back().mapq = alignment.mapping_quality();
+
+    const uint32_t max_left_softclip_length = getMaxAlignmentStartSoftClip(alignment);
+    assert(max_left_softclip_length <= alignment.sequence().size());
 
     const uint32_t max_right_softclip_length = getMaxAlignmentEndSoftClip(alignment);
     assert(max_right_softclip_length <= alignment.sequence().size());
 
-    extended_align_search_path.front().read_stats.back().internal_end_offset.first = alignment.sequence().size() - max_right_softclip_length;
+    extended_align_search_path.front().read_align_stats.back().internal_start.max_offset = maxInternalStartOffset(alignment.quality(), alignment.sequence().size(), max_left_softclip_length);
+    extended_align_search_path.front().read_align_stats.back().internal_end.max_offset = maxInternalEndOffset(alignment.quality(), alignment.sequence().size(), max_right_softclip_length);
 
-    extendAlignmentPaths(&extended_align_search_path, alignment.subpath(), subpath_idx, internal_node_starts);
+    extendAlignmentPaths(&extended_align_search_path, alignment.subpath(), subpath_idx, internal_node_starts, alignment.quality(), alignment.sequence().size());
             
     return extended_align_search_path;
 }
 
 template<class AlignmentType>
-void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t subpath_idx, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts) const {
+void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t subpath_idx, spp::sparse_hash_set<gbwt::node_type> * internal_node_starts, const string & quality, const uint32_t seq_length) const {
 
     std::queue<pair<AlignmentSearchPath, uint32_t> > align_search_paths_queue;
 
@@ -399,18 +503,13 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentPaths(vector<AlignmentSe
         const vg::Subpath & subpath = subpaths.Get(cur_align_search_path.second);
 
         vector<AlignmentSearchPath> extended_align_search_path(1, cur_align_search_path.first);
-        extended_align_search_path.front().read_stats.back().score += subpath.score();
+        extended_align_search_path.front().read_align_stats.back().score += subpath.score();
 
-        extendAlignmentPath(&extended_align_search_path, subpath.path(), cur_align_search_path.second == subpath_idx, subpath.next_size() == 0, internal_node_starts);
+        extendAlignmentPath(&extended_align_search_path, subpath.path(), cur_align_search_path.second == subpath_idx, subpath.next_size() == 0, internal_node_starts, quality, seq_length);
 
         for (auto & align_search_path: extended_align_search_path) {
 
-            assert(align_search_path.read_stats.back().left_softclip_length.second);
-            assert(align_search_path.read_stats.back().left_softclip_length.first <= align_search_path.read_stats.back().length);
-
-            auto cur_align_length = align_search_path.read_stats.back().length - align_search_path.read_stats.back().left_softclip_length.first;
-
-            if (!align_search_path.isEmpty() || (max_internal_offset > 0 && cur_align_length <= max_internal_offset)) {
+            if (!align_search_path.isEmpty() || (max_partial_penalty > 0 && align_search_path.read_align_stats.back().length <= align_search_path.read_align_stats.back().internal_start.max_offset)) {
 
                 if (subpath.next_size() > 0) {
 
@@ -501,17 +600,14 @@ void AlignmentPathFinder<AlignmentType>::mergeAlignmentPaths(AlignmentSearchPath
 
     assert(main_path_start_idx < main_align_search_path->path.size());
 
-    assert(main_align_search_path->read_stats.size() == 1);
-    assert(second_align_search_path.read_stats.size() == 1);
+    assert(main_align_search_path->read_align_stats.size() == 1);
+    assert(second_align_search_path.read_align_stats.size() == 1);
 
-    assert(main_align_search_path->read_stats.back().internal_start_offset.first <= max_internal_offset);
-    assert(second_align_search_path.read_stats.back().internal_start_offset.first <= max_internal_offset);
+    assert(main_align_search_path->read_align_stats.back().internal_start.penalty <= max_partial_penalty);
+    assert(second_align_search_path.read_align_stats.back().internal_start.penalty <= max_partial_penalty);
 
-    assert(!main_align_search_path->read_stats.back().internal_start_offset.second || main_align_search_path->read_stats.back().internal_start_offset.first <= max_internal_offset);
-    assert(!second_align_search_path.read_stats.back().internal_start_offset.second || second_align_search_path.read_stats.back().internal_start_offset.first <= max_internal_offset);
-
-    assert(!main_align_search_path->read_stats.back().internal_end_offset.second || main_align_search_path->read_stats.back().internal_end_offset.first <= max_internal_offset);
-    assert(!second_align_search_path.read_stats.back().internal_end_offset.second || second_align_search_path.read_stats.back().internal_end_offset.first <= max_internal_offset);
+    assert(main_align_search_path->read_align_stats.back().internal_end.penalty <= max_partial_penalty);
+    assert(second_align_search_path.read_align_stats.back().internal_end.penalty <= max_partial_penalty);
 
     if (second_align_search_path.path.size() < main_align_search_path->path.size() - main_path_start_idx) {
 
@@ -521,8 +617,8 @@ void AlignmentPathFinder<AlignmentType>::mergeAlignmentPaths(AlignmentSearchPath
 
     if (main_path_start_idx == 0) {
 
-        const int32_t main_read_left_offset = static_cast<int32_t>(main_align_search_path->start_offset) - static_cast<int32_t>(main_align_search_path->read_stats.back().clippedOffsetLeftBases());
-        const int32_t second_read_left_offset = static_cast<int32_t>(second_align_search_path.start_offset) - static_cast<int32_t>(second_align_search_path.read_stats.back().clippedOffsetLeftBases());
+        const int32_t main_read_left_offset = static_cast<int32_t>(main_align_search_path->start_offset) - static_cast<int32_t>(main_align_search_path->read_align_stats.back().clippedOffsetLeftBases());
+        const int32_t second_read_left_offset = static_cast<int32_t>(second_align_search_path.start_offset) - static_cast<int32_t>(second_align_search_path.read_align_stats.back().clippedOffsetLeftBases());
 
         if (second_read_left_offset < main_read_left_offset) {
                 
@@ -547,8 +643,8 @@ void AlignmentPathFinder<AlignmentType>::mergeAlignmentPaths(AlignmentSearchPath
             
             if (second_path_start_idx + 1 == second_align_search_path.path.size()) {
 
-                const uint32_t main_read_right_offset = main_align_search_path->end_offset + main_align_search_path->read_stats.back().clippedOffsetRightBases();
-                const uint32_t second_read_right_offset = second_align_search_path.end_offset + second_align_search_path.read_stats.back().clippedOffsetRightBases();
+                const uint32_t main_read_right_offset = main_align_search_path->end_offset + main_align_search_path->read_align_stats.back().clippedOffsetRightBases();
+                const uint32_t second_read_right_offset = second_align_search_path.end_offset + second_align_search_path.read_align_stats.back().clippedOffsetRightBases();
 
                 if (second_read_right_offset < main_read_right_offset) {
                         
@@ -608,7 +704,7 @@ void AlignmentPathFinder<AlignmentType>::mergeAlignmentPaths(AlignmentSearchPath
     }
 
     main_align_search_path->end_offset = second_align_search_path.end_offset;
-    main_align_search_path->read_stats.emplace_back(second_align_search_path.read_stats.front());
+    main_align_search_path->read_align_stats.emplace_back(second_align_search_path.read_align_stats.front());
     
     assert(main_path_start_idx == main_align_search_path->path.size());
     assert(second_path_start_idx <= second_align_search_path.path.size());
@@ -693,8 +789,8 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
 
         const AlignmentSearchPath & end_align_search_path = end_align_search_paths.at(i);
 
-        assert(end_align_search_path.read_stats.size() == 1);
-        assert(end_align_search_path.read_stats.back().length == end_alignment.sequence().size());
+        assert(end_align_search_path.read_align_stats.size() == 1);
+        assert(end_align_search_path.read_align_stats.back().length == end_alignment.sequence().size());
 
         for (auto & path_id: end_align_search_path.path) {
 
@@ -750,8 +846,8 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
 
         const AlignmentSearchPath & start_align_search_path = start_align_search_paths.at(i);
 
-        assert(start_align_search_path.read_stats.size() == 1);
-        assert(start_align_search_path.read_stats.back().length == start_alignment.sequence().size());
+        assert(start_align_search_path.read_align_stats.size() == 1);
+        assert(start_align_search_path.read_align_stats.back().length == start_alignment.sequence().size());
 
         auto node_length = paths_index.nodeLength(gbwt::Node::id(start_align_search_path.gbwt_search.first.node));
         assert(start_align_search_path.end_offset <= node_length);
@@ -857,7 +953,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
 
         while (out_edges_it != out_edges.end()) {
 
-            if (out_edges_it->first != gbwt::ENDMARKER && out_edges_it->first != cur_paired_align_search_path->first.read_stats.back().internal_end_next_node) {
+            if (out_edges_it->first != gbwt::ENDMARKER && out_edges_it->first != cur_paired_align_search_path->first.read_align_stats.back().internal_end_next_node) {
 
                 auto extended_gbwt_search = cur_paired_align_search_path->first.gbwt_search;
                 paths_index.extend(&extended_gbwt_search, out_edges_it->first);
@@ -871,14 +967,14 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
                     paired_align_search_path_queue.back().first.gbwt_search = extended_gbwt_search;
                     paired_align_search_path_queue.back().first.end_offset = paths_index.nodeLength(gbwt::Node::id(paired_align_search_path_queue.back().first.path.back()));
                     paired_align_search_path_queue.back().first.insert_length += paired_align_search_path_queue.back().first.end_offset;
-                    paired_align_search_path_queue.back().first.read_stats.back().internal_end_next_node = gbwt::ENDMARKER;
+                    paired_align_search_path_queue.back().first.read_align_stats.back().internal_end_next_node = gbwt::ENDMARKER;
                 }
             }
 
             ++out_edges_it;
         }
 
-        if (out_edges.begin()->first != gbwt::ENDMARKER && out_edges.begin()->first != cur_paired_align_search_path->first.read_stats.back().internal_end_next_node) {
+        if (out_edges.begin()->first != gbwt::ENDMARKER && out_edges.begin()->first != cur_paired_align_search_path->first.read_align_stats.back().internal_end_next_node) {
             
             paths_index.extend(&(cur_paired_align_search_path->first.gbwt_search), out_edges.begin()->first);
 
@@ -894,7 +990,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
                 cur_paired_align_search_path->first.path.emplace_back(cur_paired_align_search_path->first.gbwt_search.first.node);
                 cur_paired_align_search_path->first.end_offset = paths_index.nodeLength(gbwt::Node::id(cur_paired_align_search_path->first.path.back()));
                 cur_paired_align_search_path->first.insert_length += cur_paired_align_search_path->first.end_offset; 
-                cur_paired_align_search_path->first.read_stats.back().internal_end_next_node = gbwt::ENDMARKER;
+                cur_paired_align_search_path->first.read_align_stats.back().internal_end_next_node = gbwt::ENDMARKER;
             }
     
         } else {
@@ -932,26 +1028,22 @@ vector<gbwt::node_type> AlignmentPathFinder<AlignmentType>::getAlignmentStartNod
 template<class AlignmentType>
 uint32_t AlignmentPathFinder<AlignmentType>::getMaxAlignmentStartSoftClip(const vg::Alignment & alignment) const {
 
-    ReadAlignmentStats read_stats;
-    read_stats.updateLeftSoftClipLength(alignment.path());
+    AlignmentStats read_align_stats;
+    read_align_stats.updateLeftSoftClipLength(alignment.path());
 
-    assert(read_stats.left_softclip_length.second);
-    return read_stats.left_softclip_length.first;
+    return read_align_stats.left_softclip_length;
 }
 
 template<class AlignmentType>
 uint32_t AlignmentPathFinder<AlignmentType>::getMaxAlignmentStartSoftClip(const vg::MultipathAlignment & alignment) const {
 
     uint32_t max_left_softclip_length = 0;
-    ReadAlignmentStats read_stats;
+    AlignmentStats read_align_stats;
 
     for (auto & start_idx: alignment.start()) {
 
-        read_stats.left_softclip_length.second = false;
-        read_stats.updateLeftSoftClipLength(alignment.subpath(start_idx).path());
-
-        assert(read_stats.left_softclip_length.second);
-        max_left_softclip_length = max(max_left_softclip_length, read_stats.left_softclip_length.first);
+        read_align_stats.updateLeftSoftClipLength(alignment.subpath(start_idx).path());
+        max_left_softclip_length = max(max_left_softclip_length, read_align_stats.left_softclip_length);
     }
 
     return max_left_softclip_length;
@@ -960,28 +1052,24 @@ uint32_t AlignmentPathFinder<AlignmentType>::getMaxAlignmentStartSoftClip(const 
 template<class AlignmentType>
 uint32_t AlignmentPathFinder<AlignmentType>::getMaxAlignmentEndSoftClip(const vg::Alignment & alignment) const {
 
-    ReadAlignmentStats read_stats;
-    read_stats.updateRightSoftClipLength(alignment.path());
+    AlignmentStats read_align_stats;
+    read_align_stats.updateRightSoftClipLength(alignment.path());
 
-    assert(read_stats.right_softclip_length.second);
-    return read_stats.right_softclip_length.first;
+    return read_align_stats.right_softclip_length;
 }
 
 template<class AlignmentType>
 uint32_t AlignmentPathFinder<AlignmentType>::getMaxAlignmentEndSoftClip(const vg::MultipathAlignment & alignment) const {
 
     uint32_t max_right_softclip_length = 0;
-    ReadAlignmentStats read_stats;
+    AlignmentStats read_align_stats;
 
     for (auto & subpath: alignment.subpath()) {
 
         if (subpath.next_size() == 0) {
 
-            read_stats.right_softclip_length.second = false;
-            read_stats.updateRightSoftClipLength(subpath.path());
-
-            assert(read_stats.right_softclip_length.second);
-            max_right_softclip_length = max(max_right_softclip_length, read_stats.right_softclip_length.first);
+            read_align_stats.updateRightSoftClipLength(subpath.path());
+            max_right_softclip_length = max(max_right_softclip_length, read_align_stats.right_softclip_length);
         }
     }
 
