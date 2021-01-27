@@ -48,11 +48,11 @@ class AlignmentPathFinder {
 
 		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const;
 
-		void extendAlignmentPath(vector<AlignmentSearchPath> * align_search_paths, const vg::Path & path, const bool is_first_path, const bool is_last_path, const string & quality, const uint32_t seq_length) const;
+		void extendAlignmentPath(vector<AlignmentSearchPath> * align_search_paths, const vg::Path & path, const bool is_first_path, const bool is_last_path, const string & quality, const uint32_t seq_length, const bool add_internal_start) const;
 		void extendAlignmentPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const;
 
 		vector<AlignmentSearchPath> extendAlignmentPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment) const;
-		void extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t start_subpath_idx, const string & quality, const uint32_t seq_length) const;
+		void extendAlignmentPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t start_subpath_idx, const string & quality, const uint32_t seq_length, spp::sparse_hash_map<pair<uint32_t, uint32_t>, int32_t> * internal_node_subpaths) const;
 		
 		void mergeAlignmentPaths(AlignmentSearchPath * main_align_search_path, uint32_t main_path_start_idx, const AlignmentSearchPath & second_align_search_path) const;
 		void pairAlignmentPaths(vector<AlignmentSearchPath> * paired_align_search_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment) const;
@@ -75,14 +75,14 @@ class AlignmentPathFinder {
 namespace std {
 
     template<> 
-    struct hash<pair<uint32_t, gbwt::node_type> >
+    struct hash<pair<uint32_t, uint32_t> >
     {
-        size_t operator()(const pair<uint32_t, gbwt::node_type> & subpath_node) const
+        size_t operator()(const pair<uint32_t, uint32_t> & values) const
         {
             size_t seed = 0;
             
-            spp::hash_combine(seed, subpath_node.first);
-            spp::hash_combine(seed, subpath_node.second);
+            spp::hash_combine(seed, values.first);
+            spp::hash_combine(seed, values.second);
 
             return seed;
         }
