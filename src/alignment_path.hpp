@@ -44,7 +44,7 @@ namespace std {
     template<> 
     struct hash<vector<AlignmentPath> >
     {
-        size_t operator()(vector<AlignmentPath> const & align_paths) const
+        size_t operator()(const vector<AlignmentPath> & align_paths) const
         {
             size_t seed = 0;
 
@@ -106,6 +106,10 @@ class AlignmentStats {
 
         void updateLeftSoftClipLength(const vg::Path & path);
         void updateRightSoftClipLength(const vg::Path & path);
+
+        bool isInternal() const; 
+        uint32_t internalPenalty() const; 
+        uint32_t internalOffset() const; 
 
         int32_t adjustedScore() const; 
 

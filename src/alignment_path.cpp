@@ -214,9 +214,24 @@ void AlignmentStats::updateRightSoftClipLength(const vg::Path & path) {
     }
 }
 
+bool AlignmentStats::isInternal() const {
+
+    return (internal_start.is_internal || internal_end.is_internal);
+}
+
+uint32_t AlignmentStats::internalPenalty() const {
+
+    return (internal_start.penalty + internal_end.penalty);
+}
+
+uint32_t AlignmentStats::internalOffset() const {
+
+    return (internal_start.offset + internal_end.offset);
+}
+
 int32_t AlignmentStats::adjustedScore() const {
 
-    return (score - static_cast<int32_t>(internal_start.penalty) - static_cast<int32_t>(internal_end.penalty));
+    return (score - static_cast<int32_t>(internalPenalty()));
 }
 
 uint32_t AlignmentStats::clippedOffsetLeftBases() const {
