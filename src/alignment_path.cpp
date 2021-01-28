@@ -224,9 +224,9 @@ uint32_t AlignmentStats::internalPenalty() const {
     return (internal_start.penalty + internal_end.penalty);
 }
 
-uint32_t AlignmentStats::internalOffset() const {
+uint32_t AlignmentStats::maxInternalOffset() const {
 
-    return (internal_start.offset + internal_end.offset);
+    return max(internal_start.offset, internal_end.offset);
 }
 
 int32_t AlignmentStats::adjustedScore() const {

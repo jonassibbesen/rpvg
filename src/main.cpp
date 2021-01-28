@@ -297,7 +297,7 @@ int main(int argc, char* argv[]) {
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
-      ("max-par-offset", "maximum partial path alignment total offset", cxxopts::value<uint32_t>()->default_value("0"))
+      ("max-par-offset", "maximum start and end offset allowed for partial path alignments", cxxopts::value<uint32_t>()->default_value("4"))
       ("filt-min-mapq", "filter alignments with a mapping quality below <value>", cxxopts::value<uint32_t>()->default_value("1"))
       ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0"))
       ("filt-soft-clip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("1"))

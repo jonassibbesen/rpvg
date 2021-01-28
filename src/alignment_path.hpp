@@ -109,7 +109,7 @@ class AlignmentStats {
 
         bool isInternal() const; 
         uint32_t internalPenalty() const; 
-        uint32_t internalOffset() const; 
+        uint32_t maxInternalOffset() const; 
 
         int32_t adjustedScore() const; 
 
