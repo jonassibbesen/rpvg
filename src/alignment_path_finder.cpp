@@ -707,10 +707,6 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
     auto start_align_search_paths = extendAlignmentPath(AlignmentSearchPath(), start_alignment);
     auto end_align_search_paths = extendAlignmentPath(AlignmentSearchPath(), end_alignment);
 
-    cerr << endl;
-    cerr << start_align_search_paths << endl;
-    cerr << end_align_search_paths << endl;
-
     if (start_align_search_paths.empty() || end_align_search_paths.empty()) {
 
         return;

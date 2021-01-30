@@ -299,7 +299,7 @@ int main(int argc, char* argv[]) {
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("max-par-offset", "maximum start and end offset allowed for partial path alignments", cxxopts::value<uint32_t>()->default_value("4"))
       ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0"))
-      ("filt-softclip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("0.1"))
+      ("filt-softclip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("0.2"))
       ("min-noise-prob", "minimum probability that alignment is incorrect", cxxopts::value<double>()->default_value("1e-4"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
