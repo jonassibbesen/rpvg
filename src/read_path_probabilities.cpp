@@ -41,7 +41,7 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
     read_count += multiplicity_in;
 }
 
-void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double base_noise_prob) {
+void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob) {
 
     assert(!align_paths.empty());
     assert(align_paths.size() == align_paths_ids.size());
@@ -51,7 +51,7 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
 
     if (align_paths.front().min_mapq > 0) {
 
-        noise_prob = max(prob_precision, max(base_noise_prob, Utils::phred_to_prob(align_paths.front().min_mapq)));
+        noise_prob = max(prob_precision, max(min_noise_prob, Utils::phred_to_prob(align_paths.front().min_mapq)));
         assert(noise_prob < 1 && noise_prob > 0);
 
         vector<double> align_paths_log_probs;

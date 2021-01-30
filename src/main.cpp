@@ -298,10 +298,9 @@ int main(int argc, char* argv[]) {
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("max-par-offset", "maximum start and end offset allowed for partial path alignments", cxxopts::value<uint32_t>()->default_value("4"))
-      ("filt-min-mapq", "filter alignments with a mapping quality below <value>", cxxopts::value<uint32_t>()->default_value("1"))
       ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0"))
-      ("filt-soft-clip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("1"))
-      ("base-noise-prob", "base probability that alignment is incorrect", cxxopts::value<double>()->default_value("1e-4"))
+      ("filt-softclip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("0.1"))
+      ("min-noise-prob", "minimum probability that alignment is incorrect", cxxopts::value<double>()->default_value("1e-4"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
       ;
@@ -453,16 +452,15 @@ int main(int argc, char* argv[]) {
     cerr << endl;
 
     const uint32_t max_partial_offset = option_results["max-par-offset"].as<uint32_t>();
-    const uint32_t min_mapq_filter = option_results["filt-min-mapq"].as<uint32_t>();
     
     const double min_best_score_filter = option_results["filt-best-score"].as<double>();
     assert(min_best_score_filter >= 0 && min_best_score_filter <= 1);
 
-    const double max_softclip_filter = option_results["filt-soft-clip"].as<double>();
+    const double max_softclip_filter = option_results["filt-softclip"].as<double>();
     assert(max_softclip_filter >= 0 && max_softclip_filter <= 1);
 
-    const double base_noise_prob = option_results["base-noise-prob"].as<double>();
-    assert(base_noise_prob >= 0 && base_noise_prob <= 1);
+    const double min_noise_prob = option_results["min-noise-prob"].as<double>();
+    assert(min_noise_prob >= 0 && min_noise_prob <= 1);
 
     const double prob_precision = option_results["prob-precision"].as<double>();
     assert(prob_precision >= 0 && prob_precision <= 1);
@@ -543,7 +541,7 @@ int main(int argc, char* argv[]) {
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, min_mapq_filter, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, min_best_score_filter, max_softclip_filter);
 
         if (is_single_end) {
 
@@ -556,7 +554,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, min_mapq_filter, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, min_best_score_filter, max_softclip_filter);
 
         if (is_single_end) {
 
@@ -773,7 +771,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-                read_path_cluster_probs.back().calcAlignPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end, base_noise_prob);
+                read_path_cluster_probs.back().calcAlignPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end, min_noise_prob);
             }
         }
 

@@ -98,7 +98,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 3);
 
-    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 0, 1);
+    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 1);
 
     auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
     REQUIRE(alignment_paths.size() == 2);
@@ -179,7 +179,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end alignment") {
         REQUIRE(paths_index_bd.bidirectional());
         REQUIRE(paths_index_bd.numberOfPaths() == 2);
 
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 1);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths_bd.size() == 1);
@@ -319,7 +319,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 4);
 
-    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 0, 1);
+    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 1);
     
     auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
     REQUIRE(alignment_paths.size() == 3);
@@ -535,7 +535,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end alignment") {
         REQUIRE(paths_index_bd.bidirectional());
         REQUIRE(paths_index_bd.numberOfPaths() == 3);
 
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 1);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
@@ -645,7 +645,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 3);
 
-    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 0, 1);
+    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 1);
 
     auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
     REQUIRE(alignment_paths.size() == 3);
@@ -828,7 +828,7 @@ TEST_CASE("Circular alignment path(s) can be found from a paired-end alignment")
         REQUIRE(paths_index_bd.bidirectional());
         REQUIRE(paths_index_bd.numberOfPaths() == 2);
 
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 1);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
@@ -996,7 +996,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 2);
 
-    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 0, 1);
+    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 1);
     
     auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
     REQUIRE(alignment_paths.size() == 2);
@@ -1065,7 +1065,7 @@ TEST_CASE("Alignment path(s) can be found from a single-end multipath alignment"
         REQUIRE(paths_index_bd.bidirectional());
         REQUIRE(paths_index_bd.numberOfPaths() == 2);
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 1);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths_bd.size() == 2);
@@ -1330,7 +1330,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 3);
 
-    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 0, 1);
+    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, "unstranded", 1000, 0, 0, 1);
 
     auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
     REQUIRE(alignment_paths.size() == 3);
@@ -1562,7 +1562,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         REQUIRE(paths_index_bd.bidirectional());
         REQUIRE(paths_index_bd.numberOfPaths() == 2);
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bd(paths_index_bd, "unstranded", 1000, 0, 0, 1);
     
         auto alignment_paths_bd = alignment_path_finder_bd.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_bd.size() == 2);
@@ -1578,7 +1578,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
     SECTION("Strand-specific paired-end multipath read alignment finds unidirectional alignment path(s)") {
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_fr(paths_index, "fr", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_fr(paths_index, "fr", 1000, 0, 0, 1);
 
         auto alignment_paths_fr = alignment_path_finder_fr.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_fr.size() == 2);
@@ -1586,7 +1586,7 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         REQUIRE(alignment_paths_fr.front() == alignment_paths.front());
         REQUIRE(alignment_paths_fr.back() == alignment_paths.at(1));
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_rf(paths_index, "rf", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_rf(paths_index, "rf", 1000, 0, 0, 1);
 
         auto alignment_paths_rf = alignment_path_finder_rf.findPairedAlignmentPaths(alignment_1, alignment_2);
         REQUIRE(alignment_paths_rf.size() == 1);
@@ -1596,51 +1596,36 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
     SECTION("Alignment pairs from a paired-end multipath alignment are filtered based on length") {
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_len16(paths_index, "unstranded", 16, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_len16(paths_index, "unstranded", 16, 0, 0, 1);
 
         auto alignment_paths_len16 = alignment_path_finder_len16.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_len16.size() == 3);
         
         REQUIRE(alignment_paths_len16 == alignment_paths);
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_len12(paths_index, "unstranded", 12, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_len12(paths_index, "unstranded", 12, 0, 0, 1);
 
         auto alignment_paths_len12 = alignment_path_finder_len12.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_len12.size() == 1);
 
         REQUIRE(alignment_paths_len12.front() == alignment_paths.at(1));
         
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_len11(paths_index, "unstranded", 11, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_len11(paths_index, "unstranded", 11, 0, 0, 1);
 
         auto alignment_paths_len11 = alignment_path_finder_len11.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_len11.empty());
     }
 
-    SECTION("Alignment pairs from a paired-end multipath alignment are filtered based on mapping quality") {
-
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_mq10(paths_index, "unstranded", 1000, 0, 10, 0, 1);
-
-        auto alignment_paths_mq10 = alignment_path_finder_mq10.findPairedAlignmentPaths(alignment_1, alignment_2);        
-        REQUIRE(alignment_paths_mq10.size() == 3);
-
-        assert(alignment_paths_mq10 == alignment_paths);
-
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_mq11(paths_index, "unstranded", 1000, 0, 11, 0, 1);
-
-        auto alignment_paths_mq11 = alignment_path_finder_mq11.findPairedAlignmentPaths(alignment_1, alignment_2);        
-        REQUIRE(alignment_paths_mq11.empty());
-    }
-
     SECTION("Alignment pairs from a paired-end multipath alignment are filtered based on best score fraction") {
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bs15(paths_index, "unstranded", 1000, 0, 0, 0.15, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bs15(paths_index, "unstranded", 1000, 0, 0.15, 1);
 
         auto alignment_paths_bs15 = alignment_path_finder_bs15.findPairedAlignmentPaths(alignment_1, alignment_2);    
         REQUIRE(alignment_paths_bs15.size() == 3);
 
         assert(alignment_paths_bs15 == alignment_paths);
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bs20(paths_index, "unstranded", 1000, 0, 0, 0.20, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bs20(paths_index, "unstranded", 1000, 0, 0.20, 1);
 
         auto alignment_paths_bs20 = alignment_path_finder_bs20.findPairedAlignmentPaths(alignment_1, alignment_2);    
         REQUIRE(alignment_paths_bs20.empty());
@@ -1648,14 +1633,14 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
 
     SECTION("Alignment pairs from a paired-end multipath alignment are filtered based on soft-clipping length") {
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_sc30(paths_index, "unstranded", 1000, 0, 0, 0, 0.30);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_sc30(paths_index, "unstranded", 1000, 0, 0, 0.30);
 
-        auto alignment_paths_sc30 = alignment_path_finder_sc30.findPairedAlignmentPaths(alignment_1, alignment_2);        
+        auto alignment_paths_sc30 = alignment_path_finder_sc30.findPairedAlignmentPaths(alignment_1, alignment_2);      
         REQUIRE(alignment_paths_sc30.size() == 3);
 
         assert(alignment_paths_sc30 == alignment_paths);
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_sc25(paths_index, "unstranded", 1000, 0, 0, 0, 0.25);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_sc25(paths_index, "unstranded", 1000, 0, 0, 0.25);
 
         auto alignment_paths_sc25 = alignment_path_finder_sc25.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_sc25.empty());
@@ -1861,7 +1846,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 3);
 
-    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, "unstranded", 1000, 4, 0, 0, 1);
+    AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder(paths_index, "unstranded", 1000, 4, 0, 1);
 
     auto alignment_paths = alignment_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2);
     REQUIRE(alignment_paths.size() == 9);
@@ -1925,7 +1910,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
 
     SECTION("Partial alignment pairs from a paired-end multipath alignment are filtered based on maximum internal offset") {
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int3(paths_index, "unstranded", 1000, 3, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int3(paths_index, "unstranded", 1000, 3, 0, 1);
 
         auto alignment_paths_int3 = alignment_path_finder_int3.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_int3.size() == 6);
@@ -1937,7 +1922,7 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
         REQUIRE(alignment_paths_int3.at(4) == alignment_paths.at(4));
         REQUIRE(alignment_paths_int3.back() == alignment_paths.at(5));
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int2(paths_index, "unstranded", 1000, 2, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int2(paths_index, "unstranded", 1000, 2, 0, 1);
 
         auto alignment_paths_int2 = alignment_path_finder_int2.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_int2.size() == 3);
@@ -1946,14 +1931,14 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
         REQUIRE(alignment_paths_int2.at(1) == alignment_paths.at(4));
         REQUIRE(alignment_paths_int2.back() == alignment_paths.at(5));
         
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int1(paths_index, "unstranded", 1000, 1, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int1(paths_index, "unstranded", 1000, 1, 0, 1);
 
         auto alignment_paths_int1 = alignment_path_finder_int1.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_int1.size() == 1);
 
         REQUIRE(alignment_paths_int1.front() == alignment_paths.at(5));
 
-        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int0(paths_index, "unstranded", 1000, 0, 0, 0, 1);
+        AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_int0(paths_index, "unstranded", 1000, 0, 0, 1);
 
         auto alignment_paths_int0 = alignment_path_finder_int0.findPairedAlignmentPaths(alignment_1, alignment_2);        
         REQUIRE(alignment_paths_int0.empty());        

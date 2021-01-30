@@ -17,7 +17,7 @@ class AlignmentPathFinder {
 
     public: 
     
-       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const uint32_t min_mapq_filter_in, const double min_best_score_filter_in, const double max_softclip_filter_in);
+       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const double min_best_score_filter_in, const double max_softclip_filter_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
 		vector<AlignmentPath> findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const;
@@ -30,7 +30,6 @@ class AlignmentPathFinder {
        	const uint32_t max_pair_frag_length;
        	const uint32_t max_partial_offset;
 
-       	const uint32_t min_mapq_filter;
        	const double min_best_score_filter;
        	const double max_softclip_filter;
 
@@ -60,16 +59,13 @@ class AlignmentPathFinder {
 		vector<gbwt::node_type> getAlignmentStartNodes(const vg::Alignment & alignment) const;
 		vector<gbwt::node_type> getAlignmentStartNodes(const vg::MultipathAlignment & alignment) const;
 
-		uint32_t getMaxAlignmentStartSoftClip(const vg::Alignment & alignment) const;
-		uint32_t getMaxAlignmentStartSoftClip(const vg::MultipathAlignment & alignment) const;
-
-		uint32_t getMaxAlignmentEndSoftClip(const vg::Alignment & alignment) const;
-		uint32_t getMaxAlignmentEndSoftClip(const vg::MultipathAlignment & alignment) const;
+		vector<uint32_t> getAlignmentStartSoftclipLengths(const vg::MultipathAlignment & alignment) const;
+		vector<uint32_t> getAlignmentEndSoftclipLengths(const vg::MultipathAlignment & alignment) const;
 
 		bool isAlignmentDisconnected(const vg::Alignment & alignment) const;
 		bool isAlignmentDisconnected(const vg::MultipathAlignment & alignment) const;
 
-		bool filterAlignmentSearchPaths(const vector<AlignmentSearchPath> & align_search_paths, const vector<int32_t> & optimal_align_scores) const;
+		bool filterAlignmentSearchPaths(const vector<AlignmentSearchPath> & align_search_paths, const vector<int32_t> & optimal_align_scores, const bool filter_empty) const;
 };
 
 namespace std {

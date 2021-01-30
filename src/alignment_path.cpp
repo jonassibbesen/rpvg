@@ -186,7 +186,7 @@ AlignmentStats::AlignmentStats() {
     internal_end_next_node = gbwt::ENDMARKER;
 }
 
-void AlignmentStats::updateLeftSoftClipLength(const vg::Path & path) {
+void AlignmentStats::updateLeftSoftclipLength(const vg::Path & path) {
 
     auto mapping_it = path.mapping().cbegin();
     assert(mapping_it != path.mapping().cend());
@@ -197,10 +197,14 @@ void AlignmentStats::updateLeftSoftClipLength(const vg::Path & path) {
     if (first_edit.from_length() == 0) {
 
         left_softclip_length = first_edit.to_length();   
+    
+    } else {
+
+        left_softclip_length = 0;
     } 
 }
 
-void AlignmentStats::updateRightSoftClipLength(const vg::Path & path) {
+void AlignmentStats::updateRightSoftclipLength(const vg::Path & path) {
 
     auto mapping_rit = path.mapping().rbegin();
     assert(mapping_rit != path.mapping().rend());   
@@ -211,6 +215,10 @@ void AlignmentStats::updateRightSoftClipLength(const vg::Path & path) {
     if (last_edit.from_length() == 0) {
 
         right_softclip_length = last_edit.to_length();   
+
+    } else {
+
+        right_softclip_length = 0;
     }
 }
 

@@ -104,8 +104,8 @@ class AlignmentStats {
 
         gbwt::node_type internal_end_next_node;
 
-        void updateLeftSoftClipLength(const vg::Path & path);
-        void updateRightSoftClipLength(const vg::Path & path);
+        void updateLeftSoftclipLength(const vg::Path & path);
+        void updateRightSoftclipLength(const vg::Path & path);
 
         bool isInternal() const; 
         uint32_t internalPenalty() const; 
