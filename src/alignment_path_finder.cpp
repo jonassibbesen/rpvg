@@ -383,11 +383,8 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentP
     auto left_softclip_lengths = getAlignmentStartSoftclipLengths(alignment);
     auto right_softclip_lengths = getAlignmentEndSoftclipLengths(alignment);
 
-    auto min_left_softclip_length = *min_element(left_softclip_lengths.begin(), left_softclip_lengths.end());
-    auto min_right_softclip_length = *min_element(right_softclip_lengths.begin(), right_softclip_lengths.end());
-
-    read_align_stats->left_softclip_length = min_left_softclip_length;
-    read_align_stats->right_softclip_length = min_right_softclip_length;
+    read_align_stats->left_softclip_length = *min_element(left_softclip_lengths.begin(), left_softclip_lengths.end());
+    read_align_stats->right_softclip_length = *min_element(right_softclip_lengths.begin(), right_softclip_lengths.end());
 
     assert(read_align_stats->left_softclip_length + read_align_stats->right_softclip_length <= read_align_stats->length);
 
@@ -736,7 +733,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
     }    
 
     uint32_t num_unique_end_search_paths = 0;
-    uint32_t max_left_softclip_length = 0;
+    uint32_t end_max_left_softclip_length = 0;
 
     spp::sparse_hash_map<gbwt::node_type, uint32_t> end_search_paths_nodes;
     spp::sparse_hash_map<gbwt::node_type, vector<uint32_t> > end_search_paths_start_nodes_index;
@@ -771,7 +768,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
         assert(end_align_search_path.read_align_stats.size() == 1);
         assert(end_align_search_path.read_align_stats.back().length == end_alignment.sequence().size());
 
-        max_left_softclip_length = max(max_left_softclip_length, end_align_search_path.read_align_stats.back().left_softclip_length);
+        end_max_left_softclip_length = max(end_max_left_softclip_length, end_align_search_path.read_align_stats.back().left_softclip_length);
 
         for (auto & path_id: end_align_search_path.path) {
 
@@ -783,7 +780,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
         end_search_paths_start_nodes_index_it.first->second.emplace_back(i);
     }
 
-    assert(max_left_softclip_length <= end_alignment.sequence().size());
+    assert(end_max_left_softclip_length <= end_alignment.sequence().size());
 
     bool end_alignment_in_cycle = false;
 
@@ -911,7 +908,7 @@ void AlignmentPathFinder<AlignmentType>::pairAlignmentPaths(vector<AlignmentSear
             }
         }
            
-        if (cur_paired_align_search_path->first.fragmentLength() + end_alignment.sequence().size() - max_left_softclip_length > max_pair_frag_length) {
+        if (cur_paired_align_search_path->first.fragmentLength() + end_alignment.sequence().size() - end_max_left_softclip_length > max_pair_frag_length) {
 
             paired_align_search_path_queue.pop();
             continue;
