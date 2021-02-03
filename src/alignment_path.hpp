@@ -19,7 +19,7 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in);
+        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const int32_t score_sum_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
 
         pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
@@ -27,9 +27,9 @@ class AlignmentPath {
 
         uint32_t frag_length;
         uint32_t min_mapq;
-        uint32_t score_sum;
+        int32_t score_sum;
 
-        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const uint32_t max_score_diff, const bool is_multimap);
+        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
@@ -94,7 +94,9 @@ class AlignmentStats {
 
         uint32_t mapq;
         int32_t score;
+
         uint32_t length;
+        bool complete;
 
         uint32_t left_softclip_length;
         uint32_t right_softclip_length;
@@ -143,12 +145,14 @@ class AlignmentSearchPath {
 
         uint32_t fragmentLength() const;
         uint32_t minMappingQuality() const;
-        uint32_t scoreSum() const;
+        int32_t scoreSum() const;
 
         double minOptimalScoreFraction(const vector<int32_t> & optimal_align_scores) const;
         double maxSoftclipFraction() const;
 
-        bool isEmpty() const;
+        bool isComplete() const;
+        bool isInternal() const;
+
         void clear();
 };
 

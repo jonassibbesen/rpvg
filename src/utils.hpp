@@ -77,10 +77,11 @@ namespace Utils {
         return elems;
     }
 
-    static const double score_log_base = 1.383325268738;
-
     // Precision used when comparing double variables.
     static const double double_precision = numeric_limits<double>::epsilon() * 100;
+
+    static const double score_log_base = 1.383325268738;
+    static const double noise_log_base = 1e-6;
 
     // Compare double variables using above precision.
     inline bool doubleCompare(const double a, const double b) {
@@ -113,6 +114,11 @@ namespace Utils {
         }
 
         return (tgamma(values.size() + 1) / tgamma(values.size() - num_unique_values + 2));
+    }
+
+    inline int32_t doubleToInt(const double value) {
+
+        return round(min(static_cast<double>(numeric_limits<int32_t>::max()), max(static_cast<double>(numeric_limits<int32_t>::lowest()), value)));
     }
 
     //------------------------------------------------------------------------------

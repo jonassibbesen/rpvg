@@ -43,7 +43,7 @@ void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
 
 void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob) {
 
-    assert(!align_paths.empty());
+    assert(align_paths.size() > 1);
     assert(align_paths.size() == align_paths_ids.size());
     assert(clustered_path_index.size() == cluster_paths.size());
 
@@ -54,13 +54,27 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
         noise_prob = max(prob_precision, max(min_noise_prob, Utils::phred_to_prob(align_paths.front().min_mapq)));
         assert(noise_prob < 1 && noise_prob > 0);
 
-        vector<double> align_paths_log_probs;
-        align_paths_log_probs.reserve(align_paths.size());
+        assert(align_paths.back().gbwt_search.first.empty());
+        assert(align_paths_ids.back().empty());
+        assert(align_paths.back().score_sum <= 0);
 
-        for (auto & align_path: align_paths) {
+        noise_prob += (1 - noise_prob) * exp(align_paths.back().score_sum * Utils::noise_log_base);
+
+        if (align_paths.back().score_sum == 0) {
+
+            assert(Utils::doubleCompare(noise_prob, 1));
+            return;
+        }
+
+        vector<double> align_paths_log_probs;
+        align_paths_log_probs.reserve(align_paths.size() - 1);
+
+        for (size_t i = 0; i < align_paths.size() - 1; ++i) {
+
+            const AlignmentPath & align_path = align_paths.at(i);
 
             assert(align_paths.front().min_mapq == align_path.min_mapq);
-            align_paths_log_probs.emplace_back(Utils::score_log_base * align_path.score_sum);
+            align_paths_log_probs.emplace_back(align_path.score_sum * Utils::score_log_base);
 
             if (!is_single_end) {
 
@@ -68,9 +82,12 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
             }
         }
         
+        assert(align_paths_ids.size() == align_paths_log_probs.size() + 1);
         vector<double> read_path_log_probs(clustered_path_index.size(), numeric_limits<double>::lowest());
 
-        for (size_t i = 0; i < align_paths.size(); ++i) {
+        for (size_t i = 0; i < align_paths_ids.size() - 1; ++i) {
+
+            assert(!align_paths_ids.at(i).empty());
 
             for (auto path_id: align_paths_ids.at(i)) {
 

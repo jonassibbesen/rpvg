@@ -7,12 +7,6 @@
 #include "../utils.hpp"
 
 
-TEST_CASE("New AlignmentSearchPath is empty") {
-    
-	AlignmentSearchPath alignment_search_path;
-	REQUIRE(alignment_search_path.isEmpty());
-}
-
 TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
     
 	AlignmentSearchPath alignment_search_path;
@@ -80,6 +74,8 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
     SECTION("Cleared AlignmentPath is empty") {
 
     	alignment_search_path.clear();
-		REQUIRE(alignment_search_path.isEmpty());    	
+
+		REQUIRE(alignment_search_path.path.empty());    	
+		REQUIRE(alignment_search_path.gbwt_search.first.empty());    	
     }    
 }

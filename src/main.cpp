@@ -51,7 +51,9 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
     if (!align_paths.empty()) {
 
-        if (align_paths.size() == 1) {
+        assert(align_paths.size() > 1);
+
+        if (align_paths.size() == 2) {
 
             align_paths_buffer->emplace_back(align_paths);
         
@@ -78,6 +80,8 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
                 ++align_paths_it;
             }
+
+            assert(align_paths_buffer->back().size() > 1);
         }
     }
 }
@@ -153,14 +157,15 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
         for (auto & align_paths: *align_paths_buffer) {
 
-            assert(!align_paths.empty());
+            assert(align_paths.size() > 1);
+            assert(align_paths.back().frag_length == 0);
 
             if (align_paths.front().min_mapq >= fragment_length_min_mapq && !align_paths.front().is_multimap) {
 
                 uint32_t cur_fragment_length = align_paths.front().frag_length;
                 bool cur_length_is_constant = true;
 
-                for (size_t j = 1; j < align_paths.size(); ++j) {
+                for (size_t j = 1; j < align_paths.size() - 1; ++j) {
 
                     assert(align_paths.at(j).min_mapq >= fragment_length_min_mapq);
                     assert(!align_paths.at(j).is_multimap);
@@ -183,7 +188,7 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
                 }   
             }
 
-            if (align_paths.size() == 1) {       
+            if (align_paths.size() == 2) {       
 
                 align_paths.front().frag_length = mean_pre_fragment_length;      
                 align_paths.front().score_sum = 1;       
@@ -626,7 +631,9 @@ int main(int argc, char* argv[]) {
 
             while (cur_align_paths_idx < align_paths_index.size()) {
 
+                assert(!align_paths_index_it->first.front().gbwt_search.first.empty());
                 const uint32_t anchor_path_id = paths_index.locatePathIds(align_paths_index_it->first.front().gbwt_search).front();
+                
                 align_paths_clusters.at(path_clusters.path_to_cluster_index.at(anchor_path_id)).at(i).emplace_back(align_paths_index_it);
 
                 advance(align_paths_index_it, num_threads);

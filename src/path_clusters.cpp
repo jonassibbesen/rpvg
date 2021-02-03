@@ -26,12 +26,15 @@ PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & pat
 
             while (cur_align_paths_idx < align_paths_index.size()) {
 
-                assert(!align_paths_index_it->first.empty());
+                assert(align_paths_index_it->first.size() > 1);
+                assert(align_paths_index_it->first.back().gbwt_search.first.empty());
+
                 uint32_t anchor_path_id = 0;
 
-                for (size_t j = 0; j < align_paths_index_it->first.size(); ++j) {
+                for (size_t j = 0; j < align_paths_index_it->first.size() - 1; ++j) {
 
                     auto align_path_ids = paths_index.locatePathIds(align_paths_index_it->first.at(j).gbwt_search);
+                    assert(!align_path_ids.empty());
 
                     if (j == 0) {
 
