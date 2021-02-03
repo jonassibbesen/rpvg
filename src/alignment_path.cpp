@@ -15,15 +15,34 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
     vector<AlignmentPath> align_paths;
     align_paths.reserve(align_search_paths.size());
 
-    if (!align_search_paths.empty()) {
+    double noise_prob = 1;   
 
-        for (size_t i = 0; i < align_search_paths.size() - 1; ++i) {
+    for (auto & align_search_path: align_search_paths) {
 
-            if (align_search_paths.at(i).isComplete()) {
+        if (align_search_path.gbwt_search.first.empty()) {
+
+            assert(align_search_path.insert_length == 0);
+            assert(!align_search_path.read_align_stats.empty());
+            assert(!align_search_path.isInternal());
+
+            double non_noise_prob = 1;
+
+            for (auto & read_align_stats: align_search_path.read_align_stats) {
+
+                const double read_error_prob = 1 / (1 + exp(read_align_stats.score * Utils::noise_score_log_base));
+                non_noise_prob *= (1 - read_error_prob);
+            }
+
+            assert(non_noise_prob < 1 || Utils::doubleCompare(non_noise_prob, 1));
+            assert(non_noise_prob > 0 || Utils::doubleCompare(non_noise_prob, 0));
+
+            noise_prob = min(noise_prob, 1 - non_noise_prob);
+
+        } else {
+
+            if (align_search_path.isComplete()) {
                 
-                assert(!align_search_paths.at(i).gbwt_search.first.empty());
-
-                align_paths.emplace_back(align_search_paths.at(i), is_multimap);
+                align_paths.emplace_back(align_search_path, is_multimap);
                 assert(align_paths.front().min_mapq == align_paths.back().min_mapq);
             }
         }
@@ -33,34 +52,19 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
     if (!align_paths.empty()) {
 
-        assert(align_search_paths.back().gbwt_search.first.empty());
-        assert(align_search_paths.back().insert_length == 0);
-
-        assert(align_search_paths.back().read_align_stats.size() == 2);
-        assert(!align_search_paths.back().isInternal());
-
-        const double read_1_error_prob = 1 / (1 + exp(align_search_paths.back().read_align_stats.front().score * Utils::noise_log_base));
-        const double read_2_error_prob = 1 / (1 + exp(align_search_paths.back().read_align_stats.back().score * Utils::noise_log_base));
-
-        const double noise_prob = 1 - ((1 - read_1_error_prob) * (1 - read_2_error_prob));
-
         if (Utils::doubleCompare(noise_prob, 0)) {
 
             align_paths.emplace_back(make_pair(gbwt::SearchState(), gbwt::FastLocate::NO_POSITION), is_multimap, 0, align_paths.front().min_mapq, numeric_limits<int32_t>::lowest());
 
         } else {
 
-            assert(noise_prob > 0);
-            assert(noise_prob < 1 || Utils::doubleCompare(noise_prob, 1));
-
-            align_paths.emplace_back(make_pair(gbwt::SearchState(), gbwt::FastLocate::NO_POSITION), is_multimap, 0, align_paths.front().min_mapq, Utils::doubleToInt(log(noise_prob) / Utils::noise_log_base));
+            align_paths.emplace_back(make_pair(gbwt::SearchState(), gbwt::FastLocate::NO_POSITION), is_multimap, 0, align_paths.front().min_mapq, Utils::doubleToInt(log(noise_prob) / Utils::noise_score_log_base));
         }
 
         assert(align_paths.back().score_sum <= 0);
     }
 
     align_paths.shrink_to_fit();
-
     return align_paths;
 }
 

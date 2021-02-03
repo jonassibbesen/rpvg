@@ -58,7 +58,7 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
         assert(align_paths_ids.back().empty());
         assert(align_paths.back().score_sum <= 0);
 
-        noise_prob += (1 - noise_prob) * exp(align_paths.back().score_sum * Utils::noise_log_base);
+        noise_prob += (1 - noise_prob) * exp(align_paths.back().score_sum * Utils::noise_score_log_base);
 
         if (align_paths.back().score_sum == 0) {
 

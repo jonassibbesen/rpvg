@@ -81,7 +81,7 @@ namespace Utils {
     static const double double_precision = numeric_limits<double>::epsilon() * 100;
 
     static const double score_log_base = 1.383325268738;
-    static const double noise_log_base = 1e-6;
+    static const double noise_score_log_base = 1e-6;
 
     // Compare double variables using above precision.
     inline bool doubleCompare(const double a, const double b) {

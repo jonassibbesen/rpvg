@@ -11,8 +11,13 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<AlignmentPath> alignment_paths(1, AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3));
-	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
+	vector<AlignmentPath> alignment_paths;
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3);
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, numeric_limits<int32_t>::lowest());
+	
+	vector<vector<gbwt::size_type> > alignment_path_ids;
+	alignment_path_ids.emplace_back(vector<gbwt::size_type>({100, 200}));
+	alignment_path_ids.emplace_back(vector<gbwt::size_type>());
 
 	vector<PathInfo> paths(2, PathInfo(""));
 	paths.front().effective_length = 3;
@@ -45,8 +50,11 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Probabilities are calculated from multiple alignment paths") {
 
-		alignment_paths.emplace_back(AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 15, 10, 5));
-		alignment_path_ids.emplace_back(vector<gbwt::size_type>({50}));
+		alignment_paths.at(1) = AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 15, 10, 5);
+		alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, numeric_limits<int32_t>::lowest());
+
+		alignment_path_ids.at(1) = vector<gbwt::size_type>({50});
+		alignment_path_ids.emplace_back(vector<gbwt::size_type>());
 		
 		clustered_path_index.emplace(10, 2);
 		clustered_path_index.emplace(50, 3);
@@ -85,6 +93,31 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 		}
 	}
 
+   SECTION("Noise alignment path affect noise probability affect") {
+
+   		alignment_paths.back().score_sum = -2.302585 / Utils::noise_score_log_base;
+
+		ReadPathProbabilities read_path_probs_2(1, pow(10, -8));
+		read_path_probs_2.calcAlignPathProbs(alignment_paths, alignment_path_ids, clustered_path_index, paths, fragment_length_dist, false, 0);
+
+		REQUIRE(read_path_probs_2.readCount() == 1);
+		REQUIRE(Utils::doubleCompare(read_path_probs_2.noiseProb(), 0.190000008369464));
+
+		REQUIRE(read_path_probs_2.pathProbs().size() == 1);
+		REQUIRE(Utils::doubleCompare(read_path_probs_2.pathProbs().front().first, 0.404999995815267));
+		REQUIRE(read_path_probs_2.pathProbs().front().second == vector<uint32_t>({0, 1}));
+
+		alignment_paths.back().score_sum = 0;
+
+		ReadPathProbabilities read_path_probs_3(1, pow(10, -8));
+		read_path_probs_3.calcAlignPathProbs(alignment_paths, alignment_path_ids, clustered_path_index, paths, fragment_length_dist, false, 0);
+
+		REQUIRE(read_path_probs_3.readCount() == 1);
+		REQUIRE(Utils::doubleCompare(read_path_probs_3.noiseProb(), 1));
+
+		REQUIRE(read_path_probs_3.pathProbs().empty());
+	}
+
     SECTION("Effective path lengths affect path probabilities") {
 
 		paths.back().effective_length = 2;
@@ -104,14 +137,16 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Base noise probability affect path probabilities") {
 
+   		alignment_paths.back().score_sum = -5.0 / Utils::noise_score_log_base;
+
 		ReadPathProbabilities read_path_probs_2(1, pow(10, -8));
 		read_path_probs_2.calcAlignPathProbs(alignment_paths, alignment_path_ids, clustered_path_index, paths, fragment_length_dist, false, 0.3);
-
+		
 		REQUIRE(read_path_probs_2.readCount() == 1);
-		REQUIRE(Utils::doubleCompare(read_path_probs_2.noiseProb(), 0.3));
+		REQUIRE(Utils::doubleCompare(read_path_probs_2.noiseProb(), 0.304716562899359));
 
 		REQUIRE(read_path_probs_2.pathProbs().size() == 1);
-		REQUIRE(Utils::doubleCompare(read_path_probs_2.pathProbs().front().first, 0.35));
+		REQUIRE(Utils::doubleCompare(read_path_probs_2.pathProbs().front().first, 0.347641718550320));
 		REQUIRE(read_path_probs_2.pathProbs().front().second == read_path_probs.pathProbs().front().second);
 	}
 }
@@ -121,8 +156,13 @@ TEST_CASE("Identical read path probabilities can be merged") {
 	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
 	FragmentLengthDist fragment_length_dist(10, 2);
 
-	vector<AlignmentPath> alignment_paths(1, AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3));
-	auto alignment_path_ids = vector<vector<gbwt::size_type> >(1, vector<gbwt::size_type>({100, 200}));
+	vector<AlignmentPath> alignment_paths;
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3);
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, numeric_limits<int32_t>::lowest());
+	
+	vector<vector<gbwt::size_type> > alignment_path_ids;
+	alignment_path_ids.emplace_back(vector<gbwt::size_type>({100, 200}));
+	alignment_path_ids.emplace_back(vector<gbwt::size_type>());
 
 	vector<PathInfo> paths(2, PathInfo(""));
 	paths.front().effective_length = 3;
