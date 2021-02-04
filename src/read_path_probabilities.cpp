@@ -147,8 +147,12 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
             }
         }
 
-        assert(!path_probs.empty());
         sort(path_probs.begin(), path_probs.end());
+
+        if (path_probs.empty()) {
+
+            noise_prob = 1;
+        }
     }
 }
 
