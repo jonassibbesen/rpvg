@@ -52,7 +52,7 @@ class AlignmentPathFinder {
 		void extendAlignmentSearchPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const;
 
 		vector<AlignmentSearchPath> extendAlignmentSearchPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment) const;
-		void extendAlignmentSearchPaths(vector<AlignmentSearchPath> * align_search_paths, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t start_subpath_idx, const string & quality, const uint32_t seq_length, spp::sparse_hash_map<pair<uint32_t, uint32_t>, int32_t> * internal_node_subpaths, int32_t * best_align_score) const;
+		void extendAlignmentSearchPaths(vector<AlignmentSearchPath> * align_search_paths, const AlignmentSearchPath & init_align_search_path, const google::protobuf::RepeatedPtrField<vg::Subpath> & subpaths, const uint32_t start_subpath_idx, const string & quality, const uint32_t seq_length, spp::sparse_hash_map<pair<uint32_t, uint32_t>, int32_t> * internal_node_subpaths, int32_t * best_align_score, const bool has_right_bonus) const;
 		
 		void findAlignmentSearchPaths(vector<AlignmentSearchPath> * align_search_paths, const AlignmentType & alignment) const;
 		void findPairedAlignmentSearchPaths(vector<AlignmentSearchPath> * paired_align_search_paths, const AlignmentType & start_alignment, const AlignmentType & end_alignment) const;

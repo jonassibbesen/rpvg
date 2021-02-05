@@ -1803,7 +1803,17 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_bs30(paths_index, "unstranded", 1000, 0, true, 0.30, 1);
 
         auto alignment_paths_bs30 = alignment_path_finder_bs30.findPairedAlignmentPaths(alignment_1, alignment_2);    
-        REQUIRE(alignment_paths_bs30.empty());
+        REQUIRE(alignment_paths_bs30.size() == 4);
+
+        REQUIRE(alignment_paths_bs30.front() == alignment_paths.front());
+        REQUIRE(alignment_paths_bs30.at(1)== alignment_paths.at(1));
+        REQUIRE(alignment_paths_bs30.at(2)== alignment_paths.at(2));
+
+        REQUIRE(alignment_paths_bs30.back().gbwt_search == alignment_paths.back().gbwt_search);
+        REQUIRE(alignment_paths_bs30.back().is_multimap == alignment_paths.back().is_multimap);
+        REQUIRE(alignment_paths_bs30.back().frag_length == alignment_paths.back().frag_length);
+        REQUIRE(alignment_paths_bs30.back().min_mapq == alignment_paths.back().min_mapq);
+        REQUIRE(alignment_paths_bs30.back().score_sum == 0);
     }
 
     SECTION("Alignment pairs from a paired-end multipath alignment are filtered based on soft-clipping length") {
@@ -1818,7 +1828,17 @@ TEST_CASE("Alignment path(s) can be found from a paired-end multipath alignment"
         AlignmentPathFinder<vg::MultipathAlignment> alignment_path_finder_sc25(paths_index, "unstranded", 1000, 0, true, 0, 0.25);
 
         auto alignment_paths_sc25 = alignment_path_finder_sc25.findPairedAlignmentPaths(alignment_1, alignment_2);        
-        REQUIRE(alignment_paths_sc25.empty());
+        REQUIRE(alignment_paths_sc25.size() == 4);
+
+        REQUIRE(alignment_paths_sc25.front() == alignment_paths.front());
+        REQUIRE(alignment_paths_sc25.at(1)== alignment_paths.at(1));
+        REQUIRE(alignment_paths_sc25.at(2)== alignment_paths.at(2));
+
+        REQUIRE(alignment_paths_sc25.back().gbwt_search == alignment_paths.back().gbwt_search);
+        REQUIRE(alignment_paths_sc25.back().is_multimap == alignment_paths.back().is_multimap);
+        REQUIRE(alignment_paths_sc25.back().frag_length == alignment_paths.back().frag_length);
+        REQUIRE(alignment_paths_sc25.back().min_mapq == alignment_paths.back().min_mapq);
+        REQUIRE(alignment_paths_sc25.back().score_sum == 0);
     }
 
     SECTION("Alignment pairs from a paired-end multipath alignment does not estimate missing path noise probability") {
