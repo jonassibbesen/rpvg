@@ -13,7 +13,7 @@ static const int32_t max_noise_score_diff = (Utils::default_match + Utils::defau
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const double min_best_score_filter_in, const double max_softclip_filter_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_frag_length(max_pair_frag_length_in), max_partial_offset(max_partial_offset_in), est_missing_noise_prob(est_missing_noise_prob_in), min_best_score_filter(min_best_score_filter_in), max_softclip_filter(max_softclip_filter_in) {}
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const double min_best_score_filter_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_frag_length(max_pair_frag_length_in), max_partial_offset(max_partial_offset_in), est_missing_noise_prob(est_missing_noise_prob_in), min_best_score_filter(min_best_score_filter_in) {}
         
 template<class AlignmentType>
 bool AlignmentPathFinder<AlignmentType>::alignmentHasPath(const vg::Alignment & alignment) const {
@@ -197,12 +197,15 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentS
 
     for (auto & align_search_path: extended_align_search_paths) {
 
-        const int32_t align_path_score = align_search_path.scoreSum();
-        assert(align_path_score <= max_align_path_score);
+        if (align_search_path.read_align_stats.back().complete) {
 
-        if (max_align_path_score - align_path_score > max_score_diff) {
+            const int32_t align_path_score = align_search_path.scoreSum();
+            assert(align_path_score <= max_align_path_score);
 
-            align_search_path.read_align_stats.back().complete = false;
+            if (max_align_path_score - align_path_score > max_score_diff) {
+
+                align_search_path.read_align_stats.back().complete = false;
+            }
         }
     }
 
@@ -1220,18 +1223,16 @@ template<class AlignmentType>
 bool AlignmentPathFinder<AlignmentType>::filterAlignmentSearchPaths(const vector<AlignmentSearchPath> & align_search_paths, const vector<int32_t> & optimal_align_scores) const {
 
     double max_min_optim_score_frac = 0;
-    double min_max_softclip_frac = 1;
 
     for (auto & align_search_path: align_search_paths) {
 
         if (align_search_path.isComplete()) {
 
             max_min_optim_score_frac = max(max_min_optim_score_frac, align_search_path.minOptimalScoreFraction(optimal_align_scores));
-            min_max_softclip_frac = min(min_max_softclip_frac, align_search_path.maxSoftclipFraction());
         }
     }
 
-    if (max_min_optim_score_frac < min_best_score_filter || min_max_softclip_frac > max_softclip_filter) {
+    if (max_min_optim_score_frac < min_best_score_filter) {
 
         return true;
     

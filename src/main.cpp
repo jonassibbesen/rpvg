@@ -305,7 +305,6 @@ int main(int argc, char* argv[]) {
       ("max-par-offset", "maximum start and end offset allowed for partial path alignments", cxxopts::value<uint32_t>()->default_value("4"))
       ("est-missing-prob", "estimate the probability that the correct alignment path is missing (experimental)", cxxopts::value<bool>())
       ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0.9"))
-      ("filt-softclip", "filter alignments with a soft-clipping fraction above <value>", cxxopts::value<double>()->default_value("0.25"))
       ("min-noise-prob", "minimum probability that alignment is incorrect", cxxopts::value<double>()->default_value("1e-4"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
@@ -314,7 +313,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
-      ("equal-haps", "enforce equivalent haplotypes across clustered transcripts in haplotype-transcript inference", cxxopts::value<bool>())
+      ("ind-hap-inference", "infer haplotypes independently for each transcript in haplotype-transcript inference", cxxopts::value<bool>())
       ("num-hap-samples", "number of haplotyping samples in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
       ;
@@ -463,9 +462,6 @@ int main(int argc, char* argv[]) {
     const double min_best_score_filter = option_results["filt-best-score"].as<double>();
     assert(min_best_score_filter >= 0 && min_best_score_filter <= 1);
 
-    const double max_softclip_filter = option_results["filt-softclip"].as<double>();
-    assert(max_softclip_filter >= 0 && max_softclip_filter <= 1);
-
     const double min_noise_prob = option_results["min-noise-prob"].as<double>();
     assert(min_noise_prob >= 0 && min_noise_prob <= 1);
 
@@ -488,7 +484,7 @@ int main(int argc, char* argv[]) {
 
     assert(pre_fragment_length_dist.isValid());
 
-    const bool equal_haps = option_results.count("equal-haps");
+    const bool ind_hap_inference = option_results.count("ind-hap-inference");
     const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
     const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
 
@@ -548,7 +544,7 @@ int main(int argc, char* argv[]) {
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -561,7 +557,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter, max_softclip_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -665,8 +661,8 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, equal_haps, use_hap_gibbs, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
-        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), equal_haps);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, !ind_hap_inference, use_hap_gibbs, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), !ind_hap_inference);
 
     } else {
 
