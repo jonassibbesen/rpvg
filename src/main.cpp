@@ -10,9 +10,11 @@
 #include <algorithm>
 #include <iomanip>
 #include <thread>
+#include <sys/stat.h>
 
 #include "cxxopts.hpp"
 #include "gbwt/gbwt.h"
+#include "gbwt/fast_locate.h"
 #include "sparsepp/spp.h"
 #include "vg/io/vpkg.hpp"
 #include "vg/io/stream.hpp"
@@ -45,42 +47,47 @@ typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connecte
 typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buffer_queue_t;
 
 
-void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer, const double min_mapq, const uint32_t best_score_diff) {
+void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer) {
 
     if (!align_paths.empty()) {
 
-        uint32_t max_score_sum = 0;
+        assert(align_paths.size() > 1);
 
-        for (auto & align_path: align_paths) {
+        if (align_paths.size() == 2) {
 
-            max_score_sum = max(max_score_sum, align_path.score_sum);
-        }
-
-        align_paths_buffer->emplace_back(vector<AlignmentPath>());
-
-        for (auto & align_path: align_paths) {
-
-            assert(max_score_sum >= align_path.score_sum);
-
-            if (align_path.min_mapq >= min_mapq && max_score_sum - align_path.score_sum <= best_score_diff) {
-
-                align_paths_buffer->back().emplace_back(align_path);
-            }
-        }
-
-        if (!align_paths_buffer->back().empty()) {
-
-            sort(align_paths_buffer->back().begin(), align_paths_buffer->back().end());
-
+            align_paths_buffer->emplace_back(align_paths);
+        
         } else {
 
-            align_paths_buffer->pop_back();
+            auto align_paths_it = align_paths.begin();
+            assert(align_paths_it != align_paths.end());
+
+            align_paths_buffer->emplace_back(vector<AlignmentPath>(1, *align_paths_it));
+            ++align_paths_it;
+
+            while (align_paths_it != align_paths.end()) {
+
+                const AlignmentPath & last_align_paths_buffer = align_paths_buffer->back().back();
+
+                if (last_align_paths_buffer.gbwt_search == align_paths_it->gbwt_search && last_align_paths_buffer.is_multimap == align_paths_it->is_multimap && last_align_paths_buffer.frag_length == align_paths_it->frag_length && last_align_paths_buffer.min_mapq == align_paths_it->min_mapq) {
+
+                    assert(last_align_paths_buffer.score_sum >= align_paths_it->score_sum);
+
+                } else {
+
+                    align_paths_buffer->back().emplace_back(*align_paths_it);
+                }
+
+                ++align_paths_it;
+            }
+
+            assert(align_paths_buffer->back().size() > 1);
         }
     }
 }
 
 template<class AlignmentType> 
-void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
+void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -93,7 +100,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
     vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer, min_mapq, best_score_diff);
+        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -111,7 +118,7 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 }
 
 template<class AlignmentType> 
-void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const double min_mapq, const uint32_t best_score_diff, const uint32_t num_threads) {
+void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -124,7 +131,7 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer, min_mapq, best_score_diff);
+        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer);
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -150,19 +157,20 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
         for (auto & align_paths: *align_paths_buffer) {
 
-            assert(!align_paths.empty());
+            assert(align_paths.size() > 1);
+            assert(align_paths.back().frag_length == 0);
 
             if (align_paths.front().min_mapq >= fragment_length_min_mapq && !align_paths.front().is_multimap) {
 
-                uint32_t cur_fragment_length = align_paths.front().seq_length;
+                uint32_t cur_fragment_length = align_paths.front().frag_length;
                 bool cur_length_is_constant = true;
 
-                for (size_t j = 1; j < align_paths.size(); ++j) {
+                for (size_t j = 1; j < align_paths.size() - 1; ++j) {
 
                     assert(align_paths.at(j).min_mapq >= fragment_length_min_mapq);
                     assert(!align_paths.at(j).is_multimap);
 
-                    if (align_paths.at(j).seq_length != cur_fragment_length) {
+                    if (align_paths.at(j).frag_length != cur_fragment_length) {
 
                         cur_length_is_constant = false;
                         break;
@@ -180,9 +188,9 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
                 }   
             }
 
-            if (align_paths.size() == 1) {       
+            if (align_paths.size() == 2) {       
 
-                align_paths.front().seq_length = mean_pre_fragment_length;      
+                align_paths.front().frag_length = mean_pre_fragment_length;      
                 align_paths.front().score_sum = 1;       
             } 
 
@@ -240,7 +248,7 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
 
         if (parse_haplotype_ids) {
 
-            for (auto & haplotype: splitString(element, ',')) {
+            for (auto & haplotype: Utils::splitString(element, ',')) {
 
                 auto haplotype_id_index_it = haplotype_id_index.emplace(haplotype, haplotype_id_index.size());
                 assert(haplotype_transcript_info_it.first->second.source_ids.emplace(haplotype_id_index_it.first->second).second);
@@ -256,6 +264,13 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
 
     info_file.close();
     return haplotype_transcript_info;
+}
+
+// https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c
+bool doesFileExist(const string name) {
+  
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0); 
 }
 
 int main(int argc, char* argv[]) {
@@ -287,8 +302,10 @@ int main(int argc, char* argv[]) {
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
-      ("filt-mapq-prob", "filter alignments with a mapq error probability above <value>", cxxopts::value<double>()->default_value("1"))
-      ("filt-score-diff", "filter alignments with a score that is <value> below best alignment", cxxopts::value<uint32_t>()->default_value("24"))
+      ("max-par-offset", "maximum start and end offset allowed for partial path alignments", cxxopts::value<uint32_t>()->default_value("4"))
+      ("est-missing-prob", "estimate the probability that the correct alignment path is missing (experimental)", cxxopts::value<bool>())
+      ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0.9"))
+      ("min-noise-prob", "minimum probability that alignment is incorrect", cxxopts::value<double>()->default_value("1e-4"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
       ;
@@ -296,7 +313,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
-      ("equal-haps", "enforce equivalent haplotypes across clustered transcripts in haplotype-transcript inference", cxxopts::value<bool>())
+      ("ind-hap-inference", "infer haplotypes independently for each transcript in haplotype-transcript inference", cxxopts::value<bool>())
       ("num-hap-samples", "number of haplotyping samples in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
       ;
@@ -360,27 +377,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const string library_type = option_results["strand-specific"].as<string>();
+    const uint32_t num_threads = option_results["threads"].as<uint32_t>();
+    assert(num_threads > 0);
 
-    if (library_type != "unstranded" && library_type != "fr" && library_type != "rf") {
-
-        cerr << "ERROR: Strand-specific library type provided (--strand-specific) not supported. Options: unstranded, fr or rf." << endl;
-        return 1;
-    }
-
-    const uint32_t ploidy = option_results["ploidy"].as<uint32_t>();
-
-    if (ploidy == 0) {
-
-        cerr << "ERROR: Ploidy (--ploidy) can not be 0." << endl;
-        return 1;        
-    }
-
-    if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
-
-        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
-        return 1;
-    }
+    omp_set_num_threads(num_threads);
 
     uint64_t rng_seed = 0; 
 
@@ -397,14 +397,17 @@ int main(int argc, char* argv[]) {
     cerr << "Running rpvg (commit: " << GIT_COMMIT << ")" << endl;
     cerr << "Random number generator seed: " << rng_seed << endl;
 
-    bool is_single_end = option_results.count("single-end");
-    bool is_long_reads = option_results.count("long-reads");
-    bool is_single_path = option_results.count("single-path");
+    const string library_type = option_results["strand-specific"].as<string>();
 
-    if (is_long_reads) {
+    if (library_type != "unstranded" && library_type != "fr" && library_type != "rf") {
 
-        is_single_end = true;
+        cerr << "ERROR: Strand-specific library type provided (--strand-specific) not supported. Options: unstranded, fr or rf." << endl;
+        return 1;
     }
+
+    const bool is_single_end = (option_results.count("single-end") || option_results.count("long-reads"));
+    const bool is_long_reads = option_results.count("long-reads");
+    const bool is_single_path = option_results.count("single-path");
 
     if (option_results.count("frag-mean") != option_results.count("frag-sd")) {
 
@@ -453,12 +456,42 @@ int main(int argc, char* argv[]) {
 
     cerr << endl;
 
+    const uint32_t max_partial_offset = option_results["max-par-offset"].as<uint32_t>();
+    const bool est_missing_noise_prob = option_results.count("est-missing-prob");
+  
+    const double min_best_score_filter = option_results["filt-best-score"].as<double>();
+    assert(min_best_score_filter >= 0 && min_best_score_filter <= 1);
+
+    const double min_noise_prob = option_results["min-noise-prob"].as<double>();
+    assert(min_noise_prob >= 0 && min_noise_prob <= 1);
+
+    const double prob_precision = option_results["prob-precision"].as<double>();
+    assert(prob_precision >= 0 && prob_precision <= 1);
+
+    const uint32_t ploidy = option_results["ploidy"].as<uint32_t>();
+
+    if (ploidy == 0) {
+
+        cerr << "ERROR: Ploidy (--ploidy) can not be 0." << endl;
+        return 1;        
+    }
+
+    if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
+
+        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
+        return 1;
+    }
+
     assert(pre_fragment_length_dist.isValid());
 
-    const uint32_t num_threads = option_results["threads"].as<uint32_t>();
+    const bool ind_hap_inference = option_results.count("ind-hap-inference");
+    const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
+    const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
 
-    assert(num_threads > 0);
-    omp_set_num_threads(num_threads);
+    const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
+    const uint32_t max_em_its = option_results["max-em-its"].as<uint32_t>();
+    const double min_em_conv = option_results["min-em-conv"].as<double>();
+    const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
 
     double time_init = gbwt::readTimer();
 
@@ -467,17 +500,37 @@ int main(int argc, char* argv[]) {
     unique_ptr<handlegraph::HandleGraph> graph = vg::io::VPKG::load_one<handlegraph::HandleGraph>(option_results["graph"].as<string>());
     unique_ptr<gbwt::GBWT> gbwt_index = vg::io::VPKG::load_one<gbwt::GBWT>(option_results["paths"].as<string>());
 
-    PathsIndex paths_index(*gbwt_index, *graph);
+    unique_ptr<gbwt::FastLocate> r_index;
+
+    if (doesFileExist(option_results["paths"].as<string>() + ".ri")) {
+
+        r_index = move(vg::io::VPKG::load_one<gbwt::FastLocate>(option_results["paths"].as<string>() + ".ri"));
+        r_index->setGBWT(*gbwt_index);        
+
+    } else {
+
+        r_index = std::make_unique<gbwt::FastLocate>();
+    }
+
+    PathsIndex paths_index(*gbwt_index, *r_index, *graph);
     graph.reset(nullptr);
 
-    if (paths_index.index().metadata.paths() == 0) {
+    if (paths_index.numberOfPaths() == 0) {
 
         cerr << "ERROR: The GBWT index does not contain any paths." << endl;
         return 1;        
     }
 
     double time_load = gbwt::readTimer();
-    cerr << "Loaded graph and GBWT (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+
+    if (r_index->empty()) {
+
+        cerr << "Loaded graph and GBWT (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+
+    } else {
+
+        cerr << "Loaded graph, GBWT and r-index (" << time_load - time_init << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;        
+    }
 
     ifstream alignments_istream(option_results["alignments"].as<string>());
     assert(alignments_istream.is_open());
@@ -489,33 +542,30 @@ int main(int argc, char* argv[]) {
 
     thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
 
-    const double min_mapq = prob_to_phred(option_results["filt-mapq-prob"].as<double>());
-    const uint32_t best_score_diff = option_results["filt-score-diff"].as<uint32_t>();
-
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength());
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter);
 
         if (is_single_end) {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
         }
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength());
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter);
 
         if (is_single_end) {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, min_mapq, best_score_diff, num_threads);
+            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
         }        
     }
 
@@ -556,8 +606,7 @@ int main(int argc, char* argv[]) {
     double time_align = gbwt::readTimer();
     cerr << "Found alignment paths (" << time_align - time_load << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
-    spp::sparse_hash_map<gbwt::SearchState, uint32_t> search_to_path_index;
-    PathClusters path_clusters(num_threads, paths_index, align_paths_index, &search_to_path_index);
+    PathClusters path_clusters(num_threads, paths_index, align_paths_index);
 
     if (option_results.count("path-node-cluster")) {
 
@@ -566,29 +615,35 @@ int main(int argc, char* argv[]) {
 
     cerr << path_clusters.cluster_to_paths_index.size() << endl;
 
-    vector<vector<align_paths_index_t::iterator> > align_paths_clusters(path_clusters.cluster_to_paths_index.size());
+    vector<vector<vector<align_paths_index_t::iterator> > > align_paths_clusters(path_clusters.cluster_to_paths_index.size(), vector<vector<align_paths_index_t::iterator> >(num_threads));
 
-    auto align_paths_index_it = align_paths_index.begin();
+    #pragma omp parallel num_threads(num_threads)
+    {
+        #pragma omp for schedule(static, 1)
+        for (size_t i = 0; i < num_threads; ++i) {
 
-    while (align_paths_index_it != align_paths_index.end()) {
+            auto align_paths_index_it = align_paths_index.begin();
+            advance(align_paths_index_it, i);
 
-        align_paths_clusters.at(path_clusters.path_to_cluster_index.at(search_to_path_index.at(align_paths_index_it->first.front().search_state))).emplace_back(align_paths_index_it);
-        ++align_paths_index_it;
+            uint32_t cur_align_paths_idx = i; 
+
+            while (cur_align_paths_idx < align_paths_index.size()) {
+
+                assert(!align_paths_index_it->first.front().gbwt_search.first.empty());
+                const uint32_t anchor_path_id = paths_index.locatePathIds(align_paths_index_it->first.front().gbwt_search).front();
+                
+                align_paths_clusters.at(path_clusters.path_to_cluster_index.at(anchor_path_id)).at(i).emplace_back(align_paths_index_it);
+
+                advance(align_paths_index_it, num_threads);
+                cur_align_paths_idx += num_threads;
+            }
+        }
     }
 
     double time_clust = gbwt::readTimer();
     cerr << "Clustered alignment paths (" << time_clust - time_align << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     spp::sparse_hash_map<string, PathInfo> haplotype_transcript_info;
-
-    const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
-    const double prob_precision = option_results["prob-precision"].as<double>();
-    const uint32_t max_em_its = option_results["max-em-its"].as<uint32_t>();
-    const double min_em_conv = option_results["min-em-conv"].as<double>();
-    const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
-    const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
-    const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
-    const bool equal_haps = option_results.count("equal-haps");
 
     PathEstimator * path_estimator;
 
@@ -606,8 +661,8 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, equal_haps, use_hap_gibbs, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
-        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), equal_haps);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, !ind_hap_inference, use_hap_gibbs, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), !ind_hap_inference);
 
     } else {
 
@@ -635,12 +690,20 @@ int main(int argc, char* argv[]) {
         threaded_path_cluster_estimates.at(i).reserve(ceil(align_paths_clusters.size()) / static_cast<float>(num_threads));
     }
 
-    auto align_paths_clusters_indices = vector<pair<uint64_t, uint32_t> >();
+    auto align_paths_clusters_indices = vector<pair<uint32_t, uint32_t> >();
     align_paths_clusters_indices.reserve(align_paths_clusters.size());
 
     for (size_t i = 0; i < align_paths_clusters.size(); ++i) {
 
-        align_paths_clusters_indices.emplace_back(align_paths_clusters.at(i).size() * path_clusters.cluster_to_paths_index.at(i).size(), i);
+        uint32_t num_align_paths = 0;
+        assert(align_paths_clusters.at(i).size() ==  num_threads);
+
+        for (auto & align_paths: align_paths_clusters.at(i)) {
+
+            num_align_paths += align_paths.size();
+        }
+
+        align_paths_clusters_indices.emplace_back(num_align_paths, i);
     }
 
     sort(align_paths_clusters_indices.rbegin(), align_paths_clusters_indices.rend());
@@ -698,20 +761,23 @@ int main(int argc, char* argv[]) {
         }
 
         vector<ReadPathProbabilities> read_path_cluster_probs;
-        read_path_cluster_probs.reserve(align_paths_clusters.at(align_paths_cluster_idx).size());
+        read_path_cluster_probs.reserve(align_paths_clusters_indices.at(i).first);
 
-        for (auto & align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
+        for (auto & threaded_align_paths: align_paths_clusters.at(align_paths_cluster_idx)) {
 
-            vector<vector<gbwt::size_type> > align_paths_ids;
-            align_paths_ids.reserve(align_paths->first.size());
+            for (auto & align_paths: threaded_align_paths) {
 
-            for (auto & align_path: align_paths->first) {
+                vector<vector<gbwt::size_type> > align_paths_ids;
+                align_paths_ids.reserve(align_paths->first.size());
 
-                align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.search_state));
+                for (auto & align_path: align_paths->first) {
+
+                    align_paths_ids.emplace_back(paths_index.locatePathIds(align_path.gbwt_search));
+                }
+
+                read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
+                read_path_cluster_probs.back().calcAlignPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end, min_noise_prob);
             }
-
-            read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-            read_path_cluster_probs.back().calcReadPathProbabilities(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end);
         }
 
         sort(read_path_cluster_probs.begin(), read_path_cluster_probs.end());
@@ -722,7 +788,7 @@ int main(int argc, char* argv[]) {
 
             for (size_t i = 1; i < read_path_cluster_probs.size(); ++i) {
 
-                if (!read_path_cluster_probs.at(prev_unique_probs_idx).mergeIdenticalReadPathProbabilities(read_path_cluster_probs.at(i))) {
+                if (!read_path_cluster_probs.at(prev_unique_probs_idx).quickMergeIdentical(read_path_cluster_probs.at(i))) {
 
                     if (prev_unique_probs_idx + 1 < i) {
 

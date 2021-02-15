@@ -7,7 +7,7 @@
 #include "utils.hpp"
 
 
-PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph) : index_(gbwt_index) {
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index_in, const gbwt::FastLocate & r_index_in, const vg::Graph & graph) : gbwt_index(gbwt_index_in), r_index(r_index_in) {
 
     node_lengths = vector<int32_t>(graph.node_size() + 1, -1);
     uint32_t max_node_id = 0;
@@ -30,7 +30,7 @@ PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const vg::Graph & graph) :
     node_lengths.resize(max_node_id + 1);
 }
 
-PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleGraph & graph) : index_(gbwt_index) {
+PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index_in, const gbwt::FastLocate & r_index_in,  const handlegraph::HandleGraph & graph) : gbwt_index(gbwt_index_in), r_index(r_index_in) {
 
     node_lengths = vector<int32_t>(graph.get_node_count() + 1, -1);
     uint32_t max_node_id = 0;
@@ -53,11 +53,6 @@ PathsIndex::PathsIndex(const gbwt::GBWT & gbwt_index, const handlegraph::HandleG
     node_lengths.resize(max_node_id + 1);
 } 
 
-const gbwt::GBWT & PathsIndex::index() const {
-
-    return index_;
-}
-
 uint32_t PathsIndex::numberOfNodes() const {
 
     return node_lengths.size();
@@ -79,11 +74,67 @@ uint32_t PathsIndex::nodeLength(const uint32_t node_id) const {
     return node_lengths.at(node_id);
 }
 
-vector<gbwt::size_type> PathsIndex::locatePathIds(const gbwt::SearchState & search) const {
+vector<gbwt::edge_type> PathsIndex::edges(const gbwt::node_type gbwt_node) const {
 
-    auto path_ids = index_.locate(search);
+    return gbwt_index.edges(gbwt_node);
+}
 
-    if (index_.bidirectional()) {
+bool PathsIndex::bidirectional() const {
+
+    return gbwt_index.bidirectional();
+}
+
+uint32_t PathsIndex::numberOfPaths() const {
+
+    if (bidirectional()) {
+
+        assert(gbwt_index.sequences() % 2 == 0);
+        return (gbwt_index.sequences() / 2);
+
+    } else {
+
+        return gbwt_index.sequences();
+    }
+}
+
+void PathsIndex::find(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const {
+
+    if (r_index.empty()) {
+
+        gbwt_search->first = gbwt_index.find(gbwt_node);
+
+    } else {
+
+        gbwt_search->first = r_index.find(gbwt_node, gbwt_search->second);
+    }
+}
+
+void PathsIndex::extend(pair<gbwt::SearchState, gbwt::size_type> * gbwt_search, const gbwt::node_type gbwt_node) const {
+
+    if (r_index.empty()) {
+
+        gbwt_search->first = gbwt_index.extend(gbwt_search->first, gbwt_node);
+
+    } else {
+
+        gbwt_search->first = r_index.extend(gbwt_search->first, gbwt_node, gbwt_search->second);        
+    }
+}
+
+vector<gbwt::size_type> PathsIndex::locatePathIds(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search) const {
+
+    vector<gbwt::size_type> path_ids;
+
+    if (r_index.empty()) {
+
+        path_ids = gbwt_index.locate(gbwt_search.first);
+
+    } else {
+
+        path_ids = r_index.locate(gbwt_search.first, gbwt_search.second);        
+    }
+
+    if (bidirectional()) {
 
         for (auto & id: path_ids) {
 
@@ -98,19 +149,19 @@ string PathsIndex::pathName(const uint32_t path_id) const {
 
     stringstream sstream;
 
-    if (!index_.hasMetadata() || !index_.metadata.hasPathNames() || index_.metadata.paths() <= path_id || !index_.metadata.hasSampleNames()) {
+    if (!gbwt_index.hasMetadata() || !gbwt_index.metadata.hasPathNames() || gbwt_index.metadata.paths() <= path_id || !gbwt_index.metadata.hasSampleNames()) {
         
         sstream << path_id + 1;
     
     } else {
 
-        const gbwt::PathName& path_name = index_.metadata.path(path_id);
+        const gbwt::PathName& path_name = gbwt_index.metadata.path(path_id);
 
-        sstream << index_.metadata.sample(path_name.sample);
+        sstream << gbwt_index.metadata.sample(path_name.sample);
 
-        if (index_.metadata.hasContigNames()) {
+        if (gbwt_index.metadata.hasContigNames()) {
 
-            sstream << "_" << index_.metadata.contig(path_name.contig);
+            sstream << "_" << gbwt_index.metadata.contig(path_name.contig);
             sstream << "_" << path_name.phase;
             sstream << "_" << path_name.count;
         }
@@ -121,14 +172,14 @@ string PathsIndex::pathName(const uint32_t path_id) const {
 
 uint32_t PathsIndex::pathLength(uint32_t path_id) const {
 
-    if (index_.bidirectional()) {
+    if (bidirectional()) {
 
         path_id = gbwt::Path::encode(path_id, false);
     }
 
     uint32_t path_length = 0;
     
-    for (auto & node: index_.extract(path_id)) {
+    for (auto & node: gbwt_index.extract(path_id)) {
 
         path_length += nodeLength(gbwt::Node::id(node));
     }

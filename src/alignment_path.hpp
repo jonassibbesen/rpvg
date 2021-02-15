@@ -19,15 +19,15 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const uint32_t seq_length_in, const uint32_t min_mapq_in, const uint32_t score_sum_in, const bool is_multimap_in, const gbwt::SearchState & search_state_in);
+        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const int32_t score_sum_in);
         AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
 
-        uint32_t seq_length;
-        uint32_t min_mapq;
-        uint32_t score_sum;
-
+        pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
         bool is_multimap;
-        gbwt::SearchState search_state;
+
+        uint32_t frag_length;
+        uint32_t min_mapq;
+        int32_t score_sum;
 
         static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap);
 };
@@ -44,25 +44,88 @@ namespace std {
     template<> 
     struct hash<vector<AlignmentPath> >
     {
-        size_t operator()(vector<AlignmentPath> const & align_paths) const
+        size_t operator()(const vector<AlignmentPath> & align_paths) const
         {
             size_t seed = 0;
 
             for (auto & align_path: align_paths) {
 
-                spp::hash_combine(seed, align_path.seq_length);
+                spp::hash_combine(seed, align_path.gbwt_search.first.node);
+                spp::hash_combine(seed, align_path.gbwt_search.first.range.first);
+                spp::hash_combine(seed, align_path.gbwt_search.first.range.second);
+                spp::hash_combine(seed, align_path.gbwt_search.second);
+                spp::hash_combine(seed, align_path.is_multimap);
+                spp::hash_combine(seed, align_path.frag_length);
                 spp::hash_combine(seed, align_path.min_mapq);
                 spp::hash_combine(seed, align_path.score_sum);
-                spp::hash_combine(seed, align_path.is_multimap);
-                spp::hash_combine(seed, align_path.search_state.node);
-                spp::hash_combine(seed, align_path.search_state.range.first);
-                spp::hash_combine(seed, align_path.search_state.range.second);
             }
 
             return seed;
         }
     };
 }
+
+
+class InternalAlignment {
+
+    public: 
+
+        InternalAlignment();
+
+        bool is_internal;
+        uint32_t penalty;
+
+        uint32_t offset;
+        uint32_t max_offset;
+};
+
+bool operator==(const InternalAlignment & lhs, const InternalAlignment & rhs);
+bool operator!=(const InternalAlignment & lhs, const InternalAlignment & rhs);
+bool operator<(const InternalAlignment & lhs, const InternalAlignment & rhs);
+
+ostream & operator<<(ostream & os, const InternalAlignment & read_align_stats);
+
+
+class AlignmentStats {
+
+    public: 
+
+        AlignmentStats();
+
+        uint32_t mapq;
+        int32_t score;
+
+        uint32_t length;
+        bool complete;
+
+        uint32_t left_softclip_length;
+        uint32_t right_softclip_length;
+
+        InternalAlignment internal_start;
+        InternalAlignment internal_end;
+
+        gbwt::node_type internal_end_next_node;
+
+        void updateLeftSoftclipLength(const vg::Path & path);
+        void updateRightSoftclipLength(const vg::Path & path);
+
+        bool isInternal() const; 
+        uint32_t internalPenalty() const; 
+        uint32_t maxInternalOffset() const; 
+
+        int32_t adjustedScore() const; 
+
+        uint32_t clippedOffsetLeftBases() const;
+        uint32_t clippedOffsetRightBases() const;
+        uint32_t clippedOffsetTotalBases() const;
+};
+
+bool operator==(const AlignmentStats & lhs, const AlignmentStats & rhs);
+bool operator!=(const AlignmentStats & lhs, const AlignmentStats & rhs);
+bool operator<(const AlignmentStats & lhs, const AlignmentStats & rhs);
+
+ostream & operator<<(ostream & os, const AlignmentStats & read_align_stats);
+
 
 class AlignmentSearchPath {
 
@@ -71,21 +134,31 @@ class AlignmentSearchPath {
         AlignmentSearchPath();
 
         vector<gbwt::node_type> path;
-        uint32_t path_end_pos;
+        pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
 
-        uint32_t seq_start_offset;
-        uint32_t seq_end_offset;
+        uint32_t start_offset;
+        uint32_t end_offset;
 
-        gbwt::SearchState search_state;
+        int32_t insert_length;
 
-        uint32_t seq_length;
+        vector<AlignmentStats> read_align_stats;
 
-        uint32_t min_mapq;
-        vector<int32_t> scores;
+        uint32_t fragmentLength() const;
+        uint32_t minMappingQuality() const;
+        int32_t scoreSum() const;
 
-        uint32_t scoreSum() const;
-        bool complete() const;
+        double minOptimalScoreFraction(const vector<int32_t> & optimal_align_scores) const;
+        double maxSoftclipFraction() const;
+
+        bool isComplete() const;
+        bool isInternal() const;
+
+        void clear();
 };
+
+bool operator==(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs);
+bool operator!=(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs);
+bool operator<(const AlignmentSearchPath & lhs, const AlignmentSearchPath & rhs);
 
 ostream & operator<<(ostream & os, const AlignmentSearchPath & align_search_path);
 ostream & operator<<(ostream & os, const vector<AlignmentSearchPath> & align_search_path);
