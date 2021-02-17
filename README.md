@@ -25,24 +25,28 @@ A docker container of the latest commit to master is available on [Docker Hub](h
 rpvg -g graph.xg -p paths.gbwt -a alignments.gam -o rpvg_results -i <inference-model>
 ```
 
-The prefix used for all output files are given using `-o`. The number of threads can be given using `-t`.
+The prefix used for all output files are given using `-o`. The number of threads can be given using `-t`. 
+
+####Paths:
+
+The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). To decrease the computation time of *rpvg* it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. `vg gbwt` as part of the [vg toolkit](https://github.com/vgteam/vg) can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
 #### Inference models:
 
 The method currently contains four different inference models. Each model have been written with a particular path type and corresponding inference problem in mind:
 
-* `haplotypes`: Infers haplotype/diplotype/... posterior probabilities. For diploid ploidy it uses a branch and bound like algorithm to infer the most probable combination of haplotypes. A faster less accurate Gibbs sampling scheme can be enabled using `--use-hap-gibbs`, which scales much better for higher ploidies. The maximum ploidy can be given using `-y`.
+* `haplotypes`: Infers haplotype/diplotype/... posterior probabilities. For diploid ploidy it uses a branch and bound like algorithm to infer the most probable combination of haplotypes. A faster, less accurate Gibbs sampling scheme can be enabled using `--use-hap-gibbs`, which scales much better for higher ploidies. The maximum ploidy can be given using `-y`.
 
 * `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm.
 
-* `strains`: Infers abundances using a combination of weighted minimim path cover and EM. **Note that this algorithm have not yet been properly evaluated**.
+* `strains`: Infers abundances using a combination of weighted minimum path cover and EM. **Note that this algorithm has not yet been properly evaluated**.
 
-* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default the haplotypes are inferred independently for each transcript, however equivalent haplotype estimates across clustered transcripts can be enforced using the `--equal-haps` option. The inference algorithm requires a file (`-f`) containing the transcript origin of each path (`--write-info` output from *vg rna*). 
+* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default, equivalent haplotypes are inferred for all clustered transcripts, however independent inference of haplotypes for each transcript can be enabled using the `--ind-hap-inference` option. The inference algorithm requires a file (`-f`) containing the transcript origin of each path (`--write-info` output from *vg rna*). 
 
 #### Alignment types:
 
-* Use `-e` if the reads are from a stand-specific protocol. Supports the following library types: 
-  * Use value `fr` when the first read is from the forward stand and the second read is from the reverse strand.
+* Use `-e` if the reads are from a strand-specific protocol. Supports the following library types: 
+  * Use value `fr` when the first read is from the forward strand and the second read is from the reverse strand.
   * Use value `rf` when the first read is from the reverse stand and the second read is from the forward strand.
 * Use `-u` if the input alignments are single-path (*.gam*) format. Default is multipath alignments from *vg mpmap*.
 * Use `-s` for single-end reads. Note that the fragment length distribution will still be used for calculating the effective path length.
