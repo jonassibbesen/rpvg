@@ -60,7 +60,8 @@ add_library(${PROJECT_NAME}
   src/path_abundance_estimator.cpp
   src/threaded_output_writer.cpp
   src/io/register_libvg_io.cpp 
-  src/io/register_loader_saver_gbwt.cpp 
+  src/io/register_loader_saver_gbwt.cpp
+  src/io/register_loader_saver_r_index.cpp 
   src/io/register_loader_saver_xg.cpp
 )
 

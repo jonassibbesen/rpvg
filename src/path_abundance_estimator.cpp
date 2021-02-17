@@ -18,9 +18,9 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
 
     if (!cluster_probs.empty()) {
 
-        Eigen::ColMatrixXd read_path_probs;
-        Eigen::ColVectorXd noise_probs;
-        Eigen::RowVectorXui read_counts;
+        Utils::ColMatrixXd read_path_probs;
+        Utils::ColVectorXd noise_probs;
+        Utils::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, path_cluster_estimates->paths.size());
 
@@ -53,16 +53,16 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
     }
 }
 
-void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts) const {
+void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXui & read_counts) const {
 
     assert(path_cluster_estimates->total_read_count > 0);
 
-    Eigen::RowVectorXd prev_abundances = path_cluster_estimates->abundances;
+    Utils::RowVectorXd prev_abundances = path_cluster_estimates->abundances;
     uint32_t em_conv_its = 0;
 
     for (uint32_t i = 0; i < max_em_its; ++i) {
 
-        Eigen::ColMatrixXd read_posteriors = read_path_probs.array().rowwise() * path_cluster_estimates->abundances.array();
+        Utils::ColMatrixXd read_posteriors = read_path_probs.array().rowwise() * path_cluster_estimates->abundances.array();
         read_posteriors = read_posteriors.array().colwise() / read_posteriors.rowwise().sum().array();
 
         path_cluster_estimates->abundances = read_counts.cast<double>() * read_posteriors;
@@ -119,7 +119,7 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
     }
 }
 
-void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Eigen::ColMatrixXd & read_path_probs, const Eigen::RowVectorXui & read_counts, const double gamma, mt19937 * mt_rng) const {
+void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXui & read_counts, const double gamma, mt19937 * mt_rng) const {
 
     assert(path_cluster_estimates->total_read_count > 0);
 
@@ -127,14 +127,14 @@ void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_c
     assert(path_cluster_estimates->gibbs_read_count_samples.back().path_ids.size() == path_cluster_estimates->abundances.cols());
     assert(path_cluster_estimates->gibbs_read_count_samples.back().samples.size() == path_cluster_estimates->abundances.cols());
 
-    assert(doubleCompare(path_cluster_estimates->abundances.sum(), 1));
-    Eigen::RowVectorXd gibbs_abundances = path_cluster_estimates->abundances;
+    assert(Utils::doubleCompare(path_cluster_estimates->abundances.sum(), 1));
+    Utils::RowVectorXd gibbs_abundances = path_cluster_estimates->abundances;
 
     const uint32_t num_gibbs_its = num_gibbs_samples * gibbs_thin_its;
 
     for (uint32_t gibbs_it = 1; gibbs_it <= num_gibbs_its; ++gibbs_it) {
 
-        Eigen::ColMatrixXd read_posteriors = read_path_probs.array().rowwise() * gibbs_abundances.array();
+        Utils::ColMatrixXd read_posteriors = read_path_probs.array().rowwise() * gibbs_abundances.array();
         read_posteriors = read_posteriors.array().colwise() / read_posteriors.rowwise().sum().array();
 
         vector<uint32_t> gibbs_path_read_counts(gibbs_abundances.cols(), 0);
@@ -254,28 +254,31 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
 
     if (!cluster_probs.empty()) {
 
-        Eigen::ColMatrixXd read_path_probs;
-        Eigen::ColVectorXd noise_probs;
-        Eigen::RowVectorXui read_counts;
+        Utils::ColMatrixXd read_path_probs;
+        Utils::ColVectorXd noise_probs;
+        Utils::RowVectorXui read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, path_cluster_estimates->paths.size());      
 
-        Eigen::ColMatrixXb read_path_cover = Eigen::ColMatrixXb::Zero(read_path_probs.rows(), read_path_probs.cols());
-        Eigen::RowVectorXd path_weights = Eigen::RowVectorXd::Zero(read_path_probs.cols());
+        Utils::ColMatrixXb read_path_cover = Utils::ColMatrixXb::Zero(read_path_probs.rows(), read_path_probs.cols());
+        Utils::RowVectorXd path_weights = Utils::RowVectorXd::Zero(read_path_probs.cols());
 
         for (size_t i = 0; i < read_path_probs.rows(); ++i) {
 
-            if (doubleCompare(noise_probs(i), 1)) {
+            if (Utils::doubleCompare(noise_probs(i), 1)) {
 
                 read_counts(i) = 0;
             }
 
-            for (auto & prob: cluster_probs.at(i).probabilities()) {
+            for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
-                assert(prob.second > 0);
+                for (auto & path: path_probs.second) {
 
-                read_path_cover(i, prob.first) = true;
-                path_weights(prob.first) += log(prob.second) * read_counts(i);                 
+                    assert(path_probs.first > 0);
+
+                    read_path_cover(i, path) = true;
+                    path_weights(path) += log(path_probs.first) * read_counts(i);  
+                }               
             }
         }
 
@@ -284,9 +287,9 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
 
         if (!min_path_cover.empty()) {
 
-            Eigen::ColMatrixXd min_path_read_path_probs;
-            Eigen::ColVectorXd min_path_noise_probs;
-            Eigen::RowVectorXui min_path_read_counts;
+            Utils::ColMatrixXd min_path_read_path_probs;
+            Utils::ColVectorXd min_path_noise_probs;
+            Utils::RowVectorXui min_path_read_counts;
 
             constructPartialProbabilityMatrix(&min_path_read_path_probs, &min_path_noise_probs, &min_path_read_counts, cluster_probs, min_path_cover, path_cluster_estimates->paths.size());
 
@@ -332,7 +335,7 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
     }
 }
 
-vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const Eigen::ColMatrixXb & read_path_cover, const Eigen::RowVectorXui & read_counts, const Eigen::RowVectorXd & path_weights) const {
+vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const Utils::ColMatrixXb & read_path_cover, const Utils::RowVectorXui & read_counts, const Utils::RowVectorXd & path_weights) const {
 
     assert(read_path_cover.rows() == read_counts.cols());
     assert(read_path_cover.cols() == path_weights.cols());
@@ -349,7 +352,7 @@ vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const E
 
     while (uncovered_read_counts.maxCoeff() > 0) {
 
-        Eigen::RowVectorXd weighted_read_path_cover = (uncovered_read_counts.cast<double>() * read_path_cover.cast<double>()).array() / path_weights.array();
+        Utils::RowVectorXd weighted_read_path_cover = (uncovered_read_counts.cast<double>() * read_path_cover.cast<double>()).array() / path_weights.array();
         assert(weighted_read_path_cover.size() == read_path_cover.cols());
 
         double max_weighted_read_path_cover = 0;
@@ -407,9 +410,9 @@ void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterE
 
         for (auto & group: path_groups) {    
 
-            Eigen::ColMatrixXd group_read_path_probs;
-            Eigen::ColVectorXd group_noise_probs;
-            Eigen::RowVectorXui group_read_counts;        
+            Utils::ColMatrixXd group_read_path_probs;
+            Utils::ColVectorXd group_noise_probs;
+            Utils::RowVectorXui group_read_counts;        
 
             constructPartialProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group, path_cluster_estimates->paths.size());
 
@@ -468,19 +471,19 @@ void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterE
     }
 }
 
-void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const {
+void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
     if (!cluster_probs.empty()) {
 
         auto path_source_groups = findPathSourceGroups(path_cluster_estimates->paths);
 
-        Eigen::ColMatrixXd group_read_path_probs;
-        Eigen::ColVectorXd group_noise_probs;
-        Eigen::RowVectorXui group_read_counts;  
+        Utils::ColMatrixXd group_read_path_probs;
+        Utils::ColVectorXd group_noise_probs;
+        Utils::RowVectorXui group_read_counts;  
 
         constructGroupedProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, path_source_groups.first, path_cluster_estimates->paths.size());
+        
         addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, group_noise_probs);
-
         readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
 
         group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
@@ -592,7 +595,7 @@ pair<vector<vector<uint32_t> >, vector<uint32_t> > NestedPathAbundanceEstimator:
 
 void NestedPathAbundanceEstimator::sampleGroupPathIndices(vector<vector<uint32_t> > * path_subset_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<uint32_t> & group, mt19937 * mt_rng) const {
 
-    const Eigen::RowVectorXd & posteriors = group_path_cluster_estimates.posteriors;
+    const Utils::RowVectorXd & posteriors = group_path_cluster_estimates.posteriors;
     assert(posteriors.cols() == group_path_cluster_estimates.path_group_sets.size());
 
     discrete_distribution<uint32_t> path_group_set_sampler(posteriors.row(0).data(), posteriors.row(0).data() + posteriors.row(0).size());
@@ -620,7 +623,7 @@ void NestedPathAbundanceEstimator::sampleGroupPathIndices(vector<vector<uint32_t
 
 void NestedPathAbundanceEstimator::samplePathSubsetIndices(spp::sparse_hash_map<vector<uint32_t>, uint32_t> * path_subset_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<vector<uint32_t> > & path_groups, mt19937 * mt_rng) const {
 
-    const Eigen::RowVectorXd & posteriors = group_path_cluster_estimates.posteriors;
+    const Utils::RowVectorXd & posteriors = group_path_cluster_estimates.posteriors;
     assert(posteriors.cols() == group_path_cluster_estimates.path_group_sets.size());
 
     discrete_distribution<uint32_t> path_group_set_sampler(posteriors.row(0).data(), posteriors.row(0).data() + posteriors.row(0).size());
@@ -677,9 +680,9 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
         assert(!path_subset.first.empty());
         assert(path_subset.second > 0);
 
-        Eigen::ColMatrixXd subset_read_path_probs;
-        Eigen::ColVectorXd subset_noise_probs;
-        Eigen::RowVectorXui subset_read_counts;
+        Utils::ColMatrixXd subset_read_path_probs;
+        Utils::ColVectorXd subset_noise_probs;
+        Utils::RowVectorXui subset_read_counts;
 
         constructPartialProbabilityMatrix(&subset_read_path_probs, &subset_noise_probs, &subset_read_counts, cluster_probs, path_subset.first, path_cluster_estimates->paths.size());
 

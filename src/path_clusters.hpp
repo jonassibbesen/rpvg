@@ -16,7 +16,7 @@ class PathClusters {
 
     public: 
 
-        PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, spp::sparse_hash_map<gbwt::SearchState, uint32_t> * search_to_path_index);
+        PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index);
 
         void addNodeClusters(const PathsIndex & paths_index);
 
@@ -31,23 +31,6 @@ class PathClusters {
     	void createPathClusters(const vector<spp::sparse_hash_set<uint32_t> > & connected_paths);
         void mergeClusters(const vector<spp::sparse_hash_set<uint32_t> > & connected_clusters);
 };
-
-namespace std {
-
-    template<> 
-    struct hash<gbwt::SearchState>
-    {
-        size_t operator()(gbwt::SearchState const & search_state) const
-        {
-            size_t seed = 0;
-            spp::hash_combine(seed, search_state.node);
-            spp::hash_combine(seed, search_state.range.first);
-            spp::hash_combine(seed, search_state.range.second);
-
-            return seed;
-        }
-    };
-}
 
 
 #endif

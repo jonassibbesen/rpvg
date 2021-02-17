@@ -12,10 +12,10 @@ TEST_CASE("FragmentLengthDist is valid normal distribution") {
     REQUIRE(fragment_length_dist.isValid());	
     REQUIRE(fragment_length_dist.maxLength() == 20);
 
-    REQUIRE(doubleCompare(fragment_length_dist.logProb(9), -1.737085713764618));
-    REQUIRE(doubleCompare(fragment_length_dist.logProb(15), -4.737085713764618));
-    REQUIRE(doubleCompare(fragment_length_dist.logProb(9), fragment_length_dist.logProb(11)));
-    REQUIRE(doubleCompare(fragment_length_dist.logProb(10000), -12475014.11208571307361));
+    REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(9), -1.737085713764618));
+    REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(15), -4.737085713764618));
+    REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(9), fragment_length_dist.logProb(11)));
+    REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(10000), -12475014.11208571307361));
 
 }
 
@@ -32,7 +32,7 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Alignm
 	    )";
 
 	    vg::Alignment alignment;
-	    json2pb(alignment, alignment_str);
+	    Utils::json2pb(alignment, alignment_str);
 
 	    REQUIRE(!fragment_length_dist.parseAlignment(alignment));	
 	}
@@ -46,7 +46,7 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Alignm
 	    )";
 
 	    vg::Alignment alignment;
-	    json2pb(alignment, alignment_str);
+	    Utils::json2pb(alignment, alignment_str);
 
 	    REQUIRE(!fragment_length_dist.parseAlignment(alignment));	
 	}
@@ -60,11 +60,11 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Alignm
 	    )";
 
 	    vg::Alignment alignment;
-	    json2pb(alignment, alignment_str);
+	    Utils::json2pb(alignment, alignment_str);
 
 	    REQUIRE(fragment_length_dist.parseAlignment(alignment));
-	    REQUIRE(doubleCompare(fragment_length_dist.mean(), 10));
-	    REQUIRE(doubleCompare(fragment_length_dist.sd(), 2));
+	    REQUIRE(Utils::doubleCompare(fragment_length_dist.mean(), 10));
+	    REQUIRE(Utils::doubleCompare(fragment_length_dist.sd(), 2));
 	}
 }
 
@@ -81,7 +81,7 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Multip
 	    )";
 
 	    vg::MultipathAlignment alignment;
-	    json2pb(alignment, alignment_str);
+	    Utils::json2pb(alignment, alignment_str);
 
 	    REQUIRE(!fragment_length_dist.parseMultipathAlignment(alignment));	
 	}
@@ -95,11 +95,11 @@ TEST_CASE("Fragment length distribution parameters can be parsed from vg::Multip
 	    )";
 
 	    vg::MultipathAlignment alignment;
-	    json2pb(alignment, alignment_str);
+	    Utils::json2pb(alignment, alignment_str);
 
 	    REQUIRE(fragment_length_dist.parseMultipathAlignment(alignment));
-	    REQUIRE(doubleCompare(fragment_length_dist.mean(), 10));
-	    REQUIRE(doubleCompare(fragment_length_dist.sd(), 2));
+	    REQUIRE(Utils::doubleCompare(fragment_length_dist.mean(), 10));
+	    REQUIRE(Utils::doubleCompare(fragment_length_dist.sd(), 2));
 	}
 }
 

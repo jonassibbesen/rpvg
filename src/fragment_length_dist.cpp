@@ -171,7 +171,7 @@ double FragmentLengthDist::logProb(const uint32_t value) const {
     
     } else {
 
-        return log_normal_pdf<double>(value, mean_, sd_);
+        return Utils::log_normal_pdf<double>(value, mean_, sd_);
     }
 }
 
@@ -191,7 +191,7 @@ void FragmentLengthDist::setLogProbBuffer(const uint32_t size) {
 
     for (size_t i = 0; i < size; ++i) {
 
-        log_prob_buffer.at(i) = log_normal_pdf<double>(i, mean_, sd_);
+        log_prob_buffer.at(i) = Utils::log_normal_pdf<double>(i, mean_, sd_);
     }
 }
 

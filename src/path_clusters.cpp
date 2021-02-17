@@ -9,83 +9,73 @@
 static const uint32_t paths_per_mutex = 500;
 static const uint32_t clusters_per_mutex = 100;
 
-PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index, spp::sparse_hash_map<gbwt::SearchState, uint32_t> * search_to_path_index) : num_threads(num_threads_in), num_paths(paths_index.index().metadata.paths()) {
+PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index) : num_threads(num_threads_in), num_paths(paths_index.numberOfPaths()) {
 
     vector<spp::sparse_hash_set<uint32_t> > connected_paths(num_paths, spp::sparse_hash_set<uint32_t>());
     vector<mutex> connected_paths_mutexes(ceil(num_paths / static_cast<double>(paths_per_mutex)));
 
     #pragma omp parallel num_threads(num_threads)
     {
-        spp::sparse_hash_map<gbwt::SearchState, uint32_t> thread_search_to_path_index;
-
         #pragma omp for schedule(static, 1)
         for (size_t i = 0; i < num_threads; ++i) {
 
-            uint32_t cur_align_paths_index_pos = 0;
+            auto align_paths_index_it = align_paths_index.begin();
+            advance(align_paths_index_it, i);
 
-            for (auto & align_paths: align_paths_index) {
+            uint32_t cur_align_paths_idx = i; 
 
-                assert(!align_paths.first.empty());
+            while (cur_align_paths_idx < align_paths_index.size()) {
 
-                if (cur_align_paths_index_pos % num_threads == i) { 
+                assert(align_paths_index_it->first.size() > 1);
+                assert(align_paths_index_it->first.back().gbwt_search.first.empty());
 
-                    uint32_t anchor_path_id = 0;
+                uint32_t anchor_path_id = 0;
 
-                    for (size_t j = 0; j < align_paths.first.size(); ++j) {
+                for (size_t j = 0; j < align_paths_index_it->first.size() - 1; ++j) {
 
-                        auto align_path_ids = paths_index.locatePathIds(align_paths.first.at(j).search_state);
+                    auto align_path_ids = paths_index.locatePathIds(align_paths_index_it->first.at(j).gbwt_search);
+                    assert(!align_path_ids.empty());
 
-                        if (j == 0) {
+                    if (j == 0) {
 
-                            anchor_path_id = align_path_ids.front();
-                            thread_search_to_path_index.emplace(align_paths.first.at(j).search_state, anchor_path_id);
-                        }
+                        anchor_path_id = align_path_ids.front();
+                    }
 
-                        auto anchor_path_mutex_idx = floor(anchor_path_id / static_cast<double>(paths_per_mutex));
+                    auto anchor_path_mutex_idx = floor(anchor_path_id / static_cast<double>(paths_per_mutex));
 
-                        for (auto & path_id: align_path_ids) {
+                    for (auto & path_id: align_path_ids) {
 
-                            if (anchor_path_id != path_id) {
+                        if (anchor_path_id != path_id) {
 
-                                auto path_mutex_idx = floor(path_id / static_cast<double>(paths_per_mutex));
+                            auto path_mutex_idx = floor(path_id / static_cast<double>(paths_per_mutex));
 
-                                if (path_mutex_idx != anchor_path_mutex_idx) {
+                            if (path_mutex_idx != anchor_path_mutex_idx) {
 
-                                    lock(connected_paths_mutexes.at(anchor_path_mutex_idx), connected_paths_mutexes.at(path_mutex_idx));
+                                lock(connected_paths_mutexes.at(anchor_path_mutex_idx), connected_paths_mutexes.at(path_mutex_idx));
 
-                                } else {
+                            } else {
 
-                                    connected_paths_mutexes.at(anchor_path_mutex_idx).lock();
-                                }
-                                                        
-                                if (connected_paths.at(anchor_path_id).emplace(path_id).second) {
+                                connected_paths_mutexes.at(anchor_path_mutex_idx).lock();
+                            }
+                                                    
+                            if (connected_paths.at(anchor_path_id).emplace(path_id).second) {
 
-                                    connected_paths.at(path_id).emplace(anchor_path_id);
-                                }
+                                connected_paths.at(path_id).emplace(anchor_path_id);
+                            }
 
-                                connected_paths_mutexes.at(anchor_path_mutex_idx).unlock();
+                            connected_paths_mutexes.at(anchor_path_mutex_idx).unlock();
 
-                                if (path_mutex_idx != anchor_path_mutex_idx) {
+                            if (path_mutex_idx != anchor_path_mutex_idx) {
 
-                                    connected_paths_mutexes.at(path_mutex_idx).unlock();
-                                }
+                                connected_paths_mutexes.at(path_mutex_idx).unlock();
                             }
                         }
                     }
                 }
 
-                ++cur_align_paths_index_pos;
+                advance(align_paths_index_it, num_threads);
+                cur_align_paths_idx += num_threads;
             }
-        }
-
-        #pragma omp critical
-        { 
-            for (auto & path: thread_search_to_path_index) {
-
-                search_to_path_index->emplace(path);
-            }
-
-            thread_search_to_path_index.clear();    
         }
     }
 
@@ -103,18 +93,20 @@ void PathClusters::addNodeClusters(const PathsIndex & paths_index) {
         for (size_t i = 1; i <= paths_index.numberOfNodes(); ++i) {
 
             vector<vector<gbwt::size_type> > node_path_id_sets;
-            auto gbwt_search = paths_index.index().find(gbwt::Node::encode(i, false));
 
-            if (!gbwt_search.empty()) {
+            pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
+            paths_index.find(&gbwt_search, gbwt::Node::encode(i, false));
+
+            if (!gbwt_search.first.empty()) {
 
                 node_path_id_sets.emplace_back(paths_index.locatePathIds(gbwt_search));
             }
 
-            if (!paths_index.index().bidirectional()) {
+            if (!paths_index.bidirectional()) {
 
-                gbwt_search = paths_index.index().find(gbwt::Node::encode(i, true));
+                paths_index.find(&gbwt_search, gbwt::Node::encode(i, true));
 
-                if (!gbwt_search.empty()) {
+                if (!gbwt_search.first.empty()) {
 
                     node_path_id_sets.emplace_back(paths_index.locatePathIds(gbwt_search));
                 }
