@@ -27,7 +27,7 @@ rpvg -g graph.xg -p paths.gbwt -a alignments.gam -o rpvg_results -i <inference-m
 
 The prefix used for all output files are given using `-o`. The number of threads can be given using `-t`. 
 
-####Paths:
+#### Paths:
 
 The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). To decrease the computation time of *rpvg* it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. `vg gbwt` as part of the [vg toolkit](https://github.com/vgteam/vg) can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
