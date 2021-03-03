@@ -328,7 +328,7 @@ void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path
 
         for (auto & path_idx: path_cluster_estimates->path_group_sets.at(i)) {
 
-            group_read_probs += read_path_probs.col(path_idx);
+            group_read_probs += (read_path_probs.col(path_idx) / static_cast<double>(group_size));
         }
 
         path_cluster_estimates->posteriors(0, i) = read_counts.cast<double>() * group_read_probs.array().log().matrix();
@@ -360,8 +360,6 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
     auto path_log_freqs = calcPathLogFrequences(path_counts);
     assert(path_log_freqs.size() == path_counts.size());
 
-    double max_path_log_freq = *max_element(path_log_freqs.begin(), path_log_freqs.end());
-
     path_cluster_estimates->initEstimates(0, 0, true);
 
     assert(path_cluster_estimates->posteriors.cols() == 0);
@@ -384,7 +382,7 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
 
     sort(marginal_posteriors.rbegin(), marginal_posteriors.rend());
 
-    const Utils::ColVectorXd max_read_probs = read_path_probs.rowwise().maxCoeff();
+    const Utils::ColVectorXd max_read_probs = (read_path_probs.rowwise().maxCoeff() / static_cast<double>(group_size));
 
     vector<double> log_likelihoods;
 
@@ -396,10 +394,10 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
         const uint32_t first_path_idx = marginal_posteriors.at(i).second;
 
         Utils::ColVectorXd group_read_probs_base = noise_probs;
-        group_read_probs_base += read_path_probs.col(first_path_idx);
+        group_read_probs_base += (read_path_probs.col(first_path_idx) / static_cast<double>(group_size));
 
         double max_log_likelihood_best = read_counts.cast<double>() * (group_read_probs_base + max_read_probs).array().log().matrix();
-        max_log_likelihood_best += path_log_freqs.at(first_path_idx) + max_path_log_freq + log(2);
+        max_log_likelihood_best += path_log_freqs.at(first_path_idx) + log(2);
 
         if (max_log_likelihood_best - max_log_likelihood < max_log_likelihood_diff) {
 
@@ -410,7 +408,7 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
 
             const uint32_t second_path_idx = marginal_posteriors.at(j).second;
 
-            log_likelihoods.emplace_back(read_counts.cast<double>() * (group_read_probs_base + read_path_probs.col(second_path_idx)).array().log().matrix());
+            log_likelihoods.emplace_back(read_counts.cast<double>() * (group_read_probs_base + (read_path_probs.col(second_path_idx) / static_cast<double>(group_size))).array().log().matrix());
             log_likelihoods.back() += path_log_freqs.at(first_path_idx) + path_log_freqs.at(second_path_idx) + log(Utils::numPermutations(vector<uint32_t>({first_path_idx, second_path_idx})));
 
             if (log_likelihoods.back() - max_log_likelihood < max_log_likelihood_diff) {
@@ -493,7 +491,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
                         if (j != k) {
 
-                            group_read_probs += read_path_probs.col(cur_sampled_group_paths.at(k));
+                            group_read_probs += (read_path_probs.col(cur_sampled_group_paths.at(k)) / static_cast<double>(group_size));
                         }
                     }
 
@@ -504,7 +502,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
 
                     for (uint32_t k = 0; k < read_path_probs.cols(); ++k) {
 
-                        group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + read_path_probs.col(k)).array().log().matrix());
+                        group_probs.emplace_back(read_counts.cast<double>() * (group_read_probs + (read_path_probs.col(k) / static_cast<double>(group_size))).array().log().matrix());
                         group_probs.back() += path_log_freqs.at(k);
 
                         sum_log_group_probs = Utils::add_log(sum_log_group_probs, group_probs.back());
