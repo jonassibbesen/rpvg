@@ -388,7 +388,7 @@ void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterE
             Utils::ColVectorXd group_noise_probs;
             Utils::RowVectorXd group_read_counts;        
 
-            constructPartialProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group, path_cluster_estimates->paths.size(), true);
+            constructPartialProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group, path_cluster_estimates->paths.size(), false);
 
             addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, group_noise_probs);
             readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
