@@ -45,7 +45,6 @@ struct PathClusterEstimates {
     Eigen::RowVectorXd posteriors;
     Eigen::RowVectorXd abundances;
 
-    double total_read_count;
     vector<CountSamples> gibbs_read_count_samples;
 
     vector<vector<uint32_t> > path_group_sets;
@@ -94,8 +93,6 @@ struct PathClusterEstimates {
             posteriors = Eigen::RowVectorXd::Constant(num_components, 1);
             abundances = Eigen::RowVectorXd::Constant(num_components, 1 / static_cast<float>(num_components));
         }
-
-        total_read_count = 0;
     }
 };
 

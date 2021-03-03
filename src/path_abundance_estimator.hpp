@@ -33,9 +33,8 @@ class PathAbundanceEstimator : public PathEstimator {
         const uint32_t num_gibbs_samples;
         const uint32_t gibbs_thin_its;
 
-        void EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXui & read_counts) const;
-        void gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXui & read_counts, const double gamma, mt19937 * mt_rng) const;
-        void removeNoiseAndRenormalizeAbundances(PathClusterEstimates * path_cluster_estimates) const;    
+        void EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXui & read_counts, const double total_read_count) const;
+        void gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXui & read_counts, const double total_read_count, const double gamma, mt19937 * mt_rng) const;
         void updateEstimates(PathClusterEstimates * path_cluster_estimates, const PathClusterEstimates & new_path_cluster_estimates, const vector<uint32_t> & path_indices, const uint32_t sample_count) const;
 };
 

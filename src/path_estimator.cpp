@@ -12,7 +12,7 @@ static const double burn_it_scaling = 0.025;
 static const uint32_t min_gibbs_it = 100; 
 static const double gibbs_it_scaling = 0.05; 
 
-bool probabilityCountRowSorter(const pair<Utils::RowVectorXd, uint32_t> & lhs, const pair<Utils::RowVectorXd, uint32_t> & rhs) { 
+bool probabilityCountRowSorter(const pair<Utils::RowVectorXd, double> & lhs, const pair<Utils::RowVectorXd, double> & rhs) { 
 
     assert(lhs.first.cols() == rhs.first.cols());
 
@@ -24,7 +24,7 @@ bool probabilityCountRowSorter(const pair<Utils::RowVectorXd, uint32_t> & lhs, c
         }         
     }   
 
-    if (lhs.second != rhs.second) {
+    if (!Utils::doubleCompare(lhs.second, rhs.second)) {
 
         return (lhs.second < rhs.second);
     }
@@ -78,7 +78,7 @@ void PathEstimator::constructProbabilityMatrix(Utils::ColMatrixXd * read_path_pr
     }
 }
 
-void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const {
+void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXui * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths, const bool remove_zero_row) const {
 
     assert(!cluster_probs.empty());
     assert(!path_ids.empty());
@@ -94,9 +94,13 @@ void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_
     *noise_probs = Utils::ColVectorXd(cluster_probs.size());
     *read_counts = Utils::RowVectorXui(cluster_probs.size());
 
-    for (size_t i = 0; i < cluster_probs.size(); ++i) {
+    uint32_t row_idx = 0;
 
-        for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
+    for (auto & cluster_prob: cluster_probs) {
+
+        double row_prob_sum = 0;
+
+        for (auto & path_probs: cluster_prob.pathProbs()) {
 
             for (auto & path: path_probs.second) {
     
@@ -104,13 +108,28 @@ void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_
 
                 if (path_id_idx.at(path) >= 0) {
 
-                    (*read_path_probs)(i, path_id_idx.at(path)) = path_probs.first;
+                    (*read_path_probs)(row_idx, path_id_idx.at(path)) = path_probs.first;
+                    row_prob_sum += path_probs.first;
                 }
             }
         }
 
-        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProb();
-        (*read_counts)(0, i) = cluster_probs.at(i).readCount();
+        (*noise_probs)(row_idx, 0) = cluster_prob.noiseProb();
+        (*read_counts)(0, row_idx) = cluster_prob.readCount();
+
+        if (!remove_zero_row || !Utils::doubleCompare(row_prob_sum, 0)) {
+
+            row_idx++;
+        }
+    }
+
+    assert(row_idx <= cluster_probs.size());
+
+    if (row_idx < cluster_probs.size()) {
+
+        read_path_probs->conservativeResize(row_idx, read_path_probs->cols());
+        noise_probs->conservativeResize(row_idx, noise_probs->cols());
+        read_counts->conservativeResize(read_counts->rows(), row_idx);
     }
 }
 
@@ -167,12 +186,41 @@ void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Utils::ColMatrixXd * r
     read_path_probs->col(read_path_probs->cols() - 1) = noise_probs;
 }
 
+void PathEstimator::detractNoiseAndNormalizeProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXui * read_counts) const {
+
+    if (read_path_probs->rows() > 0) {
+
+        assert(noise_probs->rows() > 0);
+        assert(read_counts->cols() > 0);
+
+        if (Utils::doubleCompare((*noise_probs)(noise_probs->rows() - 1, 0), 1)) {
+
+            read_path_probs->conservativeResize(read_path_probs->rows() - 1, read_path_probs->cols());
+            noise_probs->conservativeResize(noise_probs->rows() - 1, noise_probs->cols());
+            read_counts->conservativeResize(read_counts->rows(), read_counts->cols() - 1);
+        }
+
+        if (read_path_probs->rows() > 0) {
+
+            *read_path_probs = read_path_probs->array().colwise() / read_path_probs->rowwise().sum().array();
+
+            assert(noise_probs->rows() > 0);
+            assert(read_counts->cols() > 0);
+
+            *read_counts = read_counts->array() - read_counts->array() * noise_probs->transpose().array();
+
+            assert(noise_probs->maxCoeff() < 1);
+            assert(read_counts->minCoeff() > 0);
+        }
+    }
+}
+
 void PathEstimator::rowSortProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::RowVectorXui * read_counts) const {
 
     assert(read_path_probs->rows() > 0);
     assert(read_path_probs->rows() == read_counts->cols());
 
-    vector<pair<Utils::RowVectorXd, uint32_t> > read_path_prob_rows;
+    vector<pair<Utils::RowVectorXd, double> > read_path_prob_rows;
     read_path_prob_rows.reserve(read_path_probs->rows());
 
     for (size_t i = 0; i < read_path_probs->rows(); ++i) {
