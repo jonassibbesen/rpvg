@@ -867,7 +867,7 @@ int main(int argc, char* argv[]) {
 
                     if (path_cluster_estimates.second.paths.at(i).effective_length > 0) {
 
-                        total_transcript_count += (path_cluster_estimates.second.abundances(0, i) * path_cluster_estimates.second.total_read_count / path_cluster_estimates.second.paths.at(i).effective_length);
+                        total_transcript_count += (path_cluster_estimates.second.abundances(0, i) / path_cluster_estimates.second.paths.at(i).effective_length);
                     }
                 }
             }

@@ -12,7 +12,7 @@ TEST_CASE("Weighted minimum path cover can be found") {
     Utils::ColMatrixXb read_path_cover(4, 3);
 	read_path_cover << 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1;
 
-	Utils::RowVectorXui read_counts(1, 4);
+	Utils::RowVectorXd read_counts(1, 4);
 	read_counts << 1, 3, 1, 5;
 
 	Utils::RowVectorXd path_weights(1, 3);

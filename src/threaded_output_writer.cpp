@@ -194,7 +194,7 @@ void PosteriorEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
 AbundanceEstimatesWriter::AbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const double total_transcript_count_in) : ThreadedOutputWriter(filename_prefix + ".txt", "wu", num_threads), total_transcript_count(total_transcript_count_in) {
 
     auto out_sstream = new stringstream;
-    *out_sstream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypeProbability\tClusterRelativeExpression\tReadCount\tTPM" << endl;
+    *out_sstream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypeProbability\tReadCount\tTPM" << endl;
     output_queue->push(out_sstream);
 }
 
@@ -210,7 +210,7 @@ void AbundanceEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
 
             if (cur_estimates.second.paths.at(i).effective_length > 0) {
 
-                transcript_count = cur_estimates.second.abundances(0, i) * cur_estimates.second.total_read_count / cur_estimates.second.paths.at(i).effective_length;
+                transcript_count = cur_estimates.second.abundances(0, i) / cur_estimates.second.paths.at(i).effective_length;
             }
 
             *out_sstream << cur_estimates.second.paths.at(i).name;
@@ -219,7 +219,6 @@ void AbundanceEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
             *out_sstream << "\t" << cur_estimates.second.paths.at(i).effective_length;
             *out_sstream << "\t" << cur_estimates.second.posteriors(0, i);
             *out_sstream << "\t" << cur_estimates.second.abundances(0, i);
-            *out_sstream << "\t" << cur_estimates.second.abundances(0, i) * cur_estimates.second.total_read_count;
             *out_sstream << "\t" << transcript_count / total_transcript_count * pow(10, 6);
             *out_sstream << endl;
         }

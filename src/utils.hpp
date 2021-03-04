@@ -52,10 +52,7 @@ inline ostream & operator<<(ostream & os, const vector<T> & values) {
 
 namespace Utils {
 
-    typedef Eigen::Matrix<uint32_t, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXui;
     typedef Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXd;
-
-    typedef Eigen::Matrix<uint32_t, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXui;
     typedef Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXd;
     
     typedef Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> ColMatrixXb;
