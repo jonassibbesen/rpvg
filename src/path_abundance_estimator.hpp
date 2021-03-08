@@ -19,7 +19,7 @@ class PathAbundanceEstimator : public PathEstimator {
 
     public:
 
-        PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_em_conv, const uint32_t num_gibbs_samples_in, const uint32_t gibbs_thin_its_in, const double prob_precision);
+        PathAbundanceEstimator(const uint32_t max_em_its_in, const double max_rel_em_conv_in, const uint32_t num_gibbs_samples_in, const uint32_t gibbs_thin_its_in, const double prob_precision);
         virtual ~PathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);
@@ -27,8 +27,7 @@ class PathAbundanceEstimator : public PathEstimator {
     protected: 
 
         const uint32_t max_em_its;
-        const double em_conv_min_exp;
-        const double em_conv_max_rel_diff;
+        const double max_rel_em_conv;
 
         const uint32_t num_gibbs_samples;
         const uint32_t gibbs_thin_its;
@@ -42,7 +41,7 @@ class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
+        MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
         ~MinimumPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);
@@ -54,7 +53,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t group_size_in, const uint32_t num_subset_samples_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
+        NestedPathAbundanceEstimator(const uint32_t group_size_in, const uint32_t num_subset_samples_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
         ~NestedPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);

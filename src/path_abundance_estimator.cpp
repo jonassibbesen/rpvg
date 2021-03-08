@@ -8,11 +8,13 @@
 
 
 const uint32_t min_em_conv_its = 10;
-const double min_em_abundances = pow(10, -8);
+const double min_em_abundance = 1e-8;
 
 const double abundance_gibbs_gamma = 1;
 
-PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double min_em_conv, const uint32_t num_gibbs_samples_in, const uint32_t gibbs_thin_its_in, const double prob_precision) : max_em_its(max_em_its_in), em_conv_min_exp(min_em_conv), em_conv_max_rel_diff(min_em_conv), num_gibbs_samples(num_gibbs_samples_in), gibbs_thin_its(gibbs_thin_its_in), PathEstimator(prob_precision) {}
+const uint32_t min_rel_likelihood_scaling = 1e4;
+
+PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double max_rel_em_conv_in, const uint32_t num_gibbs_samples_in, const uint32_t gibbs_thin_its_in, const double prob_precision) : max_em_its(max_em_its_in), max_rel_em_conv(max_rel_em_conv_in), num_gibbs_samples(num_gibbs_samples_in), gibbs_thin_its(gibbs_thin_its_in), PathEstimator(prob_precision) {}
 
 void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
@@ -78,11 +80,11 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
 
         for (size_t i = 0; i < path_cluster_estimates->abundances.cols(); ++i) {
 
-            if (path_cluster_estimates->abundances(0, i) > em_conv_min_exp) {
+            if (path_cluster_estimates->abundances(0, i) >= min_em_abundance) {
 
-                auto relative_abundances_diff = fabs(path_cluster_estimates->abundances(0, i) - prev_abundances(0, i)) / path_cluster_estimates->abundances(0, i);
+                auto rel_abundance_diff = fabs(path_cluster_estimates->abundances(0, i) - prev_abundances(0, i)) / path_cluster_estimates->abundances(0, i);
 
-                if (relative_abundances_diff > em_conv_max_rel_diff) {
+                if (rel_abundance_diff > max_rel_em_conv) {
 
                     has_converged = false;
                     break;
@@ -111,7 +113,7 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
 
     for (size_t i = 0; i < path_cluster_estimates->abundances.cols(); ++i) {
 
-        if (path_cluster_estimates->abundances(0, i) < min_em_abundances) {
+        if (path_cluster_estimates->abundances(0, i) < min_em_abundance) {
 
             path_cluster_estimates->abundances(0, i) = 0;                    
         } 
@@ -215,7 +217,7 @@ void PathAbundanceEstimator::updateEstimates(PathClusterEstimates * path_cluster
 }
 
 
-MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : PathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
+MinimumPathAbundanceEstimator::MinimumPathAbundanceEstimator(const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : PathAbundanceEstimator(max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
 
 void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
@@ -355,7 +357,7 @@ vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const U
 }
 
 
-NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t group_size_in, const uint32_t num_subset_samples_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double min_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : group_size(group_size_in), num_subset_samples(num_subset_samples_in), infer_collapsed(infer_collapsed_in), use_group_post_gibbs(use_group_post_gibbs_in), PathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
+NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t group_size_in, const uint32_t num_subset_samples_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : group_size(group_size_in), num_subset_samples(num_subset_samples_in), infer_collapsed(infer_collapsed_in), use_group_post_gibbs(use_group_post_gibbs_in), PathAbundanceEstimator(max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
 
 void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
@@ -414,7 +416,8 @@ void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterE
 
                 if (group_size == 2) {
 
-                    calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, group_size);
+                    const double min_rel_likelihood = 1 / static_cast<double>(min_rel_likelihood_scaling * num_subset_samples); 
+                    calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, group_path_counts, group_size, min_rel_likelihood);
 
                 } else {
 
@@ -471,7 +474,8 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
 
             if (group_size == 2) {
 
-                calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, group_size);
+                const double min_rel_likelihood = 1 / static_cast<double>(min_rel_likelihood_scaling * num_subset_samples); 
+                calculatePathGroupPosteriorsBounded(&group_path_cluster_estimates, group_read_path_probs, group_noise_probs, group_read_counts, path_source_groups.second, group_size, min_rel_likelihood);
 
             } else {
 

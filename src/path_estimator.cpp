@@ -1,8 +1,6 @@
 
 #include "path_estimator.hpp"
 
-static const double max_log_likelihood_diff = log(pow(10, -16));
-
 static const uint32_t min_gibbs_chains = 10;
 static const double gibbs_chain_scaling = 0.01;
 
@@ -397,13 +395,15 @@ void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path
     }
 }
 
-void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXd & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) const {
+void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXd & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size, const double min_rel_likelihood) const {
 
     assert(read_path_probs.rows() > 0);
     assert(read_path_probs.rows() == noise_probs.rows());
     assert(read_path_probs.rows() == read_counts.cols());
     assert(read_path_probs.cols() == path_counts.size());
     assert(group_size == 2);
+
+    const double min_log_likelihood_diff = log(min_rel_likelihood);
 
     auto path_log_freqs = calcPathLogFrequences(path_counts);
     assert(path_log_freqs.size() == path_counts.size());
@@ -435,7 +435,6 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
     vector<double> log_likelihoods;
 
     double max_log_likelihood = numeric_limits<double>::lowest(); 
-    double sum_log_posterior = numeric_limits<double>::lowest();
 
     for (uint32_t i = 0; i < marginal_posteriors.size(); ++i) {
 
@@ -444,10 +443,10 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
         Utils::ColVectorXd group_read_probs_base = noise_probs;
         group_read_probs_base += (read_path_probs.col(first_path_idx) / static_cast<double>(group_size));
 
-        double max_log_likelihood_best = read_counts * (group_read_probs_base + max_read_probs).array().log().matrix();
-        max_log_likelihood_best += path_log_freqs.at(first_path_idx) + log(2);
+        double optimal_log_likelihood = read_counts * (group_read_probs_base + max_read_probs).array().log().matrix();
+        optimal_log_likelihood += path_log_freqs.at(first_path_idx) + log(2);
 
-        if (max_log_likelihood_best - max_log_likelihood < max_log_likelihood_diff) {
+        if (optimal_log_likelihood - max_log_likelihood < min_log_likelihood_diff) {
 
             continue;
         }
@@ -459,17 +458,27 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
             log_likelihoods.emplace_back(read_counts * (group_read_probs_base + (read_path_probs.col(second_path_idx) / static_cast<double>(group_size))).array().log().matrix());
             log_likelihoods.back() += path_log_freqs.at(first_path_idx) + path_log_freqs.at(second_path_idx) + log(Utils::numPermutations(vector<uint32_t>({first_path_idx, second_path_idx})));
 
-            if (log_likelihoods.back() - max_log_likelihood < max_log_likelihood_diff) {
+            if (log_likelihoods.back() - max_log_likelihood < min_log_likelihood_diff) {
 
                 log_likelihoods.pop_back();
                 continue;
             }
 
             max_log_likelihood = max(max_log_likelihood, log_likelihoods.back());
-            sum_log_posterior = Utils::add_log(sum_log_posterior, log_likelihoods.back());
-
             path_cluster_estimates->path_group_sets.emplace_back(vector<uint32_t>({first_path_idx, second_path_idx}));
         }
+    }
+
+    double sum_log_posterior = numeric_limits<double>::lowest();
+
+    for (size_t i = 0; i < log_likelihoods.size(); ++i) {
+
+        if (log_likelihoods.at(i) - max_log_likelihood < min_log_likelihood_diff) {
+
+            log_likelihoods.at(i) = numeric_limits<double>::lowest();
+        }
+
+        sum_log_posterior = Utils::add_log(sum_log_posterior, log_likelihoods.at(i));        
     }
 
     assert(log_likelihoods.size() == path_cluster_estimates->path_group_sets.size());

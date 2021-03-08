@@ -2,6 +2,8 @@
 #include "path_posterior_estimator.hpp"
 
 
+const uint32_t min_rel_likelihood = 1e-8;
+
 PathPosteriorEstimator::PathPosteriorEstimator(const double prob_precision) : PathEstimator(prob_precision) {}
 
 void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
@@ -62,7 +64,7 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
 
             if (group_size == 2) {
 
-                calculatePathGroupPosteriorsBounded(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, group_size);
+                calculatePathGroupPosteriorsBounded(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, group_size, min_rel_likelihood);
             
             } else {
 
