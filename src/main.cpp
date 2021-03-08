@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Quantification")
       ("n,num-gibbs-samples", "number of Gibbs samples per haplotype sample (written to <prefix>_gibbs.txt.gz)", cxxopts::value<uint32_t>()->default_value("0"))
       ("max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
-      ("min-em-conv", "minimum abundance value used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
+      ("max-rel-em-conv", "maximum relative abundance used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
       ("gibbs-thin-its", "number of Gibbs iterations between samples", cxxopts::value<uint32_t>()->default_value("25"))      
       ;
 
@@ -490,7 +490,7 @@ int main(int argc, char* argv[]) {
 
     const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
     const uint32_t max_em_its = option_results["max-em-its"].as<uint32_t>();
-    const double min_em_conv = option_results["min-em-conv"].as<double>();
+    const double max_rel_em_conv = option_results["max-rel-em-conv"].as<double>();
     const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
 
     double time_init = gbwt::readTimer();
@@ -653,15 +653,15 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "transcripts") {
 
-        path_estimator = new PathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        path_estimator = new PathAbundanceEstimator(max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
 
     } else if (inference_model == "strains") {
 
-        path_estimator = new MinimumPathAbundanceEstimator(max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        path_estimator = new MinimumPathAbundanceEstimator(max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, !ind_hap_inference, use_hap_gibbs, max_em_its, min_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, !ind_hap_inference, use_hap_gibbs, max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
         haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), !ind_hap_inference);
 
     } else {
