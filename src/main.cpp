@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Quantification")
       ("n,num-gibbs-samples", "number of Gibbs samples per haplotype sample (written to <prefix>_gibbs.txt.gz)", cxxopts::value<uint32_t>()->default_value("0"))
       ("max-em-its", "maximum number of quantification EM iterations", cxxopts::value<uint32_t>()->default_value("10000"))
-      ("max-rel-em-conv", "maximum relative abundance used for EM convergence", cxxopts::value<double>()->default_value("0.01"))
+      ("max-rel-em-conv", "maximum relative abundance difference used for EM convergence", cxxopts::value<double>()->default_value("0.001"))
       ("gibbs-thin-its", "number of Gibbs iterations between samples", cxxopts::value<uint32_t>()->default_value("25"))      
       ;
 
