@@ -18,7 +18,7 @@ ExternalProject_Add(gbwt-proj
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND cmake .
-  BUILD_COMMAND make
+  BUILD_COMMAND $(MAKE)
   INSTALL_COMMAND ""
 )
 
@@ -27,8 +27,8 @@ ExternalProject_Add(htslib-proj
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND ""
-  BUILD_COMMAND make
-  INSTALL_COMMAND make prefix=${PROJECT_SOURCE_DIR}/deps/htslib/ install
+  BUILD_COMMAND $(MAKE)
+  INSTALL_COMMAND $(MAKE) prefix=${PROJECT_SOURCE_DIR}/deps/htslib/ install
 )
 
 ExternalProject_Add(libvgio-proj
@@ -36,7 +36,7 @@ ExternalProject_Add(libvgio-proj
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
   CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=TRUE -DCMAKE_PREFIX_PATH=${PROJECT_SOURCE_DIR}/deps/htslib .
-  BUILD_COMMAND make
+  BUILD_COMMAND $(MAKE)
   INSTALL_COMMAND ""
   DEPENDS htslib-proj
 )
