@@ -28,7 +28,7 @@ The prefix used for all output files are given using `-o`. The number of threads
 
 #### Paths:
 
-The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses see [Transcriptomic analyses wiki](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) on the vg github for more information on how to construct a GBWT with transcript paths. 
+The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). 
 
 To decrease the computation time of rpvg it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
