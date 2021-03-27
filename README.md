@@ -1,6 +1,6 @@
 # rpvg
 
-Method for inferring path posterior probabilities and abundances from pangenome graph read alignments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) pangenome graph (in xg format) the probability of it originating from each path (in a [GBWT](https://github.com/jltsiren/gbwt) index) is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a separate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The read-path probabilities are used to calculate posterior probabilities and infer abundances for each group independently. The method supports mapped reads in both the standard [vg](https://github.com/vgteam/vg) alignment format (.gam) and the [vg mpmap](https://github.com/vgteam/vg/wiki/Multipath-alignments-and-vg-mpmap) multipath alignment format (.gmap). 
+Method for inferring path posterior probabilities and abundances from pangenome graph read alignments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) pangenome graph (in xg format) the probability of it originating from each path (in a [GBWT](https://github.com/jltsiren/gbwt) index) is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a separate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The read-path probabilities are used to calculate posterior probabilities and infer abundances for each group independently. The method supports mapped reads in both the standard vg alignment format (.gam) and the [vg mpmap](https://github.com/vgteam/vg/wiki/Multipath-alignments-and-vg-mpmap) multipath alignment format (.gmap). 
 
 
 ### Compilation
@@ -28,7 +28,9 @@ The prefix used for all output files are given using `-o`. The number of threads
 
 #### Paths:
 
-The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). To decrease the computation time of rpvg it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in [vg](https://github.com/vgteam/vg) can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
+The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses see [Transcriptomic analyses wiki](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) on the vg github for more information on how to construct a GBWT with transcript paths. 
+
+To decrease the computation time of rpvg it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
 #### Inference models:
 
