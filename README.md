@@ -1,6 +1,6 @@
 # rpvg
 
-Method for inferring path posterior probabilities and abundances from pangenome graph read alignments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) pangenome graph (in xg format) the probability of it originating from each path (in a [GBWT](https://github.com/jltsiren/gbwt) index) is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a separate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The read-path probabilities are used to calculate posterior probabilities and infer abundances for each group independently. The method supports mapped reads in both the standard *vg* alignment format (.gam) and the [*vg mpmap*](https://github.com/vgteam/vg/wiki/Multipath-alignments-and-vg-mpmap) multipath alignment format (.gmap). 
+Method for inferring path posterior probabilities and abundances from pangenome graph read alignments. For each paired-end read mapped to a [vg](https://github.com/vgteam/vg) pangenome graph (in xg format) the probability of it originating from each path (in a [GBWT](https://github.com/jltsiren/gbwt) index) is calculated. The mapping score and fragment length distribution is used when calculating this probability, and the mapping quality is converted into a separate "noise" probability. Furthermore, paths that share reads with positive probability are clustered into the same group. The read-path probabilities are used to calculate posterior probabilities and infer abundances for each group independently. The method supports mapped reads in both the standard [vg](https://github.com/vgteam/vg) alignment format (.gam) and the [vg mpmap](https://github.com/vgteam/vg/wiki/Multipath-alignments-and-vg-mpmap) multipath alignment format (.gmap). 
 
 
 ### Compilation
@@ -28,7 +28,7 @@ The prefix used for all output files are given using `-o`. The number of threads
 
 #### Paths:
 
-The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). To decrease the computation time of *rpvg* it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. `vg gbwt` as part of the [vg toolkit](https://github.com/vgteam/vg) can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
+The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). To decrease the computation time of rpvg it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in [vg](https://github.com/vgteam/vg) can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
 #### Inference models:
 
@@ -40,17 +40,17 @@ The method currently contains four different inference models. Each model have b
 
 * `strains`: Infers abundances using a combination of weighted minimum path cover and EM. **Note that this algorithm has not yet been properly evaluated**.
 
-* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default, equivalent haplotypes are inferred for all clustered transcripts, however independent inference of haplotypes for each transcript can be enabled using the `--ind-hap-inference` option. The inference algorithm requires a file (`-f`) containing the haplotype and transcript origin of each path (`--write-info` output from *vg rna*). 
+* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default, equivalent haplotypes are inferred for all clustered transcripts, however independent inference of haplotypes for each transcript can be enabled using the `--ind-hap-inference` option. The inference algorithm requires a file (`-f`) containing the haplotype and transcript origin of each path (`--write-info` output from [vg rna](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses)). 
 
 #### Alignment types:
 
 * Use `-e` if the reads are from a strand-specific protocol. Supports the following library types: 
   * Use value `fr` when the first read is from the forward strand and the second read is from the reverse strand.
   * Use value `rf` when the first read is from the reverse stand and the second read is from the forward strand.
-* Use `-u` if the input alignments are single-path (*.gam*) format. Default is multipath alignments from [*vg mpmap*](https://github.com/vgteam/vg/wiki/Multipath-alignments-and-vg-mpmap).
+* Use `-u` if the input alignments are single-path (*.gam*) format. Default is multipath alignments from [vg mpmap](https://github.com/vgteam/vg/wiki/Multipath-alignments-and-vg-mpmap).
 * Use `-s` for single-end reads. Note that the fragment length distribution will still be used for calculating the effective path length.
 * Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but does not use effective path length normalization.
 
 #### Fragment length distribution:
 
-The fragment length distribution parameters are learned by *rpvg*. However, in order to learn this the maximum expected fragment length is needed. This is calculated from the expected fragment length distribution mean and standard deviation, which can be given using `-m` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. The input parameters (`-m` and `-d`) are overwritten by the values estimated by *rpvg* when calculating the read-path probabilities. When the input is single-end reads (`-s`) the expected mean (`-m`) and standard deviation (`-d`) is required as it can not be estimated by *rpvg* and is needed for the effective path length calculation.
+The fragment length distribution parameters are learned by rpvg. However, in order to learn this the maximum expected fragment length is needed. This is calculated from the expected fragment length distribution mean and standard deviation, which can be given using `-m` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. The input parameters (`-m` and `-d`) are overwritten by the values estimated by rpvg when calculating the read-path probabilities. When the input is single-end reads (`-s`) the expected mean (`-m`) and standard deviation (`-d`) is required as it can not be estimated by rpvg and is needed for the effective path length calculation.
