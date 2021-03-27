@@ -28,7 +28,7 @@ The prefix used for all output files are given using `-o`. The number of threads
 
 #### Paths:
 
-The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). 
+The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses a GBWT with transcript paths can be created using the `vg rna` subcommand in vg. See [Transcriptomic analyses wiki](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) on the vg github for more information on how to use `vg rna`. 
 
 To decrease the computation time of rpvg it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index. The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
@@ -42,7 +42,7 @@ The method currently contains four different inference models. Each model have b
 
 * `strains`: Infers abundances using a combination of weighted minimum path cover and EM. **Note that this algorithm has not yet been properly evaluated**.
 
-* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default, equivalent haplotypes are inferred for all clustered transcripts, however independent inference of haplotypes for each transcript can be enabled using the `--ind-hap-inference` option. The inference algorithm requires a file (`-f`) containing the haplotype and transcript origin of each path (`--write-info` output from [vg rna](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses)). 
+* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default, equivalent haplotypes are inferred for all clustered transcripts, however independent inference of haplotypes for each transcript can be enabled using the `--ind-hap-inference` option. The inference algorithm requires a file (`-f`) containing the haplotype and transcript origin of each path (`--write-info` output from `vg rna`). 
 
 #### Alignment types:
 
