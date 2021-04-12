@@ -478,7 +478,7 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
 
-        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcript inference mode (--write-info output from vg rna)." << endl;
+        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcripts inference mode (--write-info output from vg rna)." << endl;
         return 1;
     }
 
@@ -673,14 +673,14 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("write-probs")) {
 
-        prob_cluster_writer = new ProbabilityClusterWriter(option_results["output-prefix"].as<string>(), num_threads, prob_precision);
+        prob_cluster_writer = new ProbabilityClusterWriter(option_results["output-prefix"].as<string>() + "_probs", num_threads, prob_precision);
     }
 
-    GibbsSamplesWriter * gibbs_samples_writer = nullptr;
+    ReadCountGibbsSamplesWriter * read_count_samples_writer = nullptr;
 
     if (num_gibbs_samples > 0) {
 
-        gibbs_samples_writer = new GibbsSamplesWriter(option_results["output-prefix"].as<string>(), num_threads, num_gibbs_samples);
+        read_count_samples_writer = new ReadCountGibbsSamplesWriter(option_results["output-prefix"].as<string>() + "_gibbs", num_threads, num_gibbs_samples);
     }
 
     vector<vector<pair<uint32_t, PathClusterEstimates> > > threaded_path_cluster_estimates(num_threads);
@@ -811,9 +811,9 @@ int main(int argc, char* argv[]) {
             prob_cluster_writer->addCluster(read_path_cluster_probs, path_cluster_estimates->back().second.paths);
         } 
 
-        if (gibbs_samples_writer) {
+        if (read_count_samples_writer) {
 
-            gibbs_samples_writer->addSamples(path_cluster_estimates->back());
+            read_count_samples_writer->addSamples(path_cluster_estimates->back());
             path_cluster_estimates->back().second.gibbs_read_count_samples.clear();
         }
 
@@ -834,24 +834,24 @@ int main(int argc, char* argv[]) {
         prob_cluster_writer->close();
     } 
 
-    if (gibbs_samples_writer) {
+    if (read_count_samples_writer) {
 
-        gibbs_samples_writer->close();
+        read_count_samples_writer->close();
     }
 
     delete prob_cluster_writer;
-    delete gibbs_samples_writer;
+    delete read_count_samples_writer;
 
     if (inference_model == "haplotypes") {
 
-        PosteriorEstimatesWriter posterior_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, prob_precision);
+        HaplotypeEstimatesWriter haplotype_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, prob_precision);
 
         for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
 
-            posterior_estimates_writer.addEstimates(path_cluster_estimates);
+            haplotype_estimates_writer.addEstimates(path_cluster_estimates);
         }
 
-        posterior_estimates_writer.close();
+        haplotype_estimates_writer.close();
 
     } else {
 
@@ -873,14 +873,31 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        AbundanceEstimatesWriter abundance_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, total_transcript_count);
+        if (inference_model == "haplotype-transcripts") {
 
-        for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
+            HaplotypeAbundanceEstimatesWriter haplotype_abundance_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, total_transcript_count);
+            HaplotypeEstimatesWriter haplotype_estimates_writer(option_results["output-prefix"].as<string>() + "_haps", num_threads, ploidy, prob_precision);
 
-            abundance_estimates_writer.addEstimates(path_cluster_estimates);
+            for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
+
+                haplotype_abundance_estimates_writer.addEstimates(path_cluster_estimates);
+                haplotype_estimates_writer.addEstimates(path_cluster_estimates);
+            }
+
+            haplotype_abundance_estimates_writer.close();
+            haplotype_estimates_writer.close();
+        
+        } else {
+
+            AbundanceEstimatesWriter abundance_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, total_transcript_count);
+
+            for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
+
+                abundance_estimates_writer.addEstimates(path_cluster_estimates);
+            }
+
+            abundance_estimates_writer.close();
         }
-    
-        abundance_estimates_writer.close();
     }    
 
     double time_end = gbwt::readTimer();
