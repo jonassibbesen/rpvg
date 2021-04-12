@@ -35,7 +35,7 @@ void ThreadedOutputWriter::write() {
 }
 
 
-ProbabilityClusterWriter::ProbabilityClusterWriter(const string filename_prefix, const uint32_t num_threads, const double prob_precision_in) : ThreadedOutputWriter(filename_prefix + "_probs.txt.gz", "wg", num_threads), prob_precision(prob_precision_in), prob_precision_digits(ceil(-1 * log10(prob_precision))) {}
+ProbabilityClusterWriter::ProbabilityClusterWriter(const string filename_prefix, const uint32_t num_threads, const double prob_precision_in) : ThreadedOutputWriter(filename_prefix + ".txt.gz", "wg", num_threads), prob_precision(prob_precision_in), prob_precision_digits(ceil(-1 * log10(prob_precision))) {}
 
 void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & read_path_cluster_probs, const vector<PathInfo> & cluster_paths) {
 
@@ -93,7 +93,7 @@ void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & 
 }
 
 
-GibbsSamplesWriter::GibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in) : ThreadedOutputWriter(filename_prefix + "_gibbs.txt.gz", "wg", num_threads), num_gibbs_samples(num_gibbs_samples_in) {
+ReadCountGibbsSamplesWriter::ReadCountGibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in) : ThreadedOutputWriter(filename_prefix + ".txt.gz", "wg", num_threads), num_gibbs_samples(num_gibbs_samples_in) {
 
     auto out_sstream = new stringstream;
     *out_sstream << "Name\tClusterID\tHaplotypeSampleId";
@@ -107,7 +107,7 @@ GibbsSamplesWriter::GibbsSamplesWriter(const string filename_prefix, const uint3
     output_queue->push(out_sstream);
 }
 
-void GibbsSamplesWriter::addSamples(const pair<uint32_t, PathClusterEstimates> & path_cluster_estimate) {
+void ReadCountGibbsSamplesWriter::addSamples(const pair<uint32_t, PathClusterEstimates> & path_cluster_estimate) {
 
     if (!path_cluster_estimate.second.gibbs_read_count_samples.empty()) {
 
@@ -148,7 +148,7 @@ void GibbsSamplesWriter::addSamples(const pair<uint32_t, PathClusterEstimates> &
 }
 
 
-PosteriorEstimatesWriter::PosteriorEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in) : ThreadedOutputWriter(filename_prefix + ".txt", "wu", num_threads), ploidy(ploidy_in), min_posterior(min_posterior_in) {
+HaplotypeEstimatesWriter::HaplotypeEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in) : ThreadedOutputWriter(filename_prefix + ".txt", "wu", num_threads), ploidy(ploidy_in), min_posterior(min_posterior_in) {
 
     auto out_sstream = new stringstream;
 
@@ -157,31 +157,36 @@ PosteriorEstimatesWriter::PosteriorEstimatesWriter(const string filename_prefix,
         *out_sstream << "Name" << i + 1 << "\t";
     }
 
-    *out_sstream << "ClusterID\tPosteriorProbability" << endl;
+    *out_sstream << "ClusterID\tProbability" << endl;
     output_queue->push(out_sstream);
 }
 
-void PosteriorEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates) {
+void HaplotypeEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates) {
 
     auto out_sstream = new stringstream;
 
     for (auto & cur_estimates: path_cluster_estimates) {
 
-        assert(cur_estimates.second.path_group_sets.size() == cur_estimates.second.posteriors.cols());
+        assert(cur_estimates.second.posteriors.size() == cur_estimates.second.path_group_sets.size());
 
         for (size_t i = 0; i < cur_estimates.second.path_group_sets.size(); ++i) {
 
-            assert(cur_estimates.second.path_group_sets.at(i).size() == ploidy);
+            assert(cur_estimates.second.path_group_sets.at(i).size() <= ploidy);
 
-            if (cur_estimates.second.posteriors(0, i) >= min_posterior) {
+            if (cur_estimates.second.posteriors.at(i) >= min_posterior) {
 
                 for (auto & path_idx: cur_estimates.second.path_group_sets.at(i)) {
 
                     *out_sstream << cur_estimates.second.paths.at(path_idx).name << "\t";
                 }
 
+                for (size_t j = cur_estimates.second.path_group_sets.at(i).size(); j < ploidy; ++j) {
+
+                    *out_sstream << ".\t";
+                }
+
                 *out_sstream << cur_estimates.first;
-                *out_sstream << "\t" << cur_estimates.second.posteriors(0, i);
+                *out_sstream << "\t" << cur_estimates.second.posteriors.at(i);
                 *out_sstream << endl;
             }
         }
@@ -194,7 +199,7 @@ void PosteriorEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
 AbundanceEstimatesWriter::AbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const double total_transcript_count_in) : ThreadedOutputWriter(filename_prefix + ".txt", "wu", num_threads), total_transcript_count(total_transcript_count_in) {
 
     auto out_sstream = new stringstream;
-    *out_sstream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypeProbability\tReadCount\tTPM" << endl;
+    *out_sstream << "Name\tClusterID\tLength\tEffectiveLength\tReadCount\tTPM" << endl;
     output_queue->push(out_sstream);
 }
 
@@ -217,7 +222,6 @@ void AbundanceEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
             *out_sstream << "\t" << cur_estimates.first;
             *out_sstream << "\t" << cur_estimates.second.paths.at(i).length;
             *out_sstream << "\t" << cur_estimates.second.paths.at(i).effective_length;
-            *out_sstream << "\t" << cur_estimates.second.posteriors(0, i);
             *out_sstream << "\t" << cur_estimates.second.abundances(0, i);
             *out_sstream << "\t" << transcript_count / total_transcript_count * pow(10, 6);
             *out_sstream << endl;
@@ -227,3 +231,59 @@ void AbundanceEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClus
     output_queue->push(out_sstream);
 }
 
+
+HaplotypeAbundanceEstimatesWriter::HaplotypeAbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double total_transcript_count_in) : ThreadedOutputWriter(filename_prefix + ".txt", "wu", num_threads), ploidy(ploidy_in), total_transcript_count(total_transcript_count_in) {
+
+    auto out_sstream = new stringstream;
+    *out_sstream << "Name\tClusterID\tLength\tEffectiveLength\tHaplotypeProbability\tReadCount\tTPM" << endl;
+    output_queue->push(out_sstream);
+}
+
+void HaplotypeAbundanceEstimatesWriter::addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates) {
+
+    auto out_sstream = new stringstream;
+
+    for (auto & cur_estimates: path_cluster_estimates) {
+
+        vector<double> haplotype_probs(cur_estimates.second.paths.size(), 0);
+
+        assert(cur_estimates.second.posteriors.size() == cur_estimates.second.path_group_sets.size());
+
+        for (size_t i = 0; i < cur_estimates.second.posteriors.size(); ++i) {
+
+            assert(!cur_estimates.second.path_group_sets.at(i).empty());
+            assert(cur_estimates.second.path_group_sets.at(i).size() <= ploidy);
+
+            haplotype_probs.at(cur_estimates.second.path_group_sets.at(i).front()) += cur_estimates.second.posteriors.at(i);
+
+            for (size_t j = 1; j < cur_estimates.second.path_group_sets.at(i).size(); ++j) {
+
+                if (cur_estimates.second.path_group_sets.at(i).at(j) != cur_estimates.second.path_group_sets.at(i).at(j - 1)) {
+
+                    haplotype_probs.at(cur_estimates.second.path_group_sets.at(i).at(j)) += cur_estimates.second.posteriors.at(i);
+                }
+            }
+        }
+
+        for (size_t i = 0; i < cur_estimates.second.paths.size(); ++i) {
+
+            double transcript_count = 0;
+
+            if (cur_estimates.second.paths.at(i).effective_length > 0) {
+
+                transcript_count = cur_estimates.second.abundances(0, i) / cur_estimates.second.paths.at(i).effective_length;
+            }
+
+            *out_sstream << cur_estimates.second.paths.at(i).name;
+            *out_sstream << "\t" << cur_estimates.first;
+            *out_sstream << "\t" << cur_estimates.second.paths.at(i).length;
+            *out_sstream << "\t" << cur_estimates.second.paths.at(i).effective_length;
+            *out_sstream << "\t" << haplotype_probs.at(i);
+            *out_sstream << "\t" << cur_estimates.second.abundances(0, i);
+            *out_sstream << "\t" << transcript_count / total_transcript_count * pow(10, 6);
+            *out_sstream << endl;
+        }
+    }
+    
+    output_queue->push(out_sstream);
+}

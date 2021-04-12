@@ -52,12 +52,12 @@ class ProbabilityClusterWriter : public ThreadedOutputWriter {
         const uint32_t prob_precision_digits;
 };
 
-class GibbsSamplesWriter : public ThreadedOutputWriter {
+class ReadCountGibbsSamplesWriter : public ThreadedOutputWriter {
 
     public: 
         
-        GibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in);
-        ~GibbsSamplesWriter() {};
+        ReadCountGibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in);
+        ~ReadCountGibbsSamplesWriter() {};
 
         void addSamples(const pair<uint32_t, PathClusterEstimates> & path_cluster_estimate);
 
@@ -66,12 +66,12 @@ class GibbsSamplesWriter : public ThreadedOutputWriter {
         const uint32_t num_gibbs_samples; 
 };
 
-class PosteriorEstimatesWriter : public ThreadedOutputWriter {
+class HaplotypeEstimatesWriter : public ThreadedOutputWriter {
 
     public: 
         
-        PosteriorEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in);
-        ~PosteriorEstimatesWriter() {};
+        HaplotypeEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in);
+        ~HaplotypeEstimatesWriter() {};
 
         void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
 
@@ -84,14 +84,29 @@ class PosteriorEstimatesWriter : public ThreadedOutputWriter {
 class AbundanceEstimatesWriter : public ThreadedOutputWriter {
 
     public: 
-    	
-    	AbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const double total_transcript_count_in);
-    	~AbundanceEstimatesWriter() {};
+        
+        AbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const double total_transcript_count_in);
+        ~AbundanceEstimatesWriter() {};
 
         void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
 
     private:
 
+        const double total_transcript_count;
+};
+
+class HaplotypeAbundanceEstimatesWriter : public ThreadedOutputWriter {
+
+    public: 
+    	
+    	HaplotypeAbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double total_transcript_count_in);
+    	~HaplotypeAbundanceEstimatesWriter() {};
+
+        void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
+
+    private:
+
+        const uint32_t ploidy;
         const double total_transcript_count;
 };
 
