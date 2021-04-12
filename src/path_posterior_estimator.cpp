@@ -2,7 +2,7 @@
 #include "path_posterior_estimator.hpp"
 
 
-const uint32_t min_rel_likelihood = 1e-8;
+const double min_rel_likelihood = 1e-8;
 
 PathPosteriorEstimator::PathPosteriorEstimator(const double prob_precision) : PathEstimator(prob_precision) {}
 
