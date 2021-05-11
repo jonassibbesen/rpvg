@@ -8,7 +8,7 @@
 
 //#define debug
 
-static const int32_t max_score_diff = (Utils::default_match + Utils::default_mismatch) * 4;
+static const int32_t max_score_diff = (Utils::default_match + Utils::default_mismatch) * 2;
 static const int32_t max_noise_score_diff = (Utils::default_match + Utils::default_mismatch) * 2;
 
 
