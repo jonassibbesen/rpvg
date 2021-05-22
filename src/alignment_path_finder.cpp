@@ -1229,6 +1229,11 @@ bool AlignmentPathFinder<AlignmentType>::filterAlignmentSearchPaths(const vector
         if (align_search_path.isComplete()) {
 
             max_min_optim_score_frac = max(max_min_optim_score_frac, align_search_path.minOptimalScoreFraction(optimal_align_scores));
+
+            if (align_search_path.maxSoftclipFraction() > 0) {
+
+                return true;
+            }
         }
     }
 
