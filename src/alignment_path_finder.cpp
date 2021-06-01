@@ -8,12 +8,11 @@
 
 //#define debug
 
-static const int32_t max_score_diff = (Utils::default_match + Utils::default_mismatch) * 4;
 static const int32_t max_noise_score_diff = (Utils::default_match + Utils::default_mismatch) * 2;
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const double min_best_score_filter_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_frag_length(max_pair_frag_length_in), max_partial_offset(max_partial_offset_in), est_missing_noise_prob(est_missing_noise_prob_in), min_best_score_filter(min_best_score_filter_in) {}
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const int32_t max_score_diff_in, const double min_best_score_filter_in) : paths_index(paths_index_in), library_type(library_type_in), max_pair_frag_length(max_pair_frag_length_in), max_partial_offset(max_partial_offset_in), est_missing_noise_prob(est_missing_noise_prob_in), max_score_diff(max_score_diff_in), min_best_score_filter(min_best_score_filter_in) {}
         
 template<class AlignmentType>
 bool AlignmentPathFinder<AlignmentType>::alignmentHasPath(const vg::Alignment & alignment) const {

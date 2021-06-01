@@ -303,7 +303,8 @@ int main(int argc, char* argv[]) {
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("max-par-offset", "maximum start and end offset allowed for partial path alignments", cxxopts::value<uint32_t>()->default_value("4"))
-      ("est-missing-prob", "estimate the probability that the correct alignment path is missing (experimental)", cxxopts::value<bool>())
+      // ("est-missing-prob", "estimate the probability that the correct alignment path is missing (experimental)", cxxopts::value<bool>())
+      ("max-score-diff", "maximum score difference allowed to best alignment path", cxxopts::value<uint32_t>()->default_value(to_string((Utils::default_match + Utils::default_mismatch) * 4)))
       ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0.9"))
       ("min-noise-prob", "minimum probability that alignment is incorrect", cxxopts::value<double>()->default_value("1e-4"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
@@ -457,8 +458,13 @@ int main(int argc, char* argv[]) {
     cerr << endl;
 
     const uint32_t max_partial_offset = option_results["max-par-offset"].as<uint32_t>();
-    const bool est_missing_noise_prob = option_results.count("est-missing-prob");
+    
+    // const bool est_missing_noise_prob = option_results.count("est-missing-prob");
+    const uint32_t est_missing_noise_prob = false;
   
+    const uint32_t max_score_diff = option_results["max-score-diff"].as<uint32_t>();
+    assert(max_score_diff >= 0 && max_score_diff <= numeric_limits<int32_t>::max());
+
     const double min_best_score_filter = option_results["filt-best-score"].as<double>();
     assert(min_best_score_filter >= 0 && min_best_score_filter <= 1);
 
@@ -544,7 +550,7 @@ int main(int argc, char* argv[]) {
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -557,7 +563,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, min_best_score_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
