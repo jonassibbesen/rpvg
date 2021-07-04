@@ -28,13 +28,13 @@ rpvg -g graph.xg -p paths.gbwt -a alignments.gamp -o rpvg_results -i <inference-
 
 The prefix used for all output files are given using `-o`. The number of threads can be given using `-t`. 
 
-A small example dataset containing 36,120 haplotype-specific transcripts and 100,000 read pairs is available under [example](https://github.com/jonassibbesen/rpvg/tree/master/example). To infer the expression of the haplotype-specific transcripts in the small pantranscriptome use the following command within the [example](https://github.com/jonassibbesen/rpvg/tree/master/example) folder:
+A small example dataset containing 36,120 haplotype-specific transcripts and 100,000 read pairs is available under [example](https://github.com/jonassibbesen/rpvg/tree/master/example). To infer the expression of the haplotype-specific transcripts in the small pantranscriptome use the following command within the *example* folder:
 
 ```
 ../bin/rpvg -g graph.xg -p pantranscriptome.gbwt -f <(zcat pantranscriptome.txt.gz) -a mpmap_align.gamp -o rpvg --inference-model haplotype-transcripts -t 4
 ```
 
-This should take around a minute to run using 4 threads and will create two files: 
+This should take less than a minute to run using 4 threads and will create two files: 
 
 * *rpvg.txt*: Contains the estimated haplotype probability and transcript expression for each haplotype-specific transcript in the pantranscriptome.
 * *rpvg_haps.txt*: Contains the estimated probability of each haplotype combination (e.g. diplotype) for all transcripts (only combinations with a probability above zero are shown). 
