@@ -26,6 +26,8 @@ rpvg -g graph.xg -p paths.gbwt -a alignments.gamp -o rpvg_results -i <inference-
 
 The prefix used for all output files are given using `-o`. The number of threads can be given using `-t`. 
 
+An example showing how to run rpvg using a small dataset is avalible here. 
+
 #### Paths:
 
 The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses a GBWT with transcript paths can be created using the `vg rna` subcommand in [vg](https://github.com/vgteam/vg). See [Transcriptomic analyses](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) wiki on the vg github for more information on how to use `vg rna`. 
