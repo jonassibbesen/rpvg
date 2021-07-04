@@ -5,12 +5,14 @@ Method for inferring path posterior probabilities and abundances from pangenome 
 
 ### Compilation
 
-*rpvg* requires that [protobuf](https://github.com/protocolbuffers/protobuf) and OpenMP are installed before compilation. 
+*rpvg* requires that [CMake](https://cmake.org) (3.10 or higher), [protobuf](https://github.com/protocolbuffers/protobuf) (version 3) and OpenMP are installed before compilation. 
 
 1. `git clone --recursive https://github.com/jonassibbesen/rpvg.git`
 2. `cd rpvg && mkdir build && cd build`
 3. `cmake ..`
 4. `make -j <threads>` 
+
+Compiling *rpvg* should take 5-10 minutes using 4 threads (`-j`). *rpvg* has been successfully built and tested on Linux (CentOS Linux 7 with GCC 8.1.0 and Ubuntu 18.04 with GCC 7.5.0) and Mac (macOS 10.14.6 with Clang 10.0.1). 
 
 ### Docker container
 
@@ -26,11 +28,22 @@ rpvg -g graph.xg -p paths.gbwt -a alignments.gamp -o rpvg_results -i <inference-
 
 The prefix used for all output files are given using `-o`. The number of threads can be given using `-t`. 
 
+A small example dataset containing 36,120 haplotype-specific transcripts and 100,000 read pairs is available under [example](https://github.com/jonassibbesen/rpvg/tree/master/example). To infer the expression of the haplotype-specific transcripts in the small pantranscriptome use the following command within the [example](https://github.com/jonassibbesen/rpvg/tree/master/example) folder:
+
+```
+../bin/rpvg -g graph.xg -p pantranscriptome.gbwt -f <(zcat pantranscriptome.txt.gz) -a mpmap_align.gamp -o rpvg --inference-model haplotype-transcripts -t 4
+```
+
+This should take around a minute to run using 4 threads and will create two files: 
+
+* *rpvg.txt*: Contains the estimated haplotype probability and transcript expression for each haplotype-specific transcript in the pantranscriptome.
+* *rpvg_haps.txt*: Contains the estimated probability of each haplotype combination (e.g. diplotype) for all transcripts (only combinations with a probability above zero are shown). 
+
 #### Paths:
 
 The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses a GBWT with transcript paths can be created using the `vg rna` subcommand in [vg](https://github.com/vgteam/vg). See [Transcriptomic analyses](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) wiki on the vg github for more information on how to use `vg rna`. 
 
-To decrease the computation time of rpvg it is recommeded that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index (see [VG GBWT Subcommand](https://github.com/vgteam/vg/wiki/VG-GBWT-Subcommand) wiki on the vg github). The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
+To decrease the computation time of rpvg it is recommended that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index (see [VG GBWT Subcommand](https://github.com/vgteam/vg/wiki/VG-GBWT-Subcommand) wiki on the vg github). The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
 #### Inference models:
 

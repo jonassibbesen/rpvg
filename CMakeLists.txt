@@ -78,7 +78,9 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/include
   ${PROJECT_SOURCE_DIR}/deps/eigen
   ${PROJECT_SOURCE_DIR}/deps/xg/src
-  ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmultimap/src
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmulti/src
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmulti/deps/mio/include
+  ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmulti/deps/atomic_queue/include/atomic_queue
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/ips4o
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/gfakluge/src/tinyFA
