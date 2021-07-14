@@ -739,7 +739,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                 cerr << paired_align_search_paths.at(debug_idx2) << endl;
             }
 
-            uint32_t max_score = 0;
+            int32_t max_score = 0;
             int32_t max_score_idx = -1;
 
             for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
