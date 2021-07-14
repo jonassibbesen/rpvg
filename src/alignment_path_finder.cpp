@@ -671,7 +671,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
     for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
 
-        if (!paired_align_search_paths.at(i).isComplete()) {
+        if (paired_align_search_paths.at(i).isComplete()) {
 
             for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).gbwt_search)) {
 
