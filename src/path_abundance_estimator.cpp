@@ -448,7 +448,74 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
 
     if (!cluster_probs.empty()) {
 
+        bool debug = false;     
+        string debug_path = "";        
+
+        for (auto & path: path_cluster_estimates->paths) {        
+
+            if (
+                path.name == "ENST00000646664.1_7" || 
+                path.name == "ENST00000646664.1_65" || 
+                path.name == "ENST00000514057.1_538" || 
+                path.name == "ENST00000514057.1_539" || 
+                path.name == "ENST00000253788.11_22" || 
+                path.name == "ENST00000380394.8_59" || 
+                path.name == "ENST00000380394.8_60" || 
+                path.name == "ENST00000436459.2_60" || 
+                path.name == "ENST00000414273.1_511" || 
+                path.name == "ENST00000414273.1_514" || 
+                path.name == "ENST00000457540.1_490" || 
+                path.name == "ENST00000457540.1_727" || 
+                path.name == "ENST00000417615.1_14" || 
+                path.name == "ENST00000471152.1_17" || 
+                path.name == "ENST00000309311.6_144" ||
+                path.name == "ENST00000646664.1_74" || 
+                path.name == "ENST00000514057.1_60" || 
+                path.name == "ENST00000253788.11_9" || 
+                path.name == "ENST00000380394.8_1" || 
+                path.name == "ENST00000436459.2_34" || 
+                path.name == "ENST00000414273.1_175" || 
+                path.name == "ENST00000457540.1_175" || 
+                path.name == "ENST00000417615.1_4" || 
+                path.name == "ENST00000471152.1_15" || 
+                path.name == "ENST00000309311.6_42"   
+            ) {       
+
+                debug = true;     
+                debug_path = path.name;        
+
+                break;        
+            }      
+        }
+
         auto path_source_groups = findPathSourceGroups(path_cluster_estimates->paths);
+
+        if (debug) {        
+
+            debug_mutex.lock();     
+
+            cerr << "### " << debug_path << endl;      
+            cerr << path_source_groups.first.size() << endl;      
+            cerr << findPathGroups(path_cluster_estimates->paths).size() << endl;      
+
+            uint32_t a = 0;       
+
+            for (size_t i = 0; i < path_source_groups.first.size(); ++i) {        
+
+                cerr << "#" <<  i << ": ";        
+
+                for (auto & p: path_source_groups.first.at(i)) {      
+
+                    cerr << path_cluster_estimates->paths.at(p).name << " ";      
+                }      
+
+                cerr << "\n" << path_source_groups.second.at(i) << endl;      
+                a += path_source_groups.second.at(i);      
+            }      
+
+            cerr << a << endl;        
+            cerr << cluster_probs.size() << " " << path_cluster_estimates->paths.size() << endl;       
+        }
 
         Utils::ColMatrixXd group_read_path_probs;
         Utils::ColVectorXd group_noise_probs;
@@ -457,7 +524,20 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
         constructGroupedProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, path_source_groups.first, path_cluster_estimates->paths.size());
         
         addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, group_noise_probs);
+
+        if (debug) {                
+
+            cerr << "### " << debug_path << endl;
+            cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;      
+        }
+
         readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
+
+        if (debug) {                
+
+            cerr << "### " << debug_path << endl;      
+            cerr << group_read_path_probs.rows() << " " << group_read_path_probs.cols() << endl;           
+         }
 
         group_noise_probs = group_read_path_probs.col(group_read_path_probs.cols() - 1);
         group_read_path_probs.conservativeResize(group_read_path_probs.rows(), group_read_path_probs.cols() - 1);
@@ -481,8 +561,42 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
             }
         }
 
+        if (debug) {                
+
+            cerr << "### " << debug_path << endl;      
+            cerr << group_path_cluster_estimates.posteriors.size() << endl;       
+            cerr << group_path_cluster_estimates.path_group_sets.size() << endl;       
+
+            for (size_t i = 0; i < group_path_cluster_estimates.path_group_sets.size(); ++i) {        
+
+                if (group_path_cluster_estimates.posteriors.at(i) > pow(10, -4)) {        
+
+                    cerr << group_path_cluster_estimates.posteriors.at(i) << ": " << group_path_cluster_estimates.path_group_sets.at(i) << endl;      
+                }      
+            }               
+
+        }
+
         spp::sparse_hash_map<vector<uint32_t>, uint32_t> path_subset_samples;
         samplePathSubsetIndices(&path_subset_samples, group_path_cluster_estimates, path_source_groups.first, mt_rng);
+
+        if (debug) {                
+
+            cerr << "### " << debug_path << endl;
+            cerr << path_subset_samples.size() << endl;       
+
+            for (auto & bla: path_subset_samples) {       
+
+                for (auto & bla2: bla.first) {   
+
+                    cerr << path_cluster_estimates->paths.at(bla2).name << "," << bla2 << " ";    
+                }
+
+                cerr << ": " << bla.second << endl;      
+            }      
+
+            debug_mutex.unlock();     
+         }
 
         inferPathSubsetAbundance(path_cluster_estimates, cluster_probs, mt_rng, path_subset_samples);
 
