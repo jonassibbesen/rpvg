@@ -738,11 +738,27 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
                 cerr << paired_align_search_paths.at(debug_idx2) << endl;
             }
-            
+
+            uint32_t max_score = 0;
+            int32_t max_score_idx = -1;
+
+            for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+
+                if (paired_align_search_paths.at(i).scoreSum() > max_score) {
+
+                    max_score = paired_align_search_paths.at(i).scoreSum();
+                    max_score_idx = i;
+                }
+            }
+
             cerr << endl;
-            cerr << paired_align_search_paths << endl;
-            cerr << endl;
-            cerr << paired_align_paths << endl;
+            cerr << max_score_idx << endl;
+
+            if (max_score_idx >= 0) {
+
+                cerr << paired_align_search_paths.at(max_score_idx) << endl;
+            }
+
             cerr << endl;
             cerr << Utils::pb2json(alignment_1) << endl;
             cerr << Utils::string_quality_short_to_char(alignment_1.quality()) << endl;
