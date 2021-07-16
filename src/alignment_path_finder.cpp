@@ -663,108 +663,117 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
    // Debug start
 
-    string debug_paths = "";
-    int32_t debug_idx = -1;
+    if (!paired_align_paths.empty()) {
 
-    string debug_paths2 = "";
-    int32_t debug_idx2 = -1;
+        if (paired_align_paths.back().min_mapq >= 10 & exp(paired_align_paths.back().score_sum * Utils::noise_score_log_base) <= 0.1) {
 
-    for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+            string debug_paths = "";
+            int32_t debug_idx = -1;
 
-        if (paired_align_search_paths.at(i).isComplete()) {
-
-            for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).gbwt_search)) {
-
-                auto path_name = paths_index.pathName(path_id);
-
-                if (
-                    path_name == "ENST00000646664.1_7" || 
-                    path_name == "ENST00000646664.1_65" || 
-                    path_name == "ENST00000514057.1_538" || 
-                    path_name == "ENST00000514057.1_539" || 
-                    path_name == "ENST00000253788.11_22" || 
-                    path_name == "ENST00000380394.8_59" || 
-                    path_name == "ENST00000380394.8_60" || 
-                    path_name == "ENST00000436459.2_60" || 
-                    path_name == "ENST00000414273.1_511" || 
-                    path_name == "ENST00000414273.1_514" || 
-                    path_name == "ENST00000457540.1_490" || 
-                    path_name == "ENST00000457540.1_727" || 
-                    path_name == "ENST00000417615.1_14" || 
-                    path_name == "ENST00000471152.1_17" || 
-                    path_name == "ENST00000309311.6_144"                 
-                ) {   
-
-                    debug_paths = path_name; 
-                    debug_idx = i;         
-                
-                } else if (
-                    path_name == "ENST00000646664.1_74" || 
-                    path_name == "ENST00000514057.1_60" || 
-                    path_name == "ENST00000253788.11_9" || 
-                    path_name == "ENST00000380394.8_1" || 
-                    path_name == "ENST00000436459.2_34" || 
-                    path_name == "ENST00000414273.1_175" || 
-                    path_name == "ENST00000457540.1_175" || 
-                    path_name == "ENST00000417615.1_4" || 
-                    path_name == "ENST00000471152.1_15" || 
-                    path_name == "ENST00000309311.6_42"                 
-                ) {   
-
-                    debug_paths2 = path_name; 
-                    debug_idx2 = i;         
-                }                
-            }
-        }
-    }
-
-    if (debug_idx != debug_idx2) {
-
-        #pragma omp critical
-        {
-            cerr << "\n\n###" << endl;
-            cerr << debug_paths << endl;
-            cerr << debug_idx << endl;
-
-            if (debug_idx >= 0) {
-
-                cerr << paired_align_search_paths.at(debug_idx) << endl;
-            }
-
-            cerr << debug_paths2 << endl;
-            cerr << debug_idx2 << endl;
-
-            if (debug_idx2 >= 0) {
-
-                cerr << paired_align_search_paths.at(debug_idx2) << endl;
-            }
-
-            int32_t max_score = 0;
-            int32_t max_score_idx = -1;
+            string debug_paths2 = "";
+            int32_t debug_idx2 = -1;
 
             for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
 
-                if (paired_align_search_paths.at(i).scoreSum() > max_score) {
+                if (paired_align_search_paths.at(i).isComplete()) {
 
-                    max_score = paired_align_search_paths.at(i).scoreSum();
-                    max_score_idx = i;
+                    for (auto & path_id: paths_index.locatePathIds(paired_align_search_paths.at(i).gbwt_search)) {
+
+                        auto path_name = paths_index.pathName(path_id);
+
+                        if (
+                            path_name == "ENST00000646664.1_7" || 
+                            path_name == "ENST00000646664.1_65" || 
+                            path_name == "ENST00000514057.1_538" || 
+                            path_name == "ENST00000514057.1_539" || 
+                            path_name == "ENST00000253788.11_22" || 
+                            path_name == "ENST00000380394.8_59" || 
+                            path_name == "ENST00000380394.8_60" || 
+                            path_name == "ENST00000436459.2_60" || 
+                            path_name == "ENST00000414273.1_511" || 
+                            path_name == "ENST00000414273.1_514" || 
+                            path_name == "ENST00000457540.1_490" || 
+                            path_name == "ENST00000457540.1_727" || 
+                            path_name == "ENST00000417615.1_14" || 
+                            path_name == "ENST00000471152.1_17" || 
+                            path_name == "ENST00000309311.6_144"                 
+                        ) {   
+
+                            debug_paths = path_name; 
+                            debug_idx = i;         
+                        
+                        } else if (
+                            path_name == "ENST00000646664.1_74" || 
+                            path_name == "ENST00000514057.1_60" || 
+                            path_name == "ENST00000253788.11_9" || 
+                            path_name == "ENST00000380394.8_1" || 
+                            path_name == "ENST00000436459.2_34" || 
+                            path_name == "ENST00000414273.1_175" || 
+                            path_name == "ENST00000457540.1_175" || 
+                            path_name == "ENST00000417615.1_4" || 
+                            path_name == "ENST00000471152.1_15" || 
+                            path_name == "ENST00000309311.6_42"                 
+                        ) {   
+
+                            debug_paths2 = path_name; 
+                            debug_idx2 = i;         
+                        }                
+                    }
                 }
             }
 
-            cerr << endl;
-            cerr << max_score_idx << endl;
+            if (debug_idx != debug_idx2) {
 
-            if (max_score_idx >= 0) {
+                #pragma omp critical
+                {
+                    cerr << "\n\n###" << endl;
+                    cerr << debug_paths << endl;
+                    cerr << debug_idx << endl;
 
-                cerr << paired_align_search_paths.at(max_score_idx) << endl;
+                    if (debug_idx >= 0) {
+
+                        cerr << paired_align_search_paths.at(debug_idx) << endl;
+                    }
+
+                    cerr << debug_paths2 << endl;
+                    cerr << debug_idx2 << endl;
+
+                    if (debug_idx2 >= 0) {
+
+                        cerr << paired_align_search_paths.at(debug_idx2) << endl;
+                    }
+
+                    int32_t max_score = 0;
+                    int32_t max_score_idx = -1;
+
+                    for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
+
+                        if (paired_align_search_paths.at(i).scoreSum() > max_score) {
+
+                            max_score = paired_align_search_paths.at(i).scoreSum();
+                            max_score_idx = i;
+                        }
+                    }
+
+                    cerr << endl;
+                    cerr << max_score_idx << endl;
+
+                    if (max_score_idx >= 0) {
+
+                        cerr << paired_align_search_paths.at(max_score_idx) << endl;
+                    }
+
+                    cerr << endl;
+
+                    cerr << optimalAlignmentScore(alignment_1) << endl;
+                    cerr << Utils::pb2json(alignment_1) << endl;
+                    cerr << Utils::string_quality_short_to_char(alignment_1.quality()) << endl;
+                    cerr << endl;
+                    cerr << optimalAlignmentScore(alignment_2) << endl;
+                    cerr << Utils::pb2json(alignment_2) << endl;
+                    cerr << Utils::string_quality_short_to_char(alignment_2.quality()) << endl;
+                }
             }
-
-            cerr << endl;
-            cerr << Utils::pb2json(alignment_1) << endl;
-            cerr << Utils::string_quality_short_to_char(alignment_1.quality()) << endl;
-            cerr << endl;
-            cerr << Utils::pb2json(alignment_2) << endl;
-            cerr << Utils::string_quality_short_to_char(alignment_2.quality()) << endl;
         }
     }
 
