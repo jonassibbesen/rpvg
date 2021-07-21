@@ -208,61 +208,100 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
 
     spp::sparse_hash_map<string, PathInfo> haplotype_transcript_info;
 
-    ifstream info_file(filename);
-    
-    string line;
-    string element;
+    auto info_file = bgzf_open(filename.c_str(), "r");
+
+    uint32_t buffer_size = 65536;
+    uint32_t read_size = 0;
+
+    char * buffer = new char[buffer_size];
 
     spp::sparse_hash_map<string, uint32_t> transcript_id_index;
     spp::sparse_hash_map<string, uint32_t> haplotype_id_index;
 
-    while (info_file.good()) {
+    bool is_first_line = true;
 
-        getline(info_file, line);
+    stringstream info_sstream;
+    string element;
 
-        if (line.empty()) {
+    while (true) {
+
+        read_size = bgzf_read(info_file, buffer, buffer_size);
+
+        if (read_size == 0) {
+
+            break;
+        }
+
+        uint32_t num_lines = 0;
+
+        for (size_t i = 0; i < read_size; ++i) {
+
+            info_sstream << buffer[i];
+
+            if (buffer[i] == '\n') {
+
+                num_lines += 1;
+            }
+        }
+
+        if (num_lines == 0) {
 
             continue;
         }
 
-        auto line_ss = stringstream(line);
+        for (uint32_t l = 0; l < num_lines; ++l) {
 
-        getline(line_ss, element, '\t');
+            getline(info_sstream, element, '\t');
 
-        if (element == "Name") {
+            if (is_first_line) {
 
-            continue;
-        }
+                assert(element == "Name");
 
-        auto haplotype_transcript_info_it = haplotype_transcript_info.emplace(element, PathInfo(element));
-        assert(haplotype_transcript_info_it.second);
+                is_first_line = false;
+                getline(info_sstream, element);
 
-        getline(line_ss, element, '\t');        
-        getline(line_ss, element, '\t');
-
-        auto transcript_id_index_it = transcript_id_index.emplace(element, transcript_id_index.size());
-        haplotype_transcript_info_it.first->second.group_id = transcript_id_index_it.first->second;
-
-        getline(line_ss, element, '\t');
-        getline(line_ss, element, '\n');
-
-        if (parse_haplotype_ids) {
-
-            for (auto & haplotype: Utils::splitString(element, ',')) {
-
-                auto haplotype_id_index_it = haplotype_id_index.emplace(haplotype, haplotype_id_index.size());
-                assert(haplotype_transcript_info_it.first->second.source_ids.emplace(haplotype_id_index_it.first->second).second);
+                continue;
             }
 
-            haplotype_transcript_info_it.first->second.source_count = haplotype_transcript_info_it.first->second.source_ids.size();
+            auto haplotype_transcript_info_it = haplotype_transcript_info.emplace(element, PathInfo(element));
+            assert(haplotype_transcript_info_it.second);
 
-        } else {
+            getline(info_sstream, element, '\t');        
+            getline(info_sstream, element, '\t');
 
-            haplotype_transcript_info_it.first->second.source_count = count(element.begin(), element.end(), ',') + 1;
+            auto transcript_id_index_it = transcript_id_index.emplace(element, transcript_id_index.size());
+            haplotype_transcript_info_it.first->second.group_id = transcript_id_index_it.first->second;
+
+            getline(info_sstream, element, '\t');
+            getline(info_sstream, element);
+
+            if (parse_haplotype_ids) {
+
+                for (auto & haplotype: Utils::splitString(element, ',')) {
+
+                    auto haplotype_id_index_it = haplotype_id_index.emplace(haplotype, haplotype_id_index.size());
+                    assert(haplotype_transcript_info_it.first->second.source_ids.emplace(haplotype_id_index_it.first->second).second);
+                }
+
+                haplotype_transcript_info_it.first->second.source_count = haplotype_transcript_info_it.first->second.source_ids.size();
+
+            } else {
+
+                haplotype_transcript_info_it.first->second.source_count = count(element.begin(), element.end(), ',') + 1;
+            }
         }
+
+        getline(info_sstream, element);
+
+        info_sstream.clear();
+        info_sstream.str("");
+
+        info_sstream << element;
     }
 
-    info_file.close();
+    delete[] buffer;
+
+    assert(bgzf_close(info_file) == 0);
     return haplotype_transcript_info;
 }
 
@@ -314,8 +353,8 @@ int main(int argc, char* argv[]) {
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("hap-prob-precision", "haplotype probability precision in haplotype-transcript inference", cxxopts::value<double>()->default_value("0.001"))
       ("ind-hap-inference", "infer haplotypes independently for each transcript in haplotype-transcript inference", cxxopts::value<bool>())
-      ("num-hap-samples", "number of haplotyping samples in haplotype-transcript inference", cxxopts::value<uint32_t>()->default_value("1000"))
       ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
       ;
 
@@ -490,13 +529,18 @@ int main(int argc, char* argv[]) {
 
     assert(pre_fragment_length_dist.isValid());
 
+    const double hap_prob_precision = option_results["hap-prob-precision"].as<double>();
+    assert(hap_prob_precision > 0 && hap_prob_precision <= 1);
+
     const bool ind_hap_inference = option_results.count("ind-hap-inference");
-    const uint32_t num_hap_samples = option_results["num-hap-samples"].as<uint32_t>();
     const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
 
     const uint32_t num_gibbs_samples = option_results["num-gibbs-samples"].as<uint32_t>();
     const uint32_t max_em_its = option_results["max-em-its"].as<uint32_t>();
+
     const double max_rel_em_conv = option_results["max-rel-em-conv"].as<double>();
+    assert(max_rel_em_conv > 0 && max_rel_em_conv <= 1);
+
     const uint32_t gibbs_thin_its = option_results["gibbs-thin-its"].as<uint32_t>();
 
     double time_init = gbwt::readTimer();
@@ -667,7 +711,7 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(ploidy, num_hap_samples, !ind_hap_inference, use_hap_gibbs, max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, hap_prob_precision, !ind_hap_inference, use_hap_gibbs, max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
         haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), !ind_hap_inference);
 
     } else {

@@ -355,7 +355,7 @@ vector<uint32_t> MinimumPathAbundanceEstimator::weightedMinimumPathCover(const U
 }
 
 
-NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t group_size_in, const uint32_t num_subset_samples_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : group_size(group_size_in), num_subset_samples(num_subset_samples_in), infer_collapsed(infer_collapsed_in), use_group_post_gibbs(use_group_post_gibbs_in), PathAbundanceEstimator(max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
+NestedPathAbundanceEstimator::NestedPathAbundanceEstimator(const uint32_t group_size_in, const double subset_prob_precision_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision) : group_size(group_size_in), subset_prob_precision(subset_prob_precision_in), num_subset_samples(ceil(1 / subset_prob_precision_in)), infer_collapsed(infer_collapsed_in), use_group_post_gibbs(use_group_post_gibbs_in), PathAbundanceEstimator(max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision) {}
 
 void NestedPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 

@@ -53,7 +53,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
 
     public:
 
-        NestedPathAbundanceEstimator(const uint32_t group_size_in, const uint32_t num_subset_samples_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
+        NestedPathAbundanceEstimator(const uint32_t group_size_in, const double subset_prob_precision_in, const bool infer_collapsed_in, const bool use_group_post_gibbs_in, const uint32_t max_em_its, const double max_rel_em_conv, const uint32_t num_gibbs_samples, const uint32_t gibbs_thin_its, const double prob_precision);
         ~NestedPathAbundanceEstimator() {};
 
         void estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);
@@ -61,6 +61,8 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
     private:
 
         const uint32_t group_size;
+
+        const double subset_prob_precision;
         const uint32_t num_subset_samples;
 
         const bool infer_collapsed;
