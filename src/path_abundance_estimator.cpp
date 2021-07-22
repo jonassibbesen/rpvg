@@ -12,7 +12,7 @@ const double min_em_abundance = 1e-8;
 
 const double abundance_gibbs_gamma = 1;
 
-const double min_rel_likelihood_scaling = 1e-4;
+const double min_rel_likelihood_scaling = 1e-2;
 
 PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double max_rel_em_conv_in, const uint32_t num_gibbs_samples_in, const uint32_t gibbs_thin_its_in, const double prob_precision) : max_em_its(max_em_its_in), max_rel_em_conv(max_rel_em_conv_in), num_gibbs_samples(num_gibbs_samples_in), gibbs_thin_its(gibbs_thin_its_in), PathEstimator(prob_precision) {}
 
@@ -375,7 +375,7 @@ void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterE
 
         auto path_groups = findPathGroups(path_cluster_estimates->paths);
 
-        vector<vector<uint32_t> > path_subset_samples(ceil(1 / min_hap_prob) * 10);
+        vector<vector<uint32_t> > path_subset_samples(ceil(1 / (min_rel_likelihood_scaling * min_hap_prob)));
 
         for (auto & path_subset: path_subset_samples) {
 
@@ -432,7 +432,7 @@ void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterE
             sort(path_subset.begin(), path_subset.end());
 
             auto clustered_path_subset_samples_it = clustered_path_subset_samples.emplace(path_subset, 0);
-            clustered_path_subset_samples_it.first->second++;
+            clustered_path_subset_samples_it.first->second += 1 / static_cast<double>(path_subset_samples.size());
         }
 
         inferPathSubsetAbundance(path_cluster_estimates, cluster_probs, mt_rng, clustered_path_subset_samples);
