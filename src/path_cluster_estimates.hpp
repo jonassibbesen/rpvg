@@ -33,9 +33,15 @@ struct PathInfo {
 };
 
 struct CountSamples {
-    
+
+    double weight;
     vector<uint32_t> path_ids;
-    vector<vector<double> > samples;
+    vector<double> samples;
+
+    CountSamples() {
+
+        weight = 0;
+    }
 };
 
 struct PathClusterEstimates {

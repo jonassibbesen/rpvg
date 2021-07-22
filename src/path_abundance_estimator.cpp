@@ -50,8 +50,6 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
             gibbs_read_count_samples->back().path_ids = vector<uint32_t>(path_cluster_estimates->abundances.cols());
             iota(gibbs_read_count_samples->back().path_ids.begin(), gibbs_read_count_samples->back().path_ids.end(), 0);
 
-            gibbs_read_count_samples->back().samples = vector<vector<double> >(path_cluster_estimates->abundances.cols(), vector<double>());
-
             gibbsReadCountSampler(path_cluster_estimates, read_path_probs, read_counts, total_read_count, abundance_gibbs_gamma, mt_rng);
         }
 
@@ -131,7 +129,9 @@ void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_c
 
     assert(!path_cluster_estimates->gibbs_read_count_samples.empty());
     assert(path_cluster_estimates->gibbs_read_count_samples.back().path_ids.size() == path_cluster_estimates->abundances.cols());
-    assert(path_cluster_estimates->gibbs_read_count_samples.back().samples.size() == path_cluster_estimates->abundances.cols());
+
+    assert(path_cluster_estimates->gibbs_read_count_samples.back().samples.empty());
+    path_cluster_estimates->gibbs_read_count_samples.back().samples.reserve(path_cluster_estimates->abundances.cols() * num_gibbs_samples);
 
     assert(Utils::doubleCompare(path_cluster_estimates->abundances.sum(), 1));
     Utils::RowVectorXd gibbs_abundances = path_cluster_estimates->abundances;
@@ -192,25 +192,27 @@ void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_c
 
             for (size_t i = 0; i < gibbs_abundances.cols(); ++i) {
 
-                path_cluster_estimates->gibbs_read_count_samples.back().samples.at(i).emplace_back(gibbs_abundances(0, i) * total_read_count);
+                path_cluster_estimates->gibbs_read_count_samples.back().samples.emplace_back(gibbs_abundances(0, i) * total_read_count);
             }
         }
     }
 }
 
-void PathAbundanceEstimator::updateEstimates(PathClusterEstimates * path_cluster_estimates, const PathClusterEstimates & new_path_cluster_estimates, const vector<uint32_t> & path_indices, const double weigth) const {  
+void PathAbundanceEstimator::updateEstimates(PathClusterEstimates * path_cluster_estimates, const PathClusterEstimates & new_path_cluster_estimates, const vector<uint32_t> & path_indices, const double weight) const {  
 
     assert(new_path_cluster_estimates.abundances.cols() == path_indices.size());
 
    for (size_t i = 0; i < path_indices.size(); ++i) {
 
-        path_cluster_estimates->abundances(0, path_indices.at(i)) += (new_path_cluster_estimates.abundances(0, i) * weigth);
+        path_cluster_estimates->abundances(0, path_indices.at(i)) += (new_path_cluster_estimates.abundances(0, i) * weight);
     }
 
     if (!new_path_cluster_estimates.gibbs_read_count_samples.empty()) {
 
        assert(new_path_cluster_estimates.gibbs_read_count_samples.size() == 1);
        path_cluster_estimates->gibbs_read_count_samples.emplace_back(move(new_path_cluster_estimates.gibbs_read_count_samples.front()));
+
+       path_cluster_estimates->gibbs_read_count_samples.back().weight =  weight;
     } 
 }
 
@@ -290,7 +292,6 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
                 gibbs_read_count_samples->emplace_back(CountSamples());
 
                 gibbs_read_count_samples->back().path_ids = min_path_cover;                
-                gibbs_read_count_samples->back().samples = vector<vector<double> >(min_path_cluster_estimates.abundances.cols(), vector<double>());
 
                 gibbsReadCountSampler(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, total_min_path_read_counts, abundance_gibbs_gamma, mt_rng);
             }
@@ -694,12 +695,8 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
             gibbs_read_count_samples->emplace_back(CountSamples());
 
             gibbs_read_count_samples->back().path_ids = collapsed_path_subset;            
-            gibbs_read_count_samples->back().samples = vector<vector<double> >(subset_path_cluster_estimates.abundances.cols(), vector<double>());
 
-            for (uint32_t i = 0; i < round(path_subset.second / min_hap_prob); ++i) {
-
-                gibbsReadCountSampler(&subset_path_cluster_estimates, subset_read_path_probs, subset_read_counts, total_subset_read_counts, abundance_gibbs_gamma, mt_rng);
-            }
+            gibbsReadCountSampler(&subset_path_cluster_estimates, subset_read_path_probs, subset_read_counts, total_subset_read_counts, abundance_gibbs_gamma, mt_rng);
         }
 
         subset_path_cluster_estimates.abundances *= total_subset_read_counts;

@@ -96,7 +96,7 @@ void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & 
 ReadCountGibbsSamplesWriter::ReadCountGibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in) : ThreadedOutputWriter(filename_prefix + ".txt.gz", "wg", num_threads), num_gibbs_samples(num_gibbs_samples_in) {
 
     auto out_sstream = new stringstream;
-    *out_sstream << "Name\tClusterID\tHaplotypeSampleId";
+    *out_sstream << "Name\tClusterID\tHaplotypingSampleId\tHaplotypingSampleProbability";
 
     for (size_t i = 1; i <= num_gibbs_samples; ++i) {
 
@@ -111,35 +111,28 @@ void ReadCountGibbsSamplesWriter::addSamples(const pair<uint32_t, PathClusterEst
 
     if (!path_cluster_estimate.second.gibbs_read_count_samples.empty()) {
 
-        uint32_t cur_hap_sample_id = 0;
         auto out_sstream = new stringstream;
 
-        for (auto & read_count_samples: path_cluster_estimate.second.gibbs_read_count_samples) {
+        for (size_t i = 1; i <= path_cluster_estimate.second.gibbs_read_count_samples.size(); ++i) {
 
-            assert(!read_count_samples.path_ids.empty());
-            assert(read_count_samples.path_ids.size() == read_count_samples.samples.size());
+            const CountSamples & count_samples = path_cluster_estimate.second.gibbs_read_count_samples.at(i - 1);
 
-            assert(read_count_samples.samples.front().size() % num_gibbs_samples == 0);
+            assert(!count_samples.path_ids.empty());
+            assert(count_samples.samples.size() == count_samples.path_ids.size() * num_gibbs_samples);
 
-            for (size_t i = 0; i < read_count_samples.samples.front().size(); i += num_gibbs_samples) {
+            for (size_t j = 0; j < count_samples.path_ids.size(); ++j) {
 
-                ++cur_hap_sample_id;
+                *out_sstream << path_cluster_estimate.second.paths.at(count_samples.path_ids.at(j)).name;
+                *out_sstream << "\t" << path_cluster_estimate.first;
+                *out_sstream << "\t" << i;
+                *out_sstream << "\t" << count_samples.weight;
 
-                for (size_t j = 0; j < read_count_samples.path_ids.size(); ++j) {
+                for (uint32_t k = 0; k < num_gibbs_samples; ++k) {
 
-                    assert(read_count_samples.samples.front().size() == read_count_samples.samples.at(j).size());
-
-                    *out_sstream << path_cluster_estimate.second.paths.at(read_count_samples.path_ids.at(j)).name;
-                    *out_sstream << "\t" << path_cluster_estimate.first;
-                    *out_sstream << "\t" << cur_hap_sample_id;
-
-                    for (size_t k = 0; k < num_gibbs_samples; ++k) {
-
-                        *out_sstream << "\t" << read_count_samples.samples.at(j).at(i + k);
-                    }
-
-                    *out_sstream << endl;
+                    *out_sstream << "\t" << count_samples.samples.at(k * count_samples.path_ids.size() + j);
                 }
+
+                *out_sstream << endl;
             }
         }
 
