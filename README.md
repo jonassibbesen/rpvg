@@ -31,7 +31,7 @@ The prefix used for all output files are given using `-o`. The number of threads
 A small example dataset containing 36,120 haplotype-specific transcripts and 100,000 read pairs is available under [example](https://github.com/jonassibbesen/rpvg/tree/master/example). To infer the expression of the haplotype-specific transcripts in the small pantranscriptome using 4 threads use the following command within the *example* folder:
 
 ```
-../bin/rpvg -t 4 -g graph.xg -p pantranscriptome.gbwt -f <(zcat pantranscriptome.txt.gz) -a mpmap_align.gamp -o rpvg --inference-model haplotype-transcripts
+../bin/rpvg -t 4 -g graph.xg -p pantranscriptome.gbwt -f pantranscriptome.txt.gz -a mpmap_align.gamp -o rpvg --inference-model haplotype-transcripts
 ```
 
 This should take less than a minute to run and will create two files: 

@@ -353,7 +353,7 @@ int main(int argc, char* argv[]) {
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
       ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
-      ("hap-prob-precision", "haplotype probability precision in haplotype-transcript inference", cxxopts::value<double>()->default_value("0.001"))
+      ("min-hap-prob", "minimum haplotyping probability in haplotype-transcript inference", cxxopts::value<double>()->default_value("0.001"))
       ("ind-hap-inference", "infer haplotypes independently for each transcript in haplotype-transcript inference", cxxopts::value<bool>())
       ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
       ;
@@ -370,7 +370,7 @@ int main(int argc, char* argv[]) {
         cerr << options.help({"Required", "General", "Alignment", "Probability", "Haplotyping", "Quantification"}) << endl;
         return 1;
     }
-
+ 
     auto option_results = options.parse(argc, argv);
 
     if (option_results.count("help")) {
@@ -529,8 +529,8 @@ int main(int argc, char* argv[]) {
 
     assert(pre_fragment_length_dist.isValid());
 
-    const double hap_prob_precision = option_results["hap-prob-precision"].as<double>();
-    assert(hap_prob_precision > 0 && hap_prob_precision <= 1);
+    const double min_hap_prob = option_results["min-hap-prob"].as<double>();
+    assert(min_hap_prob > 0 && min_hap_prob <= 1);
 
     const bool ind_hap_inference = option_results.count("ind-hap-inference");
     const bool use_hap_gibbs = option_results.count("use-hap-gibbs");
@@ -711,7 +711,7 @@ int main(int argc, char* argv[]) {
 
     } else if (inference_model == "haplotype-transcripts") {
 
-        path_estimator = new NestedPathAbundanceEstimator(ploidy, hap_prob_precision, !ind_hap_inference, use_hap_gibbs, max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
+        path_estimator = new NestedPathAbundanceEstimator(ploidy, min_hap_prob, !ind_hap_inference, use_hap_gibbs, max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
         haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), !ind_hap_inference);
 
     } else {
