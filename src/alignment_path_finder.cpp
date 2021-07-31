@@ -669,9 +669,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
             string debug_paths = "";
             int32_t debug_idx = -1;
+            int32_t debug_max_score = numeric_limits<int32_t>::min();
 
             string debug_paths2 = "";
             int32_t debug_idx2 = -1;
+            int32_t debug_max_score2 = numeric_limits<int32_t>::min();
 
             for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
 
@@ -699,8 +701,12 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                             path_name == "ENST00000309311.6_144"                 
                         ) {   
 
-                            debug_paths = path_name; 
-                            debug_idx = i;         
+                            if (paired_align_search_paths.at(i).scoreSum() > debug_max_score) {
+
+                                debug_paths = path_name; 
+                                debug_idx = i;   
+                                debug_max_score = paired_align_search_paths.at(i).scoreSum();
+                            }
                         
                         } else if (
                             path_name == "ENST00000646664.1_74" || 
@@ -715,14 +721,18 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                             path_name == "ENST00000309311.6_42"                 
                         ) {   
 
-                            debug_paths2 = path_name; 
-                            debug_idx2 = i;         
+                            if (paired_align_search_paths.at(i).scoreSum() > debug_max_score2) {
+
+                                debug_paths2 = path_name; 
+                                debug_idx2 = i;   
+                                debug_max_score2 = paired_align_search_paths.at(i).scoreSum();
+                            }       
                         }                
                     }
                 }
             }
 
-            if (debug_idx != debug_idx2) {
+            if (debug_max_score2 > debug_max_score) {
 
                 #pragma omp critical
                 {
@@ -732,7 +742,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
                     if (debug_idx >= 0) {
 
-                        cerr << paired_align_search_paths.at(debug_idx) << endl;
+                        cerr << debug_max_score << "\t" << paired_align_search_paths.at(debug_idx) << endl;
                     }
 
                     cerr << debug_paths2 << endl;
@@ -740,10 +750,10 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
                     if (debug_idx2 >= 0) {
 
-                        cerr << paired_align_search_paths.at(debug_idx2) << endl;
+                        cerr << debug_max_score2 << "\t" << paired_align_search_paths.at(debug_idx2) << endl;
                     }
 
-                    int32_t max_score = 0;
+                    int32_t max_score = numeric_limits<int32_t>::min();
                     int32_t max_score_idx = -1;
 
                     for (size_t i = 0; i < paired_align_search_paths.size(); ++i) {
@@ -760,7 +770,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
 
                     if (max_score_idx >= 0) {
 
-                        cerr << paired_align_search_paths.at(max_score_idx) << endl;
+                        cerr << max_score << "\t" << paired_align_search_paths.at(max_score_idx) << endl;
                     }
 
                     cerr << endl;
