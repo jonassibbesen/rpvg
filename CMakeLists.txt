@@ -123,16 +123,18 @@ add_dependencies(${PROJECT_NAME} libvgio-proj)
 add_dependencies(${PROJECT_NAME} xg)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-
+  
+  message("Darwin")
   set(CMAKE_CXX_FLAGS "--std=c++14 -Xpreprocessor -fopenmp -g -O3 -DGIT_COMMIT='\"${GIT_COMMIT}\"'")
   target_link_libraries(${PROJECT_NAME} omp)
   target_link_libraries(xg omp)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+  message("Linux")
   set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3 -DGIT_COMMIT='\"${GIT_COMMIT}\"'")
-  target_link_libraries(${PROJECT_NAME} atomic)
-  target_link_libraries(xg atomic)
+  target_link_libraries(${PROJECT_NAME})
+  target_link_libraries(xg)
 
 endif()
 
