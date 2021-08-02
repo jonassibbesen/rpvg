@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM mirror.gcr.io/library/ubuntu:20.04
 
 MAINTAINER jsibbese@ucsc.edu
 

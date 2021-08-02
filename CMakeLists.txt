@@ -133,8 +133,8 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
   message("Linux")
   set(CMAKE_CXX_FLAGS "--std=c++14 -fopenmp -g -O3 -DGIT_COMMIT='\"${GIT_COMMIT}\"'")
-  target_link_libraries(${PROJECT_NAME})
-  target_link_libraries(xg)
+  target_link_libraries(${PROJECT_NAME} atomic)
+  target_link_libraries(xg atomic)
 
 endif()
 
