@@ -454,17 +454,16 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
         for (auto & path: path_cluster_estimates->paths) {        
 
             if (
-                path.name == "ENST00000346234.6_39" || 
-                path.name == "ENST00000461096.6_28" || 
-                path.name == "ENST00000317897.4_29" || 
-                path.name == "ENST00000370206.8_3" || 
-                path.name == "ENST00000378045.4_11" || 
-                path.name == "ENST00000368847.4_110" || 
-                path.name == "ENST00000580018.3_17" || 
-                path.name == "ENST00000378119.8_159" || 
-                path.name == "ENST00000646664.1_75" || 
-                path.name == "ENST00000394077.7_21" || 
-                path.name == "ENST00000375820.9_2"    
+                path.name == "ENST00000335895.12_21" || 
+                path.name == "ENST00000395839.5_48" || 
+                path.name == "ENST00000395837.1_45" || 
+                path.name == "ENST00000505490.2_35" || 
+                path.name == "ENST00000252725.10_59" || 
+                path.name == "ENST00000322428.9_52" || 
+                path.name == "ENST00000264156.2_122" || 
+                path.name == "ENST00000297258.10_26" || 
+                path.name == "ENST00000432629.1_50" || 
+                path.name == "ENST00000260563.4_53"   
             ) {       
 
                 debug = true;     
