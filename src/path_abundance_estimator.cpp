@@ -454,31 +454,21 @@ void NestedPathAbundanceEstimator::inferAbundancesCollapsedGroups(PathClusterEst
         for (auto & path: path_cluster_estimates->paths) {        
 
             if (
-                path.name == "ENST00000646664.1_7" || 
-                path.name == "ENST00000646664.1_65" || 
-                path.name == "ENST00000514057.1_538" || 
-                path.name == "ENST00000514057.1_539" || 
-                path.name == "ENST00000253788.11_22" || 
-                path.name == "ENST00000380394.8_59" || 
-                path.name == "ENST00000380394.8_60" || 
-                path.name == "ENST00000436459.2_60" || 
-                path.name == "ENST00000414273.1_511" || 
-                path.name == "ENST00000414273.1_514" || 
-                path.name == "ENST00000457540.1_490" || 
-                path.name == "ENST00000457540.1_727" || 
-                path.name == "ENST00000417615.1_14" || 
-                path.name == "ENST00000471152.1_17" || 
-                path.name == "ENST00000309311.6_144" ||
-                path.name == "ENST00000646664.1_74" || 
-                path.name == "ENST00000514057.1_60" || 
-                path.name == "ENST00000253788.11_9" || 
-                path.name == "ENST00000380394.8_1" || 
-                path.name == "ENST00000436459.2_34" || 
-                path.name == "ENST00000414273.1_175" || 
-                path.name == "ENST00000457540.1_175" || 
-                path.name == "ENST00000417615.1_4" || 
-                path.name == "ENST00000471152.1_15" || 
-                path.name == "ENST00000309311.6_42"   
+                path.name == "ENST00000393820.2_47" || 
+                path.name == "ENST00000322723.8_227" || 
+                path.name == "ENST00000322723.8_228" || 
+                path.name == "ENST00000330899.4_62" || 
+                path.name == "ENST00000360004.5_2543" || 
+                path.name == "ENST00000360004.5_3301" || 
+                path.name == "ENST00000300026.3_28" || 
+                path.name == "ENST00000300026.3_53" || 
+                path.name == "ENST00000374975.3_1122" || 
+                path.name == "ENST00000374975.3_1517" || 
+                path.name == "ENST00000557016.5_30" || 
+                path.name == "ENST00000330459.7_80" || 
+                path.name == "ENST00000234313.7_64" || 
+                path.name == "ENST00000234313.7_110" || 
+                path.name == "ENST00000366560.3_36"    
             ) {       
 
                 debug = true;     

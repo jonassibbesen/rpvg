@@ -684,21 +684,21 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                         auto path_name = paths_index.pathName(path_id);
 
                         if (
-                            path_name == "ENST00000646664.1_7" || 
-                            path_name == "ENST00000646664.1_65" || 
-                            path_name == "ENST00000514057.1_538" || 
-                            path_name == "ENST00000514057.1_539" || 
-                            path_name == "ENST00000253788.11_22" || 
-                            path_name == "ENST00000380394.8_59" || 
-                            path_name == "ENST00000380394.8_60" || 
-                            path_name == "ENST00000436459.2_60" || 
-                            path_name == "ENST00000414273.1_511" || 
-                            path_name == "ENST00000414273.1_514" || 
-                            path_name == "ENST00000457540.1_490" || 
-                            path_name == "ENST00000457540.1_727" || 
-                            path_name == "ENST00000417615.1_14" || 
-                            path_name == "ENST00000471152.1_17" || 
-                            path_name == "ENST00000309311.6_144"                 
+                            path_name == "ENST00000393820.2_47" || 
+                            path_name == "ENST00000322723.8_227" || 
+                            path_name == "ENST00000322723.8_228" || 
+                            path_name == "ENST00000330899.4_62" || 
+                            path_name == "ENST00000360004.5_2543" || 
+                            path_name == "ENST00000360004.5_3301" || 
+                            path_name == "ENST00000300026.3_28" || 
+                            path_name == "ENST00000300026.3_53" || 
+                            path_name == "ENST00000374975.3_1122" || 
+                            path_name == "ENST00000374975.3_1517" || 
+                            path_name == "ENST00000557016.5_30" || 
+                            path_name == "ENST00000330459.7_80" || 
+                            path_name == "ENST00000234313.7_64" || 
+                            path_name == "ENST00000234313.7_110" || 
+                            path_name == "ENST00000366560.3_36"                 
                         ) {   
 
                             if (paired_align_search_paths.at(i).scoreSum() > debug_max_score) {
@@ -709,16 +709,18 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
                             }
                         
                         } else if (
-                            path_name == "ENST00000646664.1_74" || 
-                            path_name == "ENST00000514057.1_60" || 
-                            path_name == "ENST00000253788.11_9" || 
-                            path_name == "ENST00000380394.8_1" || 
-                            path_name == "ENST00000436459.2_34" || 
-                            path_name == "ENST00000414273.1_175" || 
-                            path_name == "ENST00000457540.1_175" || 
-                            path_name == "ENST00000417615.1_4" || 
-                            path_name == "ENST00000471152.1_15" || 
-                            path_name == "ENST00000309311.6_42"                 
+                            path_name == "ENST00000393820.2_46" || 
+                            path_name == "ENST00000322723.8_110" || 
+                            path_name == "ENST00000330899.4_32" || 
+                            path_name == "ENST00000360004.5_744" || 
+                            path_name == "ENST00000360004.5_2474" || 
+                            path_name == "ENST00000300026.3_29" || 
+                            path_name == "ENST00000300026.3_54" || 
+                            path_name == "ENST00000374975.3_1819" || 
+                            path_name == "ENST00000557016.5_35" || 
+                            path_name == "ENST00000330459.7_81" || 
+                            path_name == "ENST00000234313.7_102" || 
+                            path_name == "ENST00000366560.3_13"               
                         ) {   
 
                             if (paired_align_search_paths.at(i).scoreSum() > debug_max_score2) {
