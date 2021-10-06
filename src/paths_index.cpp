@@ -195,15 +195,23 @@ double PathsIndex::effectivePathLength(const uint32_t path_id, const FragmentLen
 
         return 0;
     }
-
-    // https://en.wikipedia.org/wiki/Truncated_normal_distribution
-    const double alpha = (1 - fragment_length_dist.mean()) / fragment_length_dist.sd();
-    const double beta = (path_length - fragment_length_dist.mean()) / fragment_length_dist.sd();
-
-    const double trunc_fragment_length_mean = fragment_length_dist.mean() + fragment_length_dist.sd() * (calculateLowerPhi(alpha) - calculateLowerPhi(beta)) / (calculateUpperPhi(beta) - calculateUpperPhi(alpha));
-
+    
+    double trunc_fragment_length_mean = 0.0;
+    if (fragment_length_dist.shape() == 0.0) {
+        // https://en.wikipedia.org/wiki/Truncated_normal_distribution
+        const double alpha = (1.0 - fragment_length_dist.loc()) / fragment_length_dist.scale();
+        const double beta = (path_length - fragment_length_dist.loc()) / fragment_length_dist.scale();
+        
+        const double trunc_fragment_length_mean = fragment_length_dist.loc() + fragment_length_dist.scale() * (calculateLowerPhi(alpha) - calculateLowerPhi(beta)) / (calculateUpperPhi(beta) - calculateUpperPhi(alpha));
+    }
+    else {
+        trunc_fragment_length_mean = Utils::truncated_skew_normal_expected_value<double>(fragment_length_dist.loc(),
+                                                                                         fragment_length_dist.scale(),
+                                                                                         fragment_length_dist.shape(),
+                                                                                         1.0, path_length);
+    }
     if (!isfinite(trunc_fragment_length_mean)) {
-
+        
         return 1;
     }
 
