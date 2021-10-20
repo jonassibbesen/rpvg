@@ -100,17 +100,17 @@ uint32_t AlignmentPathFinder<AlignmentType>::mappingQuality(const AlignmentType 
 
     assert(alignment.mapping_quality() >= 0);
 
-    // if (alignment.has_annotation() && alignment.annotation().fields().count("allelic_mapq")) {
+    if (alignment.has_annotation() && alignment.annotation().fields().count("allelic_mapq")) {
 
-    //     int32_t allelic_mapq = alignment.annotation().fields().at("allelic_mapq").number_value();
-    //     assert(allelic_mapq >= 0);
+        int32_t allelic_mapq = alignment.annotation().fields().at("allelic_mapq").number_value();
+        assert(allelic_mapq >= 0);
 
-    //     return min(allelic_mapq, alignment.mapping_quality());
+        return min(allelic_mapq, alignment.mapping_quality());
 
-    // } else {
+    } else {
 
         return alignment.mapping_quality();
-    // }
+    }
 }
 
 template<class AlignmentType>
