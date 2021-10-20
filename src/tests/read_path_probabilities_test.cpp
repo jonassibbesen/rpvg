@@ -12,8 +12,8 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 	FragmentLengthDist fragment_length_dist(10, 2);
 
 	vector<AlignmentPath> alignment_paths;
-	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3);
-	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, numeric_limits<int32_t>::lowest());
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 3, 10);
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, numeric_limits<int32_t>::lowest(), 10);
 	
 	vector<vector<gbwt::size_type> > alignment_path_ids;
 	alignment_path_ids.emplace_back(vector<gbwt::size_type>({100, 200}));
@@ -50,8 +50,8 @@ TEST_CASE("Read path probabilities can be calculated from alignment paths") {
 
     SECTION("Probabilities are calculated from multiple alignment paths") {
 
-		alignment_paths.at(1) = AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 15, 10, 5);
-		alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, numeric_limits<int32_t>::lowest());
+		alignment_paths.at(1) = AlignmentPath(make_pair(gbwt::SearchState(), 0), false, 10, 5, 15);
+		alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, numeric_limits<int32_t>::lowest(), 10);
 
 		alignment_path_ids.at(1) = vector<gbwt::size_type>({50});
 		alignment_path_ids.emplace_back(vector<gbwt::size_type>());
@@ -157,8 +157,8 @@ TEST_CASE("Identical read path probabilities can be merged") {
 	FragmentLengthDist fragment_length_dist(10, 2);
 
 	vector<AlignmentPath> alignment_paths;
-	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, 3);
-	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 10, numeric_limits<int32_t>::lowest());
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, 3, 10);
+	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), false, 10, numeric_limits<int32_t>::lowest(), 10);
 	
 	vector<vector<gbwt::size_type> > alignment_path_ids;
 	alignment_path_ids.emplace_back(vector<gbwt::size_type>({100, 200}));

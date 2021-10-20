@@ -46,6 +46,8 @@ class AlignmentPathFinder {
 		int32_t optimalAlignmentScore(const vg::Alignment & alignment) const;
 		int32_t optimalAlignmentScore(const vg::MultipathAlignment & alignment) const;
 
+		uint32_t mappingQuality(const AlignmentType & alignment) const;
+
 		vector<AlignmentSearchPath> extendAlignmentSearchPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const;
 
 		void extendAlignmentSearchPath(vector<AlignmentSearchPath> * align_search_paths, const vg::Path & path, const bool is_first_path, const bool is_last_path, const string & quality, const uint32_t seq_length, const bool add_internal_start) const;

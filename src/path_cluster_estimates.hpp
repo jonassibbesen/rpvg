@@ -34,14 +34,10 @@ struct PathInfo {
 
 struct CountSamples {
 
-    double weight;
     vector<uint32_t> path_ids;
     vector<double> samples;
 
-    CountSamples() {
-
-        weight = 0;
-    }
+    CountSamples() {}
 };
 
 struct PathClusterEstimates {
@@ -81,7 +77,14 @@ struct PathClusterEstimates {
         }
     }
 
-    void initEstimates(uint32_t num_components, const uint32_t group_size, const bool init_zero) {
+    void resetEstimates(uint32_t num_components, const uint32_t group_size, const bool init_zero) {
+
+        posteriors.clear();
+        path_group_sets.clear();
+        
+        abundances = Eigen::RowVectorXd::Zero(1, 0);;
+
+        gibbs_read_count_samples.clear();
 
         if (group_size > 0) {
 

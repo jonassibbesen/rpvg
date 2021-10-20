@@ -6,11 +6,13 @@
 #include <algorithm>
 #include <numeric>
 
-AlignmentPath::AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const int32_t score_sum_in) : gbwt_search(gbwt_search_in), is_multimap(is_multimap_in), frag_length(frag_length_in), min_mapq(min_mapq_in), score_sum(score_sum_in) {}
+AlignmentPath::AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t min_mapq_in, const int32_t score_sum_in, const uint32_t frag_length_in) : gbwt_search(gbwt_search_in), is_multimap(is_multimap_in), min_mapq(min_mapq_in), score_sum(score_sum_in), frag_length(frag_length_in) {}
 
-AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in) : gbwt_search(align_path_in.gbwt_search), is_multimap(is_multimap_in), frag_length(align_path_in.fragmentLength()), min_mapq(align_path_in.minMappingQuality()), score_sum(align_path_in.scoreSum()) {}
+AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in, const uint32_t min_mapq_in) : gbwt_search(align_path_in.gbwt_search), is_multimap(is_multimap_in), min_mapq(min_mapq_in), score_sum(align_path_in.scoreSum()), frag_length(align_path_in.fragmentLength()) {}
 
-vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap) {
+vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap, const uint32_t min_mapq) {
+
+    assert(min_mapq >= 0);
 
     vector<AlignmentPath> align_paths;
     align_paths.reserve(align_search_paths.size());
@@ -42,7 +44,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
             if (align_search_path.isComplete()) {
                 
-                align_paths.emplace_back(align_search_path, is_multimap);
+                align_paths.emplace_back(align_search_path, is_multimap, min_mapq);
                 assert(align_paths.front().min_mapq == align_paths.back().min_mapq);
             }
         }
@@ -54,11 +56,11 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
 
         if (Utils::doubleCompare(noise_prob, 0)) {
 
-            align_paths.emplace_back(make_pair(gbwt::SearchState(), gbwt::FastLocate::NO_POSITION), is_multimap, 0, align_paths.front().min_mapq, numeric_limits<int32_t>::lowest());
+            align_paths.emplace_back(make_pair(gbwt::SearchState(), gbwt::FastLocate::NO_POSITION), is_multimap, min_mapq, numeric_limits<int32_t>::lowest(), 0);
 
         } else {
 
-            align_paths.emplace_back(make_pair(gbwt::SearchState(), gbwt::FastLocate::NO_POSITION), is_multimap, 0, align_paths.front().min_mapq, Utils::doubleToInt(log(noise_prob) / Utils::noise_score_log_base));
+            align_paths.emplace_back(make_pair(gbwt::SearchState(), gbwt::FastLocate::NO_POSITION), is_multimap, min_mapq, Utils::doubleToInt(log(noise_prob) / Utils::noise_score_log_base), 0);
         }
 
         assert(align_paths.back().score_sum <= 0);
@@ -72,9 +74,9 @@ bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs) {
 
     return (lhs.gbwt_search == rhs.gbwt_search && 
             lhs.is_multimap == rhs.is_multimap && 
-            lhs.frag_length == rhs.frag_length && 
             lhs.min_mapq == rhs.min_mapq && 
-            lhs.score_sum == rhs.score_sum);
+            lhs.score_sum == rhs.score_sum &&
+            lhs.frag_length == rhs.frag_length);
 }
 
 bool operator!=(const AlignmentPath & lhs, const AlignmentPath & rhs) { 
@@ -104,11 +106,6 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
         return (lhs.is_multimap < rhs.is_multimap);    
     } 
 
-    if (lhs.frag_length != rhs.frag_length) {
-
-        return (lhs.frag_length < rhs.frag_length);    
-    } 
-
     if (lhs.min_mapq != rhs.min_mapq) {
 
         return (lhs.min_mapq < rhs.min_mapq);    
@@ -117,6 +114,11 @@ bool operator<(const AlignmentPath & lhs, const AlignmentPath & rhs) {
     if (lhs.score_sum != rhs.score_sum) {
 
         return (lhs.score_sum < rhs.score_sum);    
+    } 
+
+    if (lhs.frag_length != rhs.frag_length) {
+
+        return (lhs.frag_length < rhs.frag_length);    
     } 
 
     return false;
@@ -128,9 +130,9 @@ ostream & operator<<(ostream & os, const AlignmentPath & align_path) {
     os << " | " << align_path.gbwt_search.first.range;
     os << " | " << align_path.gbwt_search.second;
     os << " | " << align_path.is_multimap;
-    os << " | " << align_path.frag_length;
     os << " | " << align_path.min_mapq;
     os << " | " << align_path.score_sum;
+    os << " | " << align_path.frag_length;
 
     return os;
 }
@@ -208,7 +210,6 @@ ostream & operator<<(ostream & os, const InternalAlignment & internal_align) {
 
 AlignmentStats::AlignmentStats() {
 
-    mapq = 0;
     score = 0;
 
     length = 0;
@@ -293,8 +294,7 @@ uint32_t AlignmentStats::clippedOffsetTotalBases() const {
 
 bool operator==(const AlignmentStats & lhs, const AlignmentStats & rhs) { 
 
-    return (lhs.mapq == rhs.mapq && 
-            lhs.score == rhs.score && 
+    return (lhs.score == rhs.score && 
             lhs.length == rhs.length && 
             lhs.complete == rhs.complete && 
             lhs.left_softclip_length == rhs.left_softclip_length && 
@@ -310,11 +310,6 @@ bool operator!=(const AlignmentStats & lhs, const AlignmentStats & rhs) {
 }
 
 bool operator<(const AlignmentStats & lhs, const AlignmentStats & rhs) { 
-
-    if (lhs.mapq != rhs.mapq) {
-
-        return (lhs.mapq < rhs.mapq);    
-    } 
 
     if (lhs.score != rhs.score) {
 
@@ -361,8 +356,7 @@ bool operator<(const AlignmentStats & lhs, const AlignmentStats & rhs) {
 
 ostream & operator<<(ostream & os, const AlignmentStats & read_align_stats) {
 
-    os << read_align_stats.mapq;
-    os << "," << read_align_stats.score;
+    os << read_align_stats.score;
     os << "," << read_align_stats.length;
     os << "," << read_align_stats.complete;
     os << "," << read_align_stats.left_softclip_length;
@@ -418,19 +412,6 @@ uint32_t AlignmentSearchPath::fragmentLength() const {
         assert(read_align_stats.front().clippedOffsetRightBases() + read_align_stats.back().clippedOffsetLeftBases() <= frag_length);
         return (frag_length - read_align_stats.front().clippedOffsetRightBases() - read_align_stats.back().clippedOffsetLeftBases());
     }
-}
-
-uint32_t AlignmentSearchPath::minMappingQuality() const {
-
-    uint32_t min_mapq = std::numeric_limits<uint32_t>::max();
-    assert(!read_align_stats.empty());
-
-    for (auto & stats: read_align_stats) {
-
-        min_mapq = min(min_mapq, stats.mapq);
-    }
-
-    return min_mapq;
 }
 
 int32_t AlignmentSearchPath::scoreSum() const {

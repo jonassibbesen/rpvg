@@ -96,12 +96,30 @@ int32_t AlignmentPathFinder<AlignmentType>::optimalAlignmentScore(const vg::Mult
 }
 
 template<class AlignmentType>
+uint32_t AlignmentPathFinder<AlignmentType>::mappingQuality(const AlignmentType & alignment) const {
+
+    assert(alignment.mapping_quality() >= 0);
+
+    // if (alignment.has_annotation() && alignment.annotation().fields().count("allelic_mapq")) {
+
+    //     int32_t allelic_mapq = alignment.annotation().fields().at("allelic_mapq").number_value();
+    //     assert(allelic_mapq >= 0);
+
+    //     return min(allelic_mapq, alignment.mapping_quality());
+
+    // } else {
+
+        return alignment.mapping_quality();
+    // }
+}
+
+template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(const AlignmentType & alignment) const {
 
 #ifdef debug
 
     cerr << endl;
-    cerr << pb2json(alignment) << endl;
+    cerr << Utils::pb2json(alignment) << endl;
 
 #endif
 
@@ -140,7 +158,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         }  
     }
 
-    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, isAlignmentDisconnected(alignment));
+    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, isAlignmentDisconnected(alignment), mappingQuality(alignment));
 
 #ifdef debug
 
@@ -157,7 +175,6 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
 template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const {
 
-    assert(alignment.mapping_quality() >= 0);
     auto optimal_score = optimalAlignmentScore(alignment);
 
     vector<AlignmentSearchPath> extended_align_search_paths(1, align_search_path);
@@ -165,7 +182,6 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentS
     extended_align_search_paths.back().read_align_stats.emplace_back(AlignmentStats());
     AlignmentStats * read_align_stats = &(extended_align_search_paths.back().read_align_stats.back());
 
-    read_align_stats->mapq = alignment.mapping_quality();
     read_align_stats->score = alignment.score();
 
     read_align_stats->internal_start.max_offset = min(read_align_stats->left_softclip_length + max_partial_offset, static_cast<uint32_t>(alignment.sequence().size()));
@@ -216,7 +232,6 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentS
         extended_align_search_paths.back().read_align_stats.emplace_back(AlignmentStats());
         AlignmentStats * error_read_align_stats = &(extended_align_search_paths.back().read_align_stats.back());
 
-        error_read_align_stats->mapq = alignment.mapping_quality();
         error_read_align_stats->score = numeric_limits<int32_t>::max();
 
         error_read_align_stats->length = alignment.sequence().size();
@@ -409,7 +424,6 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(AlignmentSear
 template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(const AlignmentSearchPath & align_search_path, const vg::MultipathAlignment & alignment) const {
 
-    assert(alignment.mapping_quality() >= 0);
     auto optimal_score = optimalAlignmentScore(alignment);
 
     vector<AlignmentSearchPath> extended_align_search_paths;
@@ -441,8 +455,6 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentS
 
         init_align_search_path.read_align_stats.emplace_back(AlignmentStats());
         AlignmentStats * init_read_align_stats = &(init_align_search_path.read_align_stats.back());
-
-        init_read_align_stats->mapq = alignment.mapping_quality();
 
         AlignmentStats tpm_read_align_stats;
         tpm_read_align_stats.updateLeftSoftclipLength(alignment.subpath(start_score_idx.second).path());
@@ -477,7 +489,6 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentS
         extended_align_search_paths.back().read_align_stats.emplace_back(AlignmentStats());
         AlignmentStats * error_read_align_stats = &(extended_align_search_paths.back().read_align_stats.back());
 
-        error_read_align_stats->mapq = alignment.mapping_quality();
         error_read_align_stats->score = numeric_limits<int32_t>::max();
 
         error_read_align_stats->length = alignment.sequence().size();
@@ -659,7 +670,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         }
     }
 
-    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2));
+    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2), min(mappingQuality(alignment_1), mappingQuality(alignment_2)));
 
 #ifdef debug
 
