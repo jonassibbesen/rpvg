@@ -201,7 +201,8 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
         delete align_paths_buffer;
     }
 
-    *fragment_length_dist = FragmentLengthDist(fragment_length_counts);
+    // for now, don't fit a skew normal
+    *fragment_length_dist = FragmentLengthDist(fragment_length_counts, false);
 }
 
 spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids) {
@@ -484,14 +485,14 @@ int main(int argc, char* argv[]) {
         
         } else {
 
-            cerr << "Fragment length distribution parameters found in alignment (mean: " << pre_fragment_length_dist.mean() << ", standard deviation: " << pre_fragment_length_dist.sd() << ")" << endl;
+            cerr << "Fragment length distribution parameters found in alignment (mean: " << pre_fragment_length_dist.loc() << ", standard deviation: " << pre_fragment_length_dist.scale() << ")" << endl;
         }      
 
     } else {
 
         pre_fragment_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
 
-        cerr << "Fragment length distribution parameters given as input (mean: " << pre_fragment_length_dist.mean() << ", standard deviation: " << pre_fragment_length_dist.sd() << ")" << endl;
+        cerr << "Fragment length distribution parameters given as input (mean: " << pre_fragment_length_dist.loc() << ", standard deviation: " << pre_fragment_length_dist.scale() << ")" << endl;
     }
 
     cerr << endl;
@@ -590,7 +591,7 @@ int main(int argc, char* argv[]) {
 
     FragmentLengthDist fragment_length_dist;
 
-    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.mean());
+    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.loc());
 
     if (is_single_path) {
         
@@ -637,7 +638,7 @@ int main(int argc, char* argv[]) {
 
             if (option_results.count("frag-mean") && option_results.count("frag-sd")) {
 
-                cerr << "Warning: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Will use parameters given as input instead (mean: " << pre_fragment_length_dist.mean() << ", standard deviation: " << pre_fragment_length_dist.sd() << ")" << endl;
+                cerr << "Warning: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Will use parameters given as input instead (mean: " << pre_fragment_length_dist.loc() << ", standard deviation: " << pre_fragment_length_dist.scale() << ")" << endl;
 
                 fragment_length_dist = pre_fragment_length_dist;
 
@@ -649,7 +650,7 @@ int main(int argc, char* argv[]) {
         
         } else {
 
-            cerr << "Fragment length distribution parameters re-estimated from alignment paths (mean: " << fragment_length_dist.mean() << ", standard deviation: " << fragment_length_dist.sd() << ")" << endl;
+            cerr << "Fragment length distribution parameters re-estimated from alignment paths (mean: " << fragment_length_dist.loc() << ", standard deviation: " << fragment_length_dist.scale() << ")" << endl;
         }
     }
 
