@@ -202,7 +202,7 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
     }
 
     // for now, don't fit a skew normal
-    *fragment_length_dist = FragmentLengthDist(fragment_length_counts, false);
+    *fragment_length_dist = FragmentLengthDist(fragment_length_counts, true);
 }
 
 spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids) {
@@ -650,7 +650,7 @@ int main(int argc, char* argv[]) {
         
         } else {
 
-            cerr << "Fragment length distribution parameters re-estimated from alignment paths (mean: " << fragment_length_dist.loc() << ", standard deviation: " << fragment_length_dist.scale() << ")" << endl;
+            cerr << "Fragment length distribution parameters re-estimated from alignment paths (location: " << fragment_length_dist.loc() << ", scale: " << fragment_length_dist.scale() << ", shape: " << fragment_length_dist.shape() << ")" << endl;
         }
     }
 
