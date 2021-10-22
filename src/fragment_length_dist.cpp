@@ -81,6 +81,7 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
         sample_size = total_count;
         
         loc_ = sum_count / static_cast<double>(total_count);
+        shape_ = 0.0;
         
         if (total_count > 1) {
             
@@ -341,7 +342,7 @@ double FragmentLengthDist::logProb(const uint32_t value) const {
 
     if (value < log_prob_buffer.size()) {
         return log_prob_buffer.at(value);
-    } else if (shape_ == 0.0) {
+    } else if (Utils::doubleCompare(shape_, 0.0)) {
         return Utils::log_normal_pdf<double>(value, loc_, scale_);
     } else {
         return Utils::log_skew_normal_pdf<double>(value, loc_, scale_, shape_);
@@ -366,7 +367,7 @@ void FragmentLengthDist::setLogProbBuffer(const uint32_t size) {
     log_prob_buffer = vector<double>(size);
 
     for (size_t i = 0; i < size; ++i) {
-        if (shape_ == 0.0) {
+        if (Utils::doubleCompare(shape_, 0.0)) {
             log_prob_buffer.at(i) = Utils::log_normal_pdf<double>(i, loc_, scale_);
         } else {
             log_prob_buffer.at(i) = Utils::log_skew_normal_pdf<double>(i, loc_, scale_, shape_);
