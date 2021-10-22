@@ -17,6 +17,7 @@
 #include "vg/io/basic_stream.hpp"
 #include "gbwt/gbwt.h"
 #include "handlegraph/handle_graph.hpp"
+#include "owens_t.hpp"
 
 using namespace std;
 
@@ -51,6 +52,8 @@ inline ostream & operator<<(ostream & os, const vector<T> & values) {
 }
 
 namespace Utils {
+
+    static const double pi = 3.141592653589793238462643383279;
 
     typedef Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> ColVectorXd;
     typedef Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor> RowVectorXd;
@@ -134,14 +137,116 @@ namespace Utils {
         return -10.0 * log10(prob);
     }
 
+    // the CDF of a standard normal distribution
+    template<typename T>
+    inline T Phi(T z)
+    {
+        static const T root_2 = sqrt(T(2.0));
+        return 0.5 * (1.0 + erf(z / root_2));
+    }
+
+    // the pdf of a standard normal distribution
+    template<typename T>
+    inline T phi(T z)
+    {
+        return exp(-0.5 * z * z) / T(sqrt(2.0 * pi));
+    }
+
     // log normal pdf, from http://stackoverflow.com/a/10848293/238609
     template <typename T>
     inline T log_normal_pdf(T x, T m, T s)
     {
         static const T inv_sqrt_2pi = 0.3989422804014327;
-        T a = (x - m) / s;
+        T z = (x - m) / s;
+        return log(inv_sqrt_2pi) - log(s) - T(0.5) * z * z;
+    }
 
-        return log(inv_sqrt_2pi) - log(s) - T(0.5) * a * a;
+    template<typename T>
+    inline T log_skew_normal_pdf(T x, T m, T s, T a)
+    {
+        static const T log_const = log(T(2.0) / sqrt(T(2.0) * pi));
+        T z = (x - m) / s;
+        T p = Phi(a * z);
+        if (p == T(0.0)) {
+            // Phi can have numerical issues for very small values
+            return numeric_limits<T>::lowest();
+        }
+        else {
+            return log_const + log(p / s) - T(0.5) * z * z;
+        }
+    }
+
+    template<typename T>
+    inline T skew_normal_pdf(T x, T m, T s, T a) {
+        T z = (x - m) / s;
+        return 2.0 / (s * sqrt(2.0 * pi)) * exp(-0.5 * z * z) * Phi(a * z);
+    }
+
+    template<typename T>
+    inline T skew_normal_cdf(T x, T m, T s, T a) {
+        T z = (x - m) / s;
+        return Phi(z) - 2.0 * owens_t(z, a);
+    }
+
+    // truncated to interval [c, d]
+    // formula from from Flecher, Allard, Naveau (2012) equation (10)
+    template<typename T>
+    inline T truncated_skew_normal_expected_value(T m, T s, T a, T c, T d) {
+        T u = (c - m) / s;
+        T v = (d - m) / s;
+        T beta = sqrt(T(1.0) + a * a);
+        T delta = a / beta;
+        T val = skew_normal_pdf<T>(u, 0.0, 1.0, a) - skew_normal_pdf<T>(v, 0.0, 1.0, a);
+        val += (2.0 / sqrt(2.0 * pi)) * delta * (Phi<T>(v * beta) - Phi<T>(u * beta));
+        val /= skew_normal_cdf<T>(v, 0.0, 1.0, a) - skew_normal_cdf<T>(u, 0.0, 1.0, a);
+        return m + s * val;
+    }
+
+
+    template<typename T>
+    T golden_section_search(const function<T(T)>& f, T x_min, T x_max,
+                            T tolerance) {
+        
+        const static T inv_phi = (sqrt(5.0) - 1.0) / 2.0;
+        
+        // the number of steps needed to achieve the required precision (precalculating avoids
+        // fiddly floating point issues on the breakout condition)
+        size_t steps = size_t(ceil(log(tolerance / (x_max - x_min)) / log(inv_phi)));
+        
+        // the two interior points we will evaluate the function at
+        T x_lo = x_min + inv_phi * inv_phi * (x_max - x_min);
+        T x_hi = x_min + inv_phi * (x_max - x_min);
+        
+        // the function value at the two interior points
+        T f_lo = f(x_lo);
+        T f_hi = f(x_hi);
+        
+        for (size_t step = 0; step < steps; ++step) {
+            if (f_lo < f_hi) {
+                // there is a max in one of the right two sections
+                x_min = x_lo;
+                x_lo = x_hi;
+                x_hi = x_min + inv_phi * (x_max - x_min);
+                f_lo = f_hi;
+                f_hi = f(x_hi);
+            }
+            else {
+                // there is a max in one of the left two sections
+                x_max = x_hi;
+                x_hi = x_lo;
+                x_lo = x_min + inv_phi * inv_phi * (x_max - x_min);
+                f_hi = f_lo;
+                f_lo = f(x_lo);
+            }
+        }
+        
+        // return the midpoint of the interval we narrowed down to
+        if (f_lo > f_hi) {
+            return (x_min + x_hi) / 2.0;
+        }
+        else {
+            return (x_lo + x_max) / 2.0;
+        }
     }
 
     /*
@@ -448,6 +553,7 @@ namespace Utils {
     static const vector<int8_t> qual_full_length_bonuses = qual_adjusted_bonuses();
 
     //------------------------------------------------------------------------------
+
 }
 
 
