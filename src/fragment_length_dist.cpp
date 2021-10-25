@@ -10,7 +10,6 @@
 
 //#define debug_skew_normal_fit
 
-static const uint32_t frag_length_buffer_size = 1000;
 static const uint32_t max_length_sd_multiplicity = 5;
 
 
@@ -29,7 +28,7 @@ FragmentLengthDist::FragmentLengthDist(const double loc_in, const double scale_i
     assert(isValid());
 
     setMaxLength();
-    setLogProbBuffer(frag_length_buffer_size);
+    setLogProbBuffer(max_length_);
 }
 
 FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool is_multipath) {
@@ -60,31 +59,42 @@ FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool 
     assert(isValid());
 
     setMaxLength();
-    setLogProbBuffer(frag_length_buffer_size);
+    setLogProbBuffer(max_length_);
 }
 
 FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts,
                                        bool skew_normal) {
 
-    int sample_size = 0;
-    bool warn_for_sample = false;
-    if (!skew_normal) {
+    uint32_t sample_size = 0;
+    uint64_t frag_length_sum = 0;
+
+    for (size_t i = 0; i < frag_length_counts.size(); ++i) {
         
-        uint32_t total_count = 0;
-        uint64_t sum_count = 0;
-        
-        for (size_t i = 0; i < frag_length_counts.size(); ++i) {
-            
-            total_count += frag_length_counts.at(i);
-            sum_count += (i * frag_length_counts.at(i));
-        }
-        sample_size = total_count;
-        
-        loc_ = sum_count / static_cast<double>(total_count);
+        sample_size += frag_length_counts.at(i);
+        frag_length_sum += (i * frag_length_counts.at(i));
+    }
+
+    cerr << sample_size << endl;
+
+    if (sample_size < 2) {
+
+        loc_ = frag_length_sum;
+        scale_ = 0.0;
         shape_ = 0.0;
-        
-        if (total_count > 1) {
+ 
+        assert(!isValid());
+   
+    } else {
+
+        if (sample_size < 1000) {
+
+            cerr << "WARNING: Only " << sample_size << " unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths." << endl;
+        }
+
+        if (!skew_normal) {
             
+            loc_ = frag_length_sum / static_cast<double>(sample_size);
+                        
             double sum_var = 0;
             
             for (size_t i = 0; i < frag_length_counts.size(); ++i) {
@@ -92,172 +102,155 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
                 sum_var += (pow(static_cast<double>(i) - loc_, 2) * frag_length_counts.at(i));
             }
             
-            scale_ = sqrt(sum_var / static_cast<double>(total_count - 1));
-            
-            if (total_count < 1000) {
-                warn_for_sample = true;
-                
-            }
-            
-            assert(isValid());
-            
-            setMaxLength();
-            setLogProbBuffer(frag_length_counts.size());
-            
+            scale_ = sqrt(sum_var / static_cast<double>(sample_size - 1));
+            shape_ = 0.0;
+
         } else {
-            
-            scale_ = 0;
-        }
-    } else {
-        // compute the cumulants
-        double k0 = 0.0;
-        double k1 = 0.0;
-        double k2 = 0.0;
-        double k3 = 0.0;
-        for (size_t i = 0; i < frag_length_counts.size(); ++i) {
-            double term = frag_length_counts.at(i);
-            k0 += term;
-            term *= i;
-            k1 += term;
-            term *= i;
-            k2 += term;
-            term *= i;
-            k3 += term;
-        }
-        
-#ifdef debug_skew_normal_fit
-        cerr << "central moments:" << endl;
-        cerr << "\tk0 " << k0 << endl;
-        cerr << "\tk1 " << k1 << endl;
-        cerr << "\tk2 " << k2 << endl;
-        cerr << "\tk3 " << k3 << endl;
-#endif
-        
-        // convert to un-normalized central moments
-        double m1 = k1 / k0;
-        double m2 = k2 / k0 - m1 * m1;
-        double m3 = k3 / k0 - 3.0 * m1 * m2 - m1 * m1 * m1;
-        
-#ifdef debug_skew_normal_fit
-        cerr << "central moments:" << endl;
-        cerr << "\tm1 " << m1 << endl;
-        cerr << "\tm2 " << m2 << endl;
-        cerr << "\tm3 " << m3 << endl;
-#endif
-        
-        // convert to normalized central moments
-        double mean = m1;
-        double sd = sqrt(m2);
-        double skew = m3 / (sd * sd * sd);
-        
-#ifdef debug_skew_normal_fit
-        cerr << "normalized central moments:" << endl;
-        cerr << "\tmean " << mean << endl;
-        cerr << "\tsd " << sd << endl;
-        cerr << "\tskew " << skew << endl;
-#endif
-        
-        // mimic warning behavior of non-skew normal branch
-        warn_for_sample = (k0 > 1 && k0 < 1000);
-        sample_size = k0;
-        
-        // use method of moments to derive starting point for MLE
-        double alpha = 0.0;
-        double sigma = 0.0;
-        double mu = 0.0;
-        if (skew != 0.0 && k0 > 2.0) {
-            // make sure we don't shoot past the theoretical maximum skew
-            // with the sample skew (which has a non-zero probability)
-            double gam = pow(min<double>(abs(skew), 0.9952717464311565), 2.0 / 3.0);
-            double abs_delta = sqrt((Utils::pi / 2.0) * (gam / (gam + pow((4.0 - Utils::pi) / 2.0, 2.0 / 3.0))));
-            double abs_alpha = abs_delta / sqrt(1.0 - abs_delta * abs_delta);
-            alpha = skew < 0.0 ? -abs_alpha : abs_alpha;
-        }
-        double delta = alpha / sqrt(1.0 + alpha * alpha);
-        if (sd != 0.0 && k0 > 1.0) {
-            sigma = sd / sqrt(1.0 - 2.0 * delta * delta / Utils::pi);
-        }
-        mu = mean - sigma * delta * sqrt(2.0 / Utils::pi);
-        
-#ifdef debug_skew_normal_fit
-        cerr << "MOM estimates:" << endl;
-        cerr << "\tmu " << mu << endl;
-        cerr << "\tsigma " << sigma << endl;
-        cerr << "\talpha " << alpha << endl;
-#endif
-        
-        // alternatingly optimize alpha and mu until convergence (sigma can
-        // be computed analytically)
-        auto log_likelihood = [&](double mu, double sigma, double alpha) {
-            double ll = 0.0;
+
+            // compute the cumulants
+            double k0 = sample_size;
+            double k1 = frag_length_sum;
+            double k2 = 0.0;
+            double k3 = 0.0;
             for (size_t i = 0; i < frag_length_counts.size(); ++i) {
-                ll += frag_length_counts.at(i) * Utils::log_skew_normal_pdf(double(i), mu, sigma, alpha);
+                double term = frag_length_counts.at(i);
+                term *= i * i;
+                k2 += term;
+                term *= i;
+                k3 += term;
             }
-            return ll;
-        };
-        function<double(double)> alpha_log_likelihood = [&](double a) {
-            return log_likelihood(mu, sigma, a);
-        };
-        function<double(double)> mu_log_likelihood = [&](double m) {
-            return log_likelihood(m, sigma, alpha);
-        };
-        
-        double tol = 1e-4;
-        double prev_mu = mu + 2.0 * tol;
-        double prev_alpha = alpha + 2.0 * tol;
-        int max_iters = 100;
-        int iter_num = 0;
-        while (iter_num < max_iters &&
-               (abs(prev_mu - mu) >= tol || abs(prev_alpha - alpha) >= tol)) {
             
-            ++iter_num;
-            prev_mu = mu;
-            prev_alpha = alpha;
+    #ifdef debug_skew_normal_fit
+            cerr << "central moments:" << endl;
+            cerr << "\tk0 " << k0 << endl;
+            cerr << "\tk1 " << k1 << endl;
+            cerr << "\tk2 " << k2 << endl;
+            cerr << "\tk3 " << k3 << endl;
+    #endif
             
-            double ll = alpha_log_likelihood(alpha);
-            // find an interval that contains a local maximum
-            double radius = 1.0;
-            while (alpha_log_likelihood(alpha - radius) >= ll ||
-                   alpha_log_likelihood(alpha + radius) >= ll) {
-                radius *= 2.0;
+            // convert to un-normalized central moments
+            double m1 = k1 / k0;
+            double m2 = k2 / k0 - m1 * m1;
+            double m3 = k3 / k0 - 3.0 * m1 * m2 - m1 * m1 * m1;
+            
+    #ifdef debug_skew_normal_fit
+            cerr << "central moments:" << endl;
+            cerr << "\tm1 " << m1 << endl;
+            cerr << "\tm2 " << m2 << endl;
+            cerr << "\tm3 " << m3 << endl;
+    #endif
+            
+            // convert to normalized central moments
+            double mean = m1;
+            double sd = sqrt(m2);
+            double skew = m3 / (sd * sd * sd);
+            
+    #ifdef debug_skew_normal_fit
+            cerr << "normalized central moments:" << endl;
+            cerr << "\tmean " << mean << endl;
+            cerr << "\tsd " << sd << endl;
+            cerr << "\tskew " << skew << endl;
+    #endif
+            
+            // use method of moments to derive starting point for MLE
+            double alpha = 0.0;
+            double sigma = 0.0;
+            double mu = 0.0;
+            if (skew != 0.0 && k0 > 2.0) {
+                // make sure we don't shoot past the theoretical maximum skew
+                // with the sample skew (which has a non-zero probability)
+                double gam = pow(min<double>(abs(skew), 0.9952717464311565), 2.0 / 3.0);
+                double abs_delta = sqrt((Utils::pi / 2.0) * (gam / (gam + pow((4.0 - Utils::pi) / 2.0, 2.0 / 3.0))));
+                double abs_alpha = abs_delta / sqrt(1.0 - abs_delta * abs_delta);
+                alpha = skew < 0.0 ? -abs_alpha : abs_alpha;
             }
-            // maximize likelihood for alpha
-            alpha = Utils::golden_section_search<double>(alpha_log_likelihood,
-                                                         alpha - radius, alpha + radius, tol / 4.0);
-            
-            // repeat for mu
-            ll = mu_log_likelihood(mu);
-            radius = 1.0;
-            while (mu_log_likelihood(mu - radius) >= ll ||
-                   mu_log_likelihood(mu + radius) >= ll) {
-                radius *= 2.0;
+            double delta = alpha / sqrt(1.0 + alpha * alpha);
+            if (sd != 0.0 && k0 > 1.0) {
+                sigma = sd / sqrt(1.0 - 2.0 * delta * delta / Utils::pi);
             }
-            mu = Utils::golden_section_search<double>(mu_log_likelihood,
-                                                      mu - radius, mu + radius, tol / 4.0);
+            mu = mean - sigma * delta * sqrt(2.0 / Utils::pi);
             
-            // analytical solution for sigma from equation 8 of Azzalini (1985)
-            double sum_sq_dev = 0.0;
-            for (size_t i = 0; i < frag_length_counts.size(); ++i) {
-                double dev = i - mu;
-                sum_sq_dev += frag_length_counts.at(i) * dev * dev;
-            }
-            sigma = sqrt(sum_sq_dev / k0);
-            
-#ifdef debug_skew_normal_fit
-            cerr << "iter " << iter_num << " estimates:" << endl;
+    #ifdef debug_skew_normal_fit
+            cerr << "MOM estimates:" << endl;
             cerr << "\tmu " << mu << endl;
             cerr << "\tsigma " << sigma << endl;
             cerr << "\talpha " << alpha << endl;
-#endif
+    #endif
+            
+            // alternatingly optimize alpha and mu until convergence (sigma can
+            // be computed analytically)
+            auto log_likelihood = [&](double mu, double sigma, double alpha) {
+                double ll = 0.0;
+                for (size_t i = 0; i < frag_length_counts.size(); ++i) {
+                    ll += frag_length_counts.at(i) * Utils::log_skew_normal_pdf(double(i), mu, sigma, alpha);
+                }
+                return ll;
+            };
+            function<double(double)> alpha_log_likelihood = [&](double a) {
+                return log_likelihood(mu, sigma, a);
+            };
+            function<double(double)> mu_log_likelihood = [&](double m) {
+                return log_likelihood(m, sigma, alpha);
+            };
+            
+            double tol = 1e-4;
+            double prev_mu = mu + 2.0 * tol;
+            double prev_alpha = alpha + 2.0 * tol;
+            int max_iters = 100;
+            int iter_num = 0;
+            while (iter_num < max_iters &&
+                   (abs(prev_mu - mu) >= tol || abs(prev_alpha - alpha) >= tol)) {
+                
+                ++iter_num;
+                prev_mu = mu;
+                prev_alpha = alpha;
+                
+                double ll = alpha_log_likelihood(alpha);
+                // find an interval that contains a local maximum
+                double radius = 1.0;
+                while (alpha_log_likelihood(alpha - radius) >= ll ||
+                       alpha_log_likelihood(alpha + radius) >= ll) {
+                    radius *= 2.0;
+                }
+                // maximize likelihood for alpha
+                alpha = Utils::golden_section_search<double>(alpha_log_likelihood,
+                                                             alpha - radius, alpha + radius, tol / 4.0);
+                
+                // repeat for mu
+                ll = mu_log_likelihood(mu);
+                radius = 1.0;
+                while (mu_log_likelihood(mu - radius) >= ll ||
+                       mu_log_likelihood(mu + radius) >= ll) {
+                    radius *= 2.0;
+                }
+                mu = Utils::golden_section_search<double>(mu_log_likelihood,
+                                                          mu - radius, mu + radius, tol / 4.0);
+                
+                // analytical solution for sigma from equation 8 of Azzalini (1985)
+                double sum_sq_dev = 0.0;
+                for (size_t i = 0; i < frag_length_counts.size(); ++i) {
+                    double dev = i - mu;
+                    sum_sq_dev += frag_length_counts.at(i) * dev * dev;
+                }
+                sigma = sqrt(sum_sq_dev / k0);
+                
+    #ifdef debug_skew_normal_fit
+                cerr << "iter " << iter_num << " estimates:" << endl;
+                cerr << "\tmu " << mu << endl;
+                cerr << "\tsigma " << sigma << endl;
+                cerr << "\talpha " << alpha << endl;
+    #endif
+            }
+            
+            loc_ = mu;
+            scale_ = sigma;
+            shape_ = alpha;
         }
-        
-        loc_ = mu;
-        scale_ = sigma;
-        shape_ = alpha;
-    }
-    
-    if (warn_for_sample) {
-        cerr << "WARNING: Only " << sample_size << " unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Consider setting --frag-mean and --frag-sd instead." << endl;
+
+        assert(isValid());
+
+        setMaxLength();
+        setLogProbBuffer(frag_length_counts.size());
     }
 }
 
@@ -364,12 +357,19 @@ void FragmentLengthDist::setLogProbBuffer(const uint32_t size) {
 
     assert(isValid());
 
-    log_prob_buffer = vector<double>(size);
+    log_prob_buffer = vector<double>(size + 1);
 
-    for (size_t i = 0; i < size; ++i) {
-        if (Utils::doubleCompare(shape_, 0.0)) {
+    if (Utils::doubleCompare(shape_, 0.0)) {
+
+        for (size_t i = 0; i < size + 1; ++i) {
+         
             log_prob_buffer.at(i) = Utils::log_normal_pdf<double>(i, loc_, scale_);
-        } else {
+        }
+
+    } else {
+
+        for (size_t i = 0; i < size + 1; ++i) {
+
             log_prob_buffer.at(i) = Utils::log_skew_normal_pdf<double>(i, loc_, scale_, shape_);
         }
     }

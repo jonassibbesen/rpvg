@@ -39,7 +39,9 @@
 #include "threaded_output_writer.hpp"
 
 const uint32_t align_paths_buffer_size = 10000;
-const uint32_t fragment_length_min_mapq = 40;
+
+const uint32_t frag_length_min_mapq = 40;
+const uint32_t max_frag_length_sample_size = 100000;
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
 typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths_t;
@@ -148,10 +150,12 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     }
 }
 
-void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * fragment_length_dist, const uint32_t mean_pre_fragment_length) {
+void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * frag_length_dist, const uint32_t mean_pre_frag_length, const uint64_t rng_seed) {
 
     vector<vector<AlignmentPath> > * align_paths_buffer = nullptr;
-    vector<uint32_t> fragment_length_counts(1000, 0);
+
+    uint32_t num_frag_length_counts = 0;
+    vector<uint32_t> frag_length_counts(1000, 0);
 
     while (align_paths_buffer_queue->pop(&align_paths_buffer)) {
 
@@ -160,17 +164,17 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
             assert(align_paths.size() > 1);
             assert(align_paths.back().frag_length == 0);
 
-            if (align_paths.front().min_mapq >= fragment_length_min_mapq && !align_paths.front().is_multimap) {
+            if (num_frag_length_counts < max_frag_length_sample_size && align_paths.front().min_mapq >= frag_length_min_mapq && !align_paths.front().is_multimap) {
 
-                uint32_t cur_fragment_length = align_paths.front().frag_length;
+                uint32_t cur_frag_length = align_paths.front().frag_length;
                 bool cur_length_is_constant = true;
 
                 for (size_t j = 1; j < align_paths.size() - 1; ++j) {
 
-                    assert(align_paths.at(j).min_mapq >= fragment_length_min_mapq);
+                    assert(align_paths.at(j).min_mapq >= frag_length_min_mapq);
                     assert(!align_paths.at(j).is_multimap);
 
-                    if (align_paths.at(j).frag_length != cur_fragment_length) {
+                    if (align_paths.at(j).frag_length != cur_frag_length) {
 
                         cur_length_is_constant = false;
                         break;
@@ -179,18 +183,19 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
                 if (cur_length_is_constant) {
 
-                    if (fragment_length_counts.size() <= cur_fragment_length) {
+                    if (frag_length_counts.size() <= cur_frag_length) {
                         
-                        fragment_length_counts.resize(cur_fragment_length + 1, 0);
+                        frag_length_counts.resize(cur_frag_length + 1, 0);
                     }
 
-                    fragment_length_counts.at(cur_fragment_length)++;
+                    num_frag_length_counts++;
+                    frag_length_counts.at(cur_frag_length)++;
                 }   
             }
 
             if (align_paths.size() == 2) {       
 
-                align_paths.front().frag_length = mean_pre_fragment_length;      
+                align_paths.front().frag_length = mean_pre_frag_length;      
                 align_paths.front().score_sum = 1;       
             } 
 
@@ -201,8 +206,14 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
         delete align_paths_buffer;
     }
 
-    // for now, don't fit a skew normal
-    *fragment_length_dist = FragmentLengthDist(fragment_length_counts, true);
+    double time_init = gbwt::readTimer();
+    cerr << "start " << num_frag_length_counts << endl; 
+
+    // Fit a skew normal
+    *frag_length_dist = FragmentLengthDist(frag_length_counts, true);
+
+    cerr << "end " << gbwt::readTimer() - time_init << endl; 
+
 }
 
 spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids) {
@@ -456,12 +467,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    FragmentLengthDist pre_fragment_length_dist; 
+    FragmentLengthDist pre_frag_length_dist; 
 
     if (is_long_reads) {
 
         assert(is_single_end);
-        pre_fragment_length_dist = FragmentLengthDist(1, 1);
+        pre_frag_length_dist = FragmentLengthDist(1, 1);
 
     } else if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
 
@@ -474,25 +485,25 @@ int main(int argc, char* argv[]) {
         ifstream frag_alignments_istream(option_results["alignments"].as<string>());
         assert(frag_alignments_istream.is_open());
 
-        pre_fragment_length_dist = FragmentLengthDist(&frag_alignments_istream, !is_single_path);
+        pre_frag_length_dist = FragmentLengthDist(&frag_alignments_istream, !is_single_path);
 
         frag_alignments_istream.close();
 
-        if (!pre_fragment_length_dist.isValid()) {
+        if (!pre_frag_length_dist.isValid()) {
 
             cerr << "ERROR: No fragment length distribution parameters found in alignments. Use --frag-mean and --frag-sd instead." << endl;
             return 1;
         
         } else {
 
-            cerr << "Fragment length distribution parameters found in alignment (mean: " << pre_fragment_length_dist.loc() << ", standard deviation: " << pre_fragment_length_dist.scale() << ")" << endl;
+            cerr << "Fragment length distribution parameters found in alignment (mean: " << pre_frag_length_dist.loc() << ", standard deviation: " << pre_frag_length_dist.scale() << ")" << endl;
         }      
 
     } else {
 
-        pre_fragment_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
+        pre_frag_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
 
-        cerr << "Fragment length distribution parameters given as input (mean: " << pre_fragment_length_dist.loc() << ", standard deviation: " << pre_fragment_length_dist.scale() << ")" << endl;
+        cerr << "Fragment length distribution parameters given as input (mean: " << pre_frag_length_dist.loc() << ", standard deviation: " << pre_frag_length_dist.scale() << ")" << endl;
     }
 
     cerr << endl;
@@ -528,7 +539,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    assert(pre_fragment_length_dist.isValid());
+    assert(pre_frag_length_dist.isValid());
 
     const double min_hap_prob = option_results["min-hap-prob"].as<double>();
     assert(min_hap_prob > 0 && min_hap_prob <= 1);
@@ -589,13 +600,13 @@ int main(int argc, char* argv[]) {
     align_paths_index_t align_paths_index;
     auto align_paths_buffer_queue = new align_paths_buffer_queue_t(num_threads * 3);
 
-    FragmentLengthDist fragment_length_dist;
+    FragmentLengthDist frag_length_dist;
 
-    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &fragment_length_dist, pre_fragment_length_dist.loc());
+    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &frag_length_dist, pre_frag_length_dist.loc(), rng_seed);
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -608,7 +619,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_fragment_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -630,27 +641,27 @@ int main(int argc, char* argv[]) {
 
     if (is_single_end || is_long_reads) {
 
-        fragment_length_dist = pre_fragment_length_dist;
+        frag_length_dist = pre_frag_length_dist;
 
     } else {
 
-        if (!fragment_length_dist.isValid()) {
+        if (!frag_length_dist.isValid()) {
 
             if (option_results.count("frag-mean") && option_results.count("frag-sd")) {
 
-                cerr << "Warning: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Will use parameters given as input instead (mean: " << pre_fragment_length_dist.loc() << ", standard deviation: " << pre_fragment_length_dist.scale() << ")" << endl;
+                cerr << "Warning: Too few unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Will use parameters given as input instead (mean: " << pre_frag_length_dist.loc() << ", standard deviation: " << pre_frag_length_dist.scale() << ")" << endl;
 
-                fragment_length_dist = pre_fragment_length_dist;
+                frag_length_dist = pre_frag_length_dist;
 
             } else {
 
-                cerr << "Error: Less than 2 unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Use --frag-mean and --frag-sd instead." << endl;
+                cerr << "Error: Too few unambiguous read pairs available to re-estimate fragment length distribution parameters from alignment paths. Use --frag-mean and --frag-sd instead." << endl;
                 return 1;
             }
         
         } else {
 
-            cerr << "Fragment length distribution parameters re-estimated from alignment paths (location: " << fragment_length_dist.loc() << ", scale: " << fragment_length_dist.scale() << ", shape: " << fragment_length_dist.shape() << ")" << endl;
+            cerr << "Fragment length distribution parameters re-estimated from alignment paths (location: " << frag_length_dist.loc() << ", scale: " << frag_length_dist.scale() << ", shape: " << frag_length_dist.shape() << ")" << endl;
         }
     }
 
@@ -807,7 +818,7 @@ int main(int argc, char* argv[]) {
 
             } else {
 
-                path_cluster_estimates->back().second.paths.back().effective_length = paths_index.effectivePathLength(path_id, fragment_length_dist); 
+                path_cluster_estimates->back().second.paths.back().effective_length = paths_index.effectivePathLength(path_id, frag_length_dist); 
             }
         }
 
@@ -827,7 +838,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-                read_path_cluster_probs.back().calcAlignPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, fragment_length_dist, is_single_end, min_noise_prob);
+                read_path_cluster_probs.back().calcAlignPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, frag_length_dist, is_single_end, min_noise_prob);
             }
         }
 
