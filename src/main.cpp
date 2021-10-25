@@ -207,7 +207,9 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
     }
 
     double time_init = gbwt::readTimer();
-    cerr << "start " << num_frag_length_counts << endl; 
+    cerr << "start " << frag_length_counts.size() << " " << num_frag_length_counts << endl; 
+
+    cerr << frag_length_counts << endl;
 
     // Fit a skew normal
     *frag_length_dist = FragmentLengthDist(frag_length_counts, true);
