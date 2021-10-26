@@ -10,7 +10,7 @@
 
 //#define debug_skew_normal_fit
 
-static const uint32_t max_length_sd_multiplicity = 5;
+static const uint32_t max_length_sd_multiplicity = 10;
 
 
 FragmentLengthDist::FragmentLengthDist() : loc_(0), scale_(1), shape_(0) {
@@ -65,6 +65,9 @@ FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool 
 FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts,
                                        bool skew_normal) {
 
+    assert(!frag_length_counts.empty());
+    assert(frag_length_counts.front() == 0);
+
     uint32_t sample_size = 0;
     uint64_t frag_length_sum = 0;
 
@@ -73,8 +76,6 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
         sample_size += frag_length_counts.at(i);
         frag_length_sum += (i * frag_length_counts.at(i));
     }
-
-    cerr << sample_size << endl;
 
     if (sample_size < 2) {
 

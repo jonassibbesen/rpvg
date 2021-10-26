@@ -83,7 +83,9 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
         }
         
         assert(align_paths_ids.size() == align_paths_log_probs.size() + 1);
+
         vector<double> read_path_log_probs(clustered_path_index.size(), numeric_limits<double>::lowest());
+        vector<double> read_path_max_align_lengths(clustered_path_index.size(), 0);
 
         for (size_t i = 0; i < align_paths_ids.size() - 1; ++i) {
 
@@ -103,8 +105,20 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
 
                 } else {
 
-                    // account for rare cases when a mpmap alignment can have multiple alignments on the same path
-                    read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length));
+                    double log_prob = align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length);
+                    assert(align_paths.at(i).align_length > 0);
+
+                    // Account for rare cases when a mpmap alignment can have multiple alignments on the same path or 
+                    // when partial matching results in multiple matches to the same path.
+                    if (align_paths.at(i).align_length > read_path_max_align_lengths.at(path_idx)) {
+
+                        read_path_log_probs.at(path_idx) = log_prob;
+                        read_path_max_align_lengths.at(path_idx) = align_paths.at(i).align_length;
+
+                    } else if (align_paths.at(i).align_length == read_path_max_align_lengths.at(path_idx)) {
+
+                        read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), log_prob);
+                    }
                 }
             }
         }

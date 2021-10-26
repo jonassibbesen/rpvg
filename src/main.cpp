@@ -67,11 +67,9 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
             while (align_paths_it != align_paths.end()) {
 
-                const AlignmentPath & last_align_paths_buffer = align_paths_buffer->back().back();
+                if (AlignmentPath::isIdenticalNonScoreSum(align_paths_buffer->back().back(), *align_paths_it)) {
 
-                if (last_align_paths_buffer.gbwt_search == align_paths_it->gbwt_search && last_align_paths_buffer.is_multimap == align_paths_it->is_multimap && last_align_paths_buffer.frag_length == align_paths_it->frag_length && last_align_paths_buffer.min_mapq == align_paths_it->min_mapq) {
-
-                    assert(last_align_paths_buffer.score_sum >= align_paths_it->score_sum);
+                    assert(align_paths_buffer->back().back().score_sum >= align_paths_it->score_sum);
 
                 } else {
 
@@ -158,35 +156,21 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
         for (auto & align_paths: *align_paths_buffer) {
 
             assert(align_paths.size() > 1);
+
+            assert(align_paths.front().frag_length > 0);
             assert(align_paths.back().frag_length == 0);
 
-            if (align_paths.front().min_mapq >= frag_length_min_mapq && !align_paths.front().is_multimap) {
+            if (align_paths.front().is_simple && align_paths.front().min_mapq >= frag_length_min_mapq) {
 
-                uint32_t cur_frag_length = align_paths.front().frag_length;
-                bool cur_length_is_constant = true;
-
-                for (size_t j = 1; j < align_paths.size() - 1; ++j) {
-
-                    assert(align_paths.at(j).min_mapq >= frag_length_min_mapq);
-                    assert(!align_paths.at(j).is_multimap);
-
-                    if (align_paths.at(j).frag_length != cur_frag_length) {
-
-                        cur_length_is_constant = false;
-                        break;
-                    }
-                }
-
-                if (cur_length_is_constant) {
-
-                    frag_length_counts.at(cur_frag_length)++;
-                }   
+                frag_length_counts.at(align_paths.front().frag_length)++;
             }
 
             if (align_paths.size() == 2) {       
 
-                align_paths.front().frag_length = pre_frag_length_dist.loc();      
                 align_paths.front().score_sum = 1;       
+
+                align_paths.front().align_length = 1;
+                align_paths.front().frag_length = pre_frag_length_dist.loc();      
             } 
 
             auto threaded_align_paths_index_it = align_paths_index->emplace(align_paths, 0);
@@ -196,16 +180,9 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
         delete align_paths_buffer;
     }
 
-    double time_init = gbwt::readTimer();
-    cerr << "start " << frag_length_counts.size() << endl; 
-
     cerr << frag_length_counts << endl;
 
-    // Fit a skew normal
     *frag_length_dist = FragmentLengthDist(frag_length_counts, false);
-
-    cerr << "end " << gbwt::readTimer() - time_init << endl; 
-
 }
 
 spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids) {
