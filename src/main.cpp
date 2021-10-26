@@ -39,9 +39,7 @@
 #include "threaded_output_writer.hpp"
 
 const uint32_t align_paths_buffer_size = 10000;
-
 const uint32_t frag_length_min_mapq = 40;
-const uint32_t max_frag_length_sample_size = 100000;
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
 typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths_t;
@@ -150,12 +148,10 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
     }
 }
 
-void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * frag_length_dist, const uint32_t mean_pre_frag_length, const uint64_t rng_seed) {
+void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * frag_length_dist, const FragmentLengthDist & pre_frag_length_dist) {
 
     vector<vector<AlignmentPath> > * align_paths_buffer = nullptr;
-
-    uint32_t num_frag_length_counts = 0;
-    vector<uint32_t> frag_length_counts(1000, 0);
+    vector<uint32_t> frag_length_counts(pre_frag_length_dist.maxLength() + 1, 0);
 
     while (align_paths_buffer_queue->pop(&align_paths_buffer)) {
 
@@ -164,7 +160,7 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
             assert(align_paths.size() > 1);
             assert(align_paths.back().frag_length == 0);
 
-            if (num_frag_length_counts < max_frag_length_sample_size && align_paths.front().min_mapq >= frag_length_min_mapq && !align_paths.front().is_multimap) {
+            if (align_paths.front().min_mapq >= frag_length_min_mapq && !align_paths.front().is_multimap) {
 
                 uint32_t cur_frag_length = align_paths.front().frag_length;
                 bool cur_length_is_constant = true;
@@ -183,19 +179,13 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
                 if (cur_length_is_constant) {
 
-                    if (frag_length_counts.size() <= cur_frag_length) {
-                        
-                        frag_length_counts.resize(cur_frag_length + 1, 0);
-                    }
-
-                    num_frag_length_counts++;
                     frag_length_counts.at(cur_frag_length)++;
                 }   
             }
 
             if (align_paths.size() == 2) {       
 
-                align_paths.front().frag_length = mean_pre_frag_length;      
+                align_paths.front().frag_length = pre_frag_length_dist.loc();      
                 align_paths.front().score_sum = 1;       
             } 
 
@@ -207,12 +197,12 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
     }
 
     double time_init = gbwt::readTimer();
-    cerr << "start " << frag_length_counts.size() << " " << num_frag_length_counts << endl; 
+    cerr << "start " << frag_length_counts.size() << endl; 
 
     cerr << frag_length_counts << endl;
 
     // Fit a skew normal
-    *frag_length_dist = FragmentLengthDist(frag_length_counts, true);
+    *frag_length_dist = FragmentLengthDist(frag_length_counts, false);
 
     cerr << "end " << gbwt::readTimer() - time_init << endl; 
 
@@ -604,7 +594,7 @@ int main(int argc, char* argv[]) {
 
     FragmentLengthDist frag_length_dist;
 
-    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &frag_length_dist, pre_frag_length_dist.loc(), rng_seed);
+    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &frag_length_dist, pre_frag_length_dist);
 
     if (is_single_path) {
         
