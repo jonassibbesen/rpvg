@@ -221,9 +221,9 @@ namespace Utils {
 
     template<typename T>
     inline T skew_normal_pdf(T x, T m, T s, T a) {
-        static const T const_factor = T(2.0) / (s * sqrt(T(2.0) * pi));
+        static const T const_factor = T(2.0) / (sqrt(T(2.0) * T(pi)));
         T z = (x - m) / s;
-        return const_factor * exp(-0.5 * z * z) * Phi(a * z);
+        return const_factor * exp(-0.5 * z * z) * Phi(a * z) / s;
     }
 
     template<typename T>
