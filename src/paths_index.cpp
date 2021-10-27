@@ -202,7 +202,7 @@ double PathsIndex::effectivePathLength(const uint32_t path_id, const FragmentLen
         const double alpha = (1.0 - fragment_length_dist.loc()) / fragment_length_dist.scale();
         const double beta = (path_length - fragment_length_dist.loc()) / fragment_length_dist.scale();
         
-        const double trunc_fragment_length_mean = fragment_length_dist.loc() + fragment_length_dist.scale() * (calculateLowerPhi(alpha) - calculateLowerPhi(beta)) / (calculateUpperPhi(beta) - calculateUpperPhi(alpha));
+        trunc_fragment_length_mean = fragment_length_dist.loc() + fragment_length_dist.scale() * (calculateLowerPhi(alpha) - calculateLowerPhi(beta)) / (calculateUpperPhi(beta) - calculateUpperPhi(alpha));
     }
     else {
         trunc_fragment_length_mean = Utils::truncated_skew_normal_expected_value<double>(fragment_length_dist.loc(),
