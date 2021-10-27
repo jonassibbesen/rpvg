@@ -216,15 +216,6 @@ namespace Utils {
     {
         static const T log_const = log(T(2.0) / sqrt(T(2.0) * pi));
         T z = (x - m) / s;
-        if (isnan(z)) {
-            cerr << "\t\tnan from z = " << z << endl;
-        }
-        if (isnan(log_Phi(a * z))) {
-            cerr << "\t\tnan from log phi " << a << " * " << z << ", i.e. " << (a * z) << endl;
-        }
-        if (isnan(log(s))) {
-            cerr << "\t\tnan from log s for s = " << s << endl;
-        }
         return log_const + log_Phi(a * z) - log(s) - T(0.5) * z * z;
     }
 
