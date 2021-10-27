@@ -67,9 +67,14 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
 
             while (align_paths_it != align_paths.end()) {
 
-                if (AlignmentPath::isIdenticalNonScoreSum(align_paths_buffer->back().back(), *align_paths_it)) {
+                assert(align_paths_buffer->back().back().is_simple == align_paths_it->is_simple);
+                assert(align_paths_buffer->back().back().min_mapq == align_paths_it->min_mapq);
 
-                    assert(align_paths_buffer->back().back().score_sum >= align_paths_it->score_sum);
+                if (align_paths_buffer->back().back().gbwt_search == align_paths_it->gbwt_search && 
+                    align_paths_buffer->back().back().frag_length == align_paths_it->frag_length) {
+
+                    assert(align_paths_buffer->back().back().align_length > align_paths_it->align_length || 
+                          (align_paths_buffer->back().back().align_length == align_paths_it->align_length && align_paths_buffer->back().back().score_sum >= align_paths_it->score_sum));
 
                 } else {
 

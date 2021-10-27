@@ -19,20 +19,19 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_simple_in, const uint32_t min_mapq_in, const int32_t score_sum_in, const uint32_t align_length_in, const uint32_t frag_length_in);
-        AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in, const uint32_t min_mapq_in);
+        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_simple_in, const uint8_t min_mapq_in, const int32_t score_sum_in, const uint16_t align_length_in, const uint16_t frag_length_in);
+        AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_simple_in, const uint8_t min_mapq_in);
 
         pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
         bool is_simple;
 
-        uint32_t min_mapq;
+        uint8_t min_mapq;
         int32_t score_sum;
 
-        uint32_t align_length;
-        uint32_t frag_length;
+        uint16_t align_length;
+        uint16_t frag_length;
 
-        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_simple, const uint32_t min_mapq);
-        static bool isIdenticalNonScoreSum(const AlignmentPath & align_path_1, const AlignmentPath & align_path_2);
+        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_simple, const uint8_t min_mapq);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
