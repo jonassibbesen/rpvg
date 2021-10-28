@@ -187,7 +187,7 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
 
     cerr << frag_length_counts << endl;
 
-    *frag_length_dist = FragmentLengthDist(frag_length_counts, false);
+    *frag_length_dist = FragmentLengthDist(frag_length_counts, true);
 }
 
 spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids) {
