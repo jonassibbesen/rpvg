@@ -51,7 +51,7 @@ inline constexpr T get_epsilon() noexcept(std::is_floating_point<T>::value)
     static_assert(std::numeric_limits<T>::is_specialized, "std::numeric_limits<T>::is_specialized");
     static_assert(std::numeric_limits<T>::radix == 2, "std::numeric_limits<T>::radix == 2");
     
-    return ldexp(T(1.0), 1 - std::numeric_limits<T>::digits());
+    return ldexp(T(1.0), 1 - std::numeric_limits<T>::digits);
 }
 
 // owens_t_znorm1(x) = P(-oo<Z<=x)-0.5 with Z being normally distributed.
