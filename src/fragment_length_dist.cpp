@@ -62,8 +62,7 @@ FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool 
     setLogProbBuffer(max_length_);
 }
 
-FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts,
-                                       bool skew_normal) {
+FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts, bool skew_normal) {
 
     assert(!frag_length_counts.empty());
     assert(frag_length_counts.front() == 0);
@@ -107,22 +106,22 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
             shape_ = 0.0;
 
         } else {
-
+            
             // compute the cumulants
             double k0 = sample_size;
             double k1 = frag_length_sum;
             double k2 = 0.0;
             double k3 = 0.0;
+
             for (size_t i = 0; i < frag_length_counts.size(); ++i) {
-                double term = frag_length_counts.at(i);
-                term *= i * i;
+                double term = frag_length_counts.at(i) * i * i;
                 k2 += term;
                 term *= i;
                 k3 += term;
             }
             
     #ifdef debug_skew_normal_fit
-            cerr << "central moments:" << endl;
+            cerr << "non-central moments:" << endl;
             cerr << "\tk0 " << k0 << endl;
             cerr << "\tk1 " << k1 << endl;
             cerr << "\tk2 " << k2 << endl;
@@ -183,6 +182,9 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
             auto log_likelihood = [&](double mu, double sigma, double alpha) {
                 double ll = 0.0;
                 for (size_t i = 0; i < frag_length_counts.size(); ++i) {
+                    if (frag_length_counts.at(i) == 0) {
+                        continue;
+                    }
                     ll += frag_length_counts.at(i) * Utils::log_skew_normal_pdf(double(i), mu, sigma, alpha);
                 }
                 return ll;
@@ -205,27 +207,31 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
                 ++iter_num;
                 prev_mu = mu;
                 prev_alpha = alpha;
-                
                 double ll = alpha_log_likelihood(alpha);
                 // find an interval that contains a local maximum
-                double radius = 1.0;
-                while (alpha_log_likelihood(alpha - radius) >= ll ||
-                       alpha_log_likelihood(alpha + radius) >= ll) {
-                    radius *= 2.0;
+                double left_radius = 1.0, right_radius = 1.0;
+                while (alpha_log_likelihood(alpha - left_radius) >= ll) {
+                    left_radius *= 2.0;
+                }
+                while (alpha_log_likelihood(alpha + right_radius) >= ll) {
+                    right_radius *= 2.0;
                 }
                 // maximize likelihood for alpha
                 alpha = Utils::golden_section_search<double>(alpha_log_likelihood,
-                                                             alpha - radius, alpha + radius, tol / 4.0);
+                                                             alpha - left_radius, alpha + right_radius, tol / 4.0);
                 
                 // repeat for mu
                 ll = mu_log_likelihood(mu);
-                radius = 1.0;
-                while (mu_log_likelihood(mu - radius) >= ll ||
-                       mu_log_likelihood(mu + radius) >= ll) {
-                    radius *= 2.0;
+                left_radius = 1.0;
+                right_radius = 1.0;
+                while (mu_log_likelihood(alpha - left_radius) >= ll) {
+                    left_radius *= 2.0;
+                }
+                while (mu_log_likelihood(alpha + right_radius) >= ll) {
+                    right_radius *= 2.0;
                 }
                 mu = Utils::golden_section_search<double>(mu_log_likelihood,
-                                                          mu - radius, mu + radius, tol / 4.0);
+                                                          mu - left_radius, mu + right_radius, tol / 4.0);
                 
                 // analytical solution for sigma from equation 8 of Azzalini (1985)
                 double sum_sq_dev = 0.0;
@@ -242,7 +248,7 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
                 cerr << "\talpha " << alpha << endl;
     #endif
             }
-            
+
             loc_ = mu;
             scale_ = sigma;
             shape_ = alpha;

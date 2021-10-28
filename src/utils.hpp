@@ -138,11 +138,61 @@ namespace Utils {
     }
 
     // the CDF of a standard normal distribution
+    // adapted from https://github.com/scipy/scipy/blob/master/scipy/special/cephes/ndtr.c
     template<typename T>
     inline T Phi(T z)
     {
-        static const T root_2 = sqrt(T(2.0));
-        return 0.5 * (1.0 + erf(z / root_2));
+        static const T root_1_2 = sqrt(T(0.5));
+        T x = z * root_1_2;
+        T a = fabs(x);
+        
+        T y;
+        if (a < root_1_2) {
+            y = T(0.5) + T(0.5) * erf(x);
+        }
+        else {
+            y = T(0.5) * erfc(a);
+            
+            if (x > 0) {
+                y = T(1.0) - y;
+            }
+        }
+        
+        return y;
+    }
+
+    // the log CDF of a standard normal distribution
+    // modified from https://github.com/scipy/scipy/blob/master/scipy/special/cephes/ndtr.c
+    template<typename T>
+    inline T log_Phi(T z)
+    {
+        if (z > 6.0) {
+            return -Phi(-z);     /* log(1+x) \approx x */
+        }
+        // changed this threshold from -20 in scipy, because it seems to create a big interval
+        // of -inf with our standard library's implementation of log and Phi
+        if (z > -20.0) {
+            return log(Phi(z));
+        }
+        double log_LHS,        /* we compute the left hand side of the approx (LHS) in one shot */
+        last_total = 0,        /* variable used to check for convergence */
+        right_hand_side = 1,    /* includes first term from the RHS summation */
+        numerator = 1,        /* numerator for RHS summand */
+        denom_factor = 1,    /* use reciprocal for denominator to avoid division */
+        denom_cons = 1.0 / (z * z);    /* the precomputed division we use to adjust the denominator */
+        long sign = 1, i = 0;
+        log_LHS = -0.5 * z * z - log(-z) - 0.5 * log(2 * pi);
+        
+        while (fabs(last_total - right_hand_side) > get_epsilon<double>()) {
+            i += 1;
+            last_total = right_hand_side;
+            sign = -sign;
+            denom_factor *= denom_cons;
+            numerator *= 2 * i - 1;
+            right_hand_side += sign * numerator * denom_factor;
+            
+        }
+        return log_LHS + log(right_hand_side);
     }
 
     // the pdf of a standard normal distribution
@@ -166,20 +216,14 @@ namespace Utils {
     {
         static const T log_const = log(T(2.0) / sqrt(T(2.0) * pi));
         T z = (x - m) / s;
-        T p = Phi(a * z);
-        if (p == T(0.0)) {
-            // Phi can have numerical issues for very small values
-            return numeric_limits<T>::lowest();
-        }
-        else {
-            return log_const + log(p / s) - T(0.5) * z * z;
-        }
+        return log_const + log_Phi(a * z) - log(s) - T(0.5) * z * z;
     }
 
     template<typename T>
     inline T skew_normal_pdf(T x, T m, T s, T a) {
+        static const T const_factor = T(2.0) / (sqrt(T(2.0) * T(pi)));
         T z = (x - m) / s;
-        return 2.0 / (s * sqrt(2.0 * pi)) * exp(-0.5 * z * z) * Phi(a * z);
+        return const_factor * exp(-0.5 * z * z) * Phi(a * z) / s;
     }
 
     template<typename T>
