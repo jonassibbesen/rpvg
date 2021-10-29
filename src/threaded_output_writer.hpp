@@ -63,7 +63,7 @@ class ReadCountGibbsSamplesWriter : public ThreadedOutputWriter {
 
     private:
 
-        const uint32_t num_gibbs_samples; 
+        const uint32_t num_gibbs_samples;
 };
 
 class HaplotypeEstimatesWriter : public ThreadedOutputWriter {

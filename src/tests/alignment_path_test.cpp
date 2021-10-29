@@ -13,7 +13,6 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	alignment_search_path.insert_length = 100;
 	
 	alignment_search_path.read_align_stats.emplace_back(AlignmentStats());
-	alignment_search_path.read_align_stats.back().mapq = 10;
 	alignment_search_path.read_align_stats.back().score = 50;
 	alignment_search_path.read_align_stats.back().length = 100;
 	alignment_search_path.read_align_stats.back().left_softclip_length = 10;
@@ -34,7 +33,6 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	REQUIRE(alignment_search_path.read_align_stats.back().clippedOffsetTotalBases() == 70);
 
 	alignment_search_path.read_align_stats.emplace_back(AlignmentStats());
-	alignment_search_path.read_align_stats.back().mapq = 20;
 	alignment_search_path.read_align_stats.back().score = 7;
 	alignment_search_path.read_align_stats.back().length = 10;
 	alignment_search_path.read_align_stats.back().left_softclip_length = 2;
@@ -47,28 +45,31 @@ TEST_CASE("AlignmentPath can be created from AlignmentSearchPath") {
 	REQUIRE(alignment_search_path.read_align_stats.back().clippedOffsetTotalBases() == 2);
 
 	REQUIRE(Utils::doubleCompare(alignment_search_path.fragmentLength(), 158));
-	REQUIRE(Utils::doubleCompare(alignment_search_path.minMappingQuality(), 10));
 	REQUIRE(Utils::doubleCompare(alignment_search_path.scoreSum(), 32));
 
 	REQUIRE(Utils::doubleCompare(alignment_search_path.minOptimalScoreFraction(vector<int32_t>({100, 10})), 0.25));
 	REQUIRE(Utils::doubleCompare(alignment_search_path.maxSoftclipFraction(), 0.4));
 
-	AlignmentPath alignment_path(alignment_search_path, false);
-	
-	REQUIRE(alignment_path.frag_length == 158);
-	REQUIRE(alignment_path.min_mapq == 10);
-	REQUIRE(alignment_path.score_sum == 32);
+	AlignmentPath alignment_path(alignment_search_path, false, 10);
+
 	REQUIRE(alignment_path.gbwt_search.first.empty());
+	REQUIRE(!alignment_path.is_simple);
+	REQUIRE(alignment_path.min_mapq == 10);
+	REQUIRE(alignment_path.score_sum == 32);		
+	REQUIRE(alignment_path.align_length == 38);
+	REQUIRE(alignment_path.frag_length == 158);
 
     SECTION("Insert length can be negative for overlapping paired-end alignments") {
 
     	alignment_search_path.insert_length = -8;
-		AlignmentPath alignment_path_neg(alignment_search_path, false);
-	
-		REQUIRE(alignment_path_neg.frag_length == 50);
+		AlignmentPath alignment_path_neg(alignment_search_path, false, 10);
+
+		REQUIRE(alignment_path_neg.gbwt_search == alignment_path.gbwt_search);
+		REQUIRE(alignment_path_neg.is_simple == alignment_path.is_simple);
 		REQUIRE(alignment_path_neg.min_mapq == alignment_path.min_mapq);
 		REQUIRE(alignment_path_neg.score_sum == alignment_path.score_sum);
-		REQUIRE(alignment_path_neg.gbwt_search == alignment_path.gbwt_search);
+		REQUIRE(alignment_path_neg.align_length == alignment_path.align_length);
+		REQUIRE(alignment_path_neg.frag_length == 50);
     }
 
     SECTION("Cleared AlignmentPath is empty") {

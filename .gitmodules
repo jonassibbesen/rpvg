@@ -18,7 +18,7 @@
 	url = https://github.com/samtools/htslib.git
 [submodule "deps/libvgio"]
 	path = deps/libvgio
-	url = https://github.com/vgteam/libvgio.git
+	url = https://github.com/jonassibbesen/libvgio.git
 [submodule "deps/xg"]
 	path = deps/xg
 	url = https://github.com/vgteam/xg.git

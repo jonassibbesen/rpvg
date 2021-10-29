@@ -10,7 +10,7 @@ TEST_CASE("FragmentLengthDist is valid normal distribution") {
 	FragmentLengthDist fragment_length_dist(10, 2);
 
     REQUIRE(fragment_length_dist.isValid());	
-    REQUIRE(fragment_length_dist.maxLength() == 20);
+    REQUIRE(fragment_length_dist.maxLength() == 30);
 
     REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(9), -1.737085713764618));
     REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(15), -4.737085713764618));

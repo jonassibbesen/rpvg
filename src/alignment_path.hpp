@@ -19,17 +19,19 @@ class AlignmentPath {
 
     public: 
         
-        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_multimap_in, const uint32_t frag_length_in, const uint32_t min_mapq_in, const int32_t score_sum_in);
-        AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_multimap_in);
+        AlignmentPath(const pair<gbwt::SearchState, gbwt::size_type> & gbwt_search_in, const bool is_simple_in, const uint8_t min_mapq_in, const int32_t score_sum_in, const uint16_t align_length_in, const uint16_t frag_length_in);
+        AlignmentPath(const AlignmentSearchPath & align_path_in, const bool is_simple_in, const uint8_t min_mapq_in);
 
         pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
-        bool is_multimap;
+        bool is_simple;
 
-        uint32_t frag_length;
-        uint32_t min_mapq;
+        uint8_t min_mapq;
         int32_t score_sum;
 
-        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap);
+        uint16_t align_length;
+        uint16_t frag_length;
+
+        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_simple, const uint8_t min_mapq);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
@@ -54,10 +56,11 @@ namespace std {
                 spp::hash_combine(seed, align_path.gbwt_search.first.range.first);
                 spp::hash_combine(seed, align_path.gbwt_search.first.range.second);
                 spp::hash_combine(seed, align_path.gbwt_search.second);
-                spp::hash_combine(seed, align_path.is_multimap);
-                spp::hash_combine(seed, align_path.frag_length);
+                spp::hash_combine(seed, align_path.is_simple);
                 spp::hash_combine(seed, align_path.min_mapq);
                 spp::hash_combine(seed, align_path.score_sum);
+                spp::hash_combine(seed, align_path.align_length);
+                spp::hash_combine(seed, align_path.frag_length);
             }
 
             return seed;
@@ -92,7 +95,6 @@ class AlignmentStats {
 
         AlignmentStats();
 
-        uint32_t mapq;
         int32_t score;
 
         uint32_t length;
@@ -143,8 +145,9 @@ class AlignmentSearchPath {
 
         vector<AlignmentStats> read_align_stats;
 
+        uint32_t alignmentLength() const;
         uint32_t fragmentLength() const;
-        uint32_t minMappingQuality() const;
+
         int32_t scoreSum() const;
 
         double minOptimalScoreFraction(const vector<int32_t> & optimal_align_scores) const;

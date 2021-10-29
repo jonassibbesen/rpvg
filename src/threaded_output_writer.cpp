@@ -96,11 +96,11 @@ void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & 
 ReadCountGibbsSamplesWriter::ReadCountGibbsSamplesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t num_gibbs_samples_in) : ThreadedOutputWriter(filename_prefix + ".txt.gz", "wg", num_threads), num_gibbs_samples(num_gibbs_samples_in) {
 
     auto out_sstream = new stringstream;
-    *out_sstream << "Name\tClusterID\tHaplotypeSampleId";
+    *out_sstream << "Name\tClusterID";
 
-    for (size_t i = 1; i <= num_gibbs_samples; ++i) {
+    for (uint32_t i = 0; i < num_gibbs_samples; ++i) {
 
-        *out_sstream << "\tReadCountSample_" << i;
+        *out_sstream << "\tReadCountSample_" << i + 1;
     }
 
     *out_sstream << endl;
@@ -111,35 +111,73 @@ void ReadCountGibbsSamplesWriter::addSamples(const pair<uint32_t, PathClusterEst
 
     if (!path_cluster_estimate.second.gibbs_read_count_samples.empty()) {
 
-        uint32_t cur_hap_sample_id = 0;
+        vector<vector<uint32_t> > path_gibbs_sampling_index(path_cluster_estimate.second.paths.size());
+
+        for (size_t i = 0; i < path_cluster_estimate.second.gibbs_read_count_samples.size(); ++i) {
+
+            const CountSamples & count_samples = path_cluster_estimate.second.gibbs_read_count_samples.at(i);
+
+            assert(!count_samples.path_ids.empty());
+            
+            assert(!count_samples.samples.empty());
+            assert(count_samples.samples.size() % count_samples.path_ids.size() == 0);
+
+            for (size_t j = 0; j < count_samples.path_ids.size(); ++j) {
+
+                vector<uint32_t> * sampling_indices = &(path_gibbs_sampling_index.at(count_samples.path_ids.at(j)));
+
+                if (sampling_indices->empty()) {
+
+                    *sampling_indices = vector<uint32_t>(path_cluster_estimate.second.gibbs_read_count_samples.size(), numeric_limits<int>::max());
+                }
+
+                sampling_indices->at(i) = j;
+            }            
+        }
+
         auto out_sstream = new stringstream;
 
-        for (auto & read_count_samples: path_cluster_estimate.second.gibbs_read_count_samples) {
+        for (size_t i = 0; i < path_gibbs_sampling_index.size(); ++i) {
 
-            assert(!read_count_samples.path_ids.empty());
-            assert(read_count_samples.path_ids.size() == read_count_samples.samples.size());
+            const vector<uint32_t> & sampling_indices = path_gibbs_sampling_index.at(i);
 
-            assert(read_count_samples.samples.front().size() % num_gibbs_samples == 0);
+            if (!sampling_indices.empty()) {
 
-            for (size_t i = 0; i < read_count_samples.samples.front().size(); i += num_gibbs_samples) {
+                *out_sstream << path_cluster_estimate.second.paths.at(i).name;
+                *out_sstream << "\t" << path_cluster_estimate.first;
 
-                ++cur_hap_sample_id;
+                uint32_t num_samples = 0;
 
-                for (size_t j = 0; j < read_count_samples.path_ids.size(); ++j) {
+                for (size_t j = 0; j < sampling_indices.size(); ++j) {
 
-                    assert(read_count_samples.samples.front().size() == read_count_samples.samples.at(j).size());
+                    const CountSamples & count_samples = path_cluster_estimate.second.gibbs_read_count_samples.at(j);
 
-                    *out_sstream << path_cluster_estimate.second.paths.at(read_count_samples.path_ids.at(j)).name;
-                    *out_sstream << "\t" << path_cluster_estimate.first;
-                    *out_sstream << "\t" << cur_hap_sample_id;
+                    if (sampling_indices.at(j) == numeric_limits<int>::max()) {
 
-                    for (size_t k = 0; k < num_gibbs_samples; ++k) {
+                        for (size_t k = 0; k < count_samples.samples.size() / count_samples.path_ids.size(); ++k) {
 
-                        *out_sstream << "\t" << read_count_samples.samples.at(j).at(i + k);
+                            *out_sstream << "\t0";
+                            ++num_samples;
+                        }
+
+                    } else {
+
+                        for (size_t k = 0; k < count_samples.samples.size() / count_samples.path_ids.size(); ++k) {
+
+                            *out_sstream << "\t" << count_samples.samples.at(k * count_samples.path_ids.size() + sampling_indices.at(j));
+                            ++num_samples;
+                        }
                     }
-
-                    *out_sstream << endl;
                 }
+
+                while (num_samples < num_gibbs_samples) {
+    
+                    *out_sstream << "\t0";
+                    ++num_samples;                    
+                }
+
+                assert(num_samples == num_gibbs_samples);
+                *out_sstream << endl;                
             }
         }
 
@@ -157,7 +195,7 @@ HaplotypeEstimatesWriter::HaplotypeEstimatesWriter(const string filename_prefix,
         *out_sstream << "Name" << i + 1 << "\t";
     }
 
-    *out_sstream << "ClusterID\tProbability" << endl;
+    *out_sstream << "ClusterID\tHaplotypingProbability" << endl;
     output_queue->push(out_sstream);
 }
 
