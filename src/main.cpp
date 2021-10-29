@@ -185,8 +185,6 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
         delete align_paths_buffer;
     }
 
-    cerr << frag_length_counts << endl;
-
     *frag_length_dist = FragmentLengthDist(frag_length_counts, true);
 }
 
@@ -331,6 +329,7 @@ int main(int argc, char* argv[]) {
       // ("est-missing-prob", "estimate the probability that the correct alignment path is missing (experimental)", cxxopts::value<bool>())
       ("max-score-diff", "maximum score difference allowed to best alignment path", cxxopts::value<uint32_t>()->default_value(to_string((Utils::default_match + Utils::default_mismatch) * 4)))
       ("filt-best-score", "filter alignments with a best score fraction of <value> below optimal", cxxopts::value<double>()->default_value("0.9"))
+      ("use-allelic-mapq", "use allelic mapping quality if available in alignment file", cxxopts::value<bool>())
       ("min-noise-prob", "minimum probability that alignment is incorrect", cxxopts::value<double>()->default_value("1e-4"))
       ("prob-precision", "precision threshold used to collapse similar probabilities and filter output", cxxopts::value<double>()->default_value("1e-8"))
       ("path-node-cluster", "also cluster paths sharing a node (default: paths sharing a read)", cxxopts::value<bool>())
@@ -480,8 +479,6 @@ int main(int argc, char* argv[]) {
         cerr << "Fragment length distribution parameters given as input (mean: " << pre_frag_length_dist.loc() << ", standard deviation: " << pre_frag_length_dist.scale() << ")" << endl;
     }
 
-    cerr << endl;
-
     const uint32_t max_partial_offset = option_results["max-par-offset"].as<uint32_t>();
     
     // const bool est_missing_noise_prob = option_results.count("est-missing-prob");
@@ -492,6 +489,8 @@ int main(int argc, char* argv[]) {
 
     const double min_best_score_filter = option_results["filt-best-score"].as<double>();
     assert(min_best_score_filter >= 0 && min_best_score_filter <= 1);
+
+    const bool use_allelic_mapq = option_results.count("use-allelic-mapq");
 
     const double min_noise_prob = option_results["min-noise-prob"].as<double>();
     assert(min_noise_prob >= 0 && min_noise_prob <= 1);
@@ -580,7 +579,7 @@ int main(int argc, char* argv[]) {
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -593,7 +592,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -610,8 +609,6 @@ int main(int argc, char* argv[]) {
 
     indexing_thread.join();
     delete align_paths_buffer_queue;
-
-    cerr << align_paths_index.size() << endl;
 
     if (is_single_end || is_long_reads) {
 
@@ -648,8 +645,6 @@ int main(int argc, char* argv[]) {
 
         path_clusters.addNodeClusters(paths_index);
     }
-
-    cerr << path_clusters.cluster_to_paths_index.size() << endl;
 
     vector<vector<vector<align_paths_index_t::iterator> > > align_paths_clusters(path_clusters.cluster_to_paths_index.size(), vector<vector<align_paths_index_t::iterator> >(num_threads));
 

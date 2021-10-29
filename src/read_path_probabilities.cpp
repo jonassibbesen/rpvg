@@ -55,6 +55,9 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
         assert(noise_prob < 1 && noise_prob > 0);
 
         assert(align_paths.back().gbwt_search.first.empty());
+        assert(align_paths.back().frag_length == 0);
+        assert(align_paths.back().align_length == 0);
+
         assert(align_paths_ids.back().empty());
         assert(align_paths.back().score_sum <= 0);
 
