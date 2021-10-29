@@ -100,7 +100,7 @@ ReadCountGibbsSamplesWriter::ReadCountGibbsSamplesWriter(const string filename_p
 
     for (uint32_t i = 0; i < num_gibbs_samples; ++i) {
 
-        *out_sstream << "\tReadCountSample" << i + 1;
+        *out_sstream << "\tReadCountSample_" << i + 1;
     }
 
     *out_sstream << endl;
