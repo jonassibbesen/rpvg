@@ -359,7 +359,7 @@ void PathEstimator::calculatePathGroupPosteriorsFull(PathClusterEstimates * path
     auto path_log_freqs = calcPathLogFrequences(path_counts);
     assert(path_log_freqs.size() == path_counts.size());
 
-    path_cluster_estimates->resetEstimates(read_path_probs.cols(), group_size, true);
+    path_cluster_estimates->resetEstimates(read_path_probs.cols(), group_size);
 
     assert(path_cluster_estimates->posteriors.size() > 0);
     assert(path_cluster_estimates->posteriors.size() == path_cluster_estimates->path_group_sets.size());
@@ -408,7 +408,7 @@ void PathEstimator::calculatePathGroupPosteriorsBounded(PathClusterEstimates * p
     auto path_log_freqs = calcPathLogFrequences(path_counts);
     assert(path_log_freqs.size() == path_counts.size());
 
-    path_cluster_estimates->resetEstimates(0, 0, true);
+    path_cluster_estimates->resetEstimates(0, 0);
 
     assert(path_cluster_estimates->posteriors.size() == 0);
     assert(path_cluster_estimates->posteriors.size() == path_cluster_estimates->path_group_sets.size());
@@ -502,7 +502,7 @@ void PathEstimator::estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path
     auto path_log_freqs = calcPathLogFrequences(path_counts);
     assert(path_log_freqs.size() == path_counts.size());
 
-    path_cluster_estimates->resetEstimates(0, 0, true);
+    path_cluster_estimates->resetEstimates(0, 0);
 
     assert(path_cluster_estimates->posteriors.size() == 0);
     assert(path_cluster_estimates->posteriors.size() == path_cluster_estimates->path_group_sets.size());

@@ -36,8 +36,8 @@ A small example dataset containing 36,120 haplotype-specific transcripts and 100
 
 This should take less than a minute to run and will create two files: 
 
-* *rpvg.txt*: Contains the estimated haplotype probability and transcript expression for each haplotype-specific transcript in the pantranscriptome.
-* *rpvg_haps.txt*: Contains the estimated probability of each haplotype combination (e.g. diplotype) for all transcripts (only combinations with a probability above zero are shown). 
+* *rpvg.txt*: Contains the estimated probability of each haplotype combination (e.g. diplotype) for each transcript in the pantranscriptome and the corresponding estimated haplotype-specific transcript expression (only combinations with a probability above zero are shown). 
+* *rpvg_marg.txt*: Contains the estimated marginal haplotype probability and expression value for each haplotype-specific transcript in the pantranscriptome.
 
 #### Paths:
 

@@ -44,10 +44,10 @@ struct PathClusterEstimates {
 
     vector<PathInfo> paths;
 
-    vector<double> posteriors;
     vector<vector<uint32_t> > path_group_sets;
 
-    Eigen::RowVectorXd abundances;
+    vector<double> posteriors;
+    vector<double> abundances;
 
     vector<CountSamples> gibbs_read_count_samples;
 
@@ -77,37 +77,21 @@ struct PathClusterEstimates {
         }
     }
 
-    void resetEstimates(uint32_t num_components, const uint32_t group_size, const bool init_zero) {
+    void resetEstimates(uint32_t num_components, const uint32_t group_size) {
+
+        path_group_sets.clear();
 
         posteriors.clear();
-        path_group_sets.clear();
+        abundances.clear();
         
-        abundances = Eigen::RowVectorXd::Zero(1, 0);;
-
         gibbs_read_count_samples.clear();
 
         if (group_size > 0) {
 
             generateGroupsRecursive(num_components, group_size, vector<uint>());
-            num_components = path_group_sets.size();
         
-            if (init_zero) {
-
-                posteriors = vector<double>(num_components, 0);
-
-            } else {
-
-                posteriors = vector<double>(num_components, 1 / static_cast<float>(num_components));
-            }
-        }
-
-        if (init_zero) {
-
-            abundances = Eigen::RowVectorXd::Zero(1, num_components);
-
-        } else {
-
-            abundances = Eigen::RowVectorXd::Constant(1, num_components, 1 / static_cast<float>(num_components));
+            posteriors = vector<double>(path_group_sets.size(), 0);
+            abundances = vector<double>(path_group_sets.size() * group_size, 0);
         }
     }
 };
