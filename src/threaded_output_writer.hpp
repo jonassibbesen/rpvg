@@ -66,12 +66,12 @@ class ReadCountGibbsSamplesWriter : public ThreadedOutputWriter {
         const uint32_t num_gibbs_samples;
 };
 
-class HaplotypeEstimatesWriter : public ThreadedOutputWriter {
+class JointHaplotypeEstimatesWriter : public ThreadedOutputWriter {
 
     public: 
         
-        HaplotypeEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in);
-        ~HaplotypeEstimatesWriter() {};
+        JointHaplotypeEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in);
+        ~JointHaplotypeEstimatesWriter() {};
 
         void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
 
@@ -110,5 +110,20 @@ class HaplotypeAbundanceEstimatesWriter : public ThreadedOutputWriter {
         const double total_transcript_count;
 };
 
+class JointHaplotypeAbundanceEstimatesWriter : public ThreadedOutputWriter {
+
+    public: 
+        
+        JointHaplotypeAbundanceEstimatesWriter(const string filename_prefix, const uint32_t num_threads, const uint32_t ploidy_in, const double min_posterior_in, const double total_transcript_count_in);
+        ~JointHaplotypeAbundanceEstimatesWriter() {};
+
+        void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
+
+    private:
+
+        const uint32_t ploidy;
+        const double min_posterior;
+        const double total_transcript_count;
+};
 
 #endif
