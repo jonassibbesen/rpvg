@@ -919,18 +919,15 @@ int main(int argc, char* argv[]) {
         if (inference_model == "haplotype-transcripts") {
 
             HaplotypeAbundanceEstimatesWriter haplotype_abundance_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, total_transcript_count);
-            JointHaplotypeEstimatesWriter joint_haplotype_estimates_writer(option_results["output-prefix"].as<string>() + "_haps", num_threads, ploidy, prob_precision);
             JointHaplotypeAbundanceEstimatesWriter joint_haplotype_abundance_estimates_writer(option_results["output-prefix"].as<string>() + "_joint", num_threads, ploidy, prob_precision, total_transcript_count);
 
             for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
 
                 haplotype_abundance_estimates_writer.addEstimates(path_cluster_estimates);
-                joint_haplotype_estimates_writer.addEstimates(path_cluster_estimates);
                 joint_haplotype_abundance_estimates_writer.addEstimates(path_cluster_estimates);
             }
 
             haplotype_abundance_estimates_writer.close();
-            joint_haplotype_estimates_writer.close();
             joint_haplotype_abundance_estimates_writer.close();
         
         } else {
