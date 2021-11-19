@@ -8,6 +8,8 @@ PathPosteriorEstimator::PathPosteriorEstimator(const double prob_precision) : Pa
 
 void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
+    path_cluster_estimates->resetEstimates(path_cluster_estimates->paths.size(), 1);
+
     if (!cluster_probs.empty()) {
 
         Utils::ColMatrixXd read_path_probs;
@@ -25,20 +27,14 @@ void PathPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estima
         }
 
         calculatePathGroupPosteriorsFull(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, 1);
-
-        assert(path_cluster_estimates->posteriors.size() == read_path_probs.cols());
-        assert(path_cluster_estimates->posteriors.size() == path_cluster_estimates->paths.size());
-        assert(path_cluster_estimates->posteriors.size() == path_cluster_estimates->path_group_sets.size());
-
-    } else {
-
-        path_cluster_estimates->resetEstimates(path_cluster_estimates->paths.size(), 1, true);
-    }
+    } 
 }
 
 PathGroupPosteriorEstimator::PathGroupPosteriorEstimator(const uint32_t group_size_in, const bool use_group_post_gibbs_in, const double prob_precision) : group_size(group_size_in), use_group_post_gibbs(use_group_post_gibbs_in), PathPosteriorEstimator(prob_precision) {}
 
 void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
+
+    path_cluster_estimates->resetEstimates(0, 0);
 
     if (!cluster_probs.empty()) {
 
@@ -71,11 +67,5 @@ void PathGroupPosteriorEstimator::estimate(PathClusterEstimates * path_cluster_e
                 calculatePathGroupPosteriorsFull(path_cluster_estimates, read_path_probs, noise_probs, read_counts, path_counts, group_size);
             }
         }
-
-        assert(path_cluster_estimates->posteriors.size() == path_cluster_estimates->path_group_sets.size());
-
-    } else {
-
-        path_cluster_estimates->resetEstimates(0, 0, true);
-    }
+    } 
 }

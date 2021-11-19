@@ -875,14 +875,14 @@ int main(int argc, char* argv[]) {
 
     if (inference_model == "haplotypes") {
 
-        HaplotypeEstimatesWriter haplotype_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, prob_precision);
+        JointHaplotypeEstimatesWriter joint_haplotype_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, prob_precision);
 
         for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
 
-            haplotype_estimates_writer.addEstimates(path_cluster_estimates);
+            joint_haplotype_estimates_writer.addEstimates(path_cluster_estimates);
         }
 
-        haplotype_estimates_writer.close();
+        joint_haplotype_estimates_writer.close();
 
     } else {
 
@@ -892,31 +892,43 @@ int main(int argc, char* argv[]) {
 
             for (auto & path_cluster_estimates: path_cluster_estimates_thread) {
 
-                assert(path_cluster_estimates.second.paths.size() == path_cluster_estimates.second.abundances.cols());
+                auto abundances_it = path_cluster_estimates.second.abundances.begin();
 
-                for (size_t i = 0; i < path_cluster_estimates.second.paths.size(); ++i) {
+                for (size_t i = 0; i < path_cluster_estimates.second.path_group_sets.size(); ++i) {
 
-                    if (path_cluster_estimates.second.paths.at(i).effective_length > 0) {
+                    assert(!path_cluster_estimates.second.path_group_sets.at(i).empty());
+                    assert(path_cluster_estimates.second.path_group_sets.at(i).size() <= ploidy);
 
-                        total_transcript_count += (path_cluster_estimates.second.abundances(0, i) / path_cluster_estimates.second.paths.at(i).effective_length);
+                    for (size_t j = 0; j < path_cluster_estimates.second.path_group_sets.at(i).size(); ++j) {
+
+                        auto path_effective_length = path_cluster_estimates.second.paths.at(path_cluster_estimates.second.path_group_sets.at(i).at(j)).effective_length;
+
+                        if (path_effective_length > 0) {
+
+                            total_transcript_count += (*abundances_it / path_effective_length);
+                        }
+
+                        ++abundances_it;
                     }
                 }
+
+                assert(abundances_it == path_cluster_estimates.second.abundances.end());
             }
         }
 
         if (inference_model == "haplotype-transcripts") {
 
             HaplotypeAbundanceEstimatesWriter haplotype_abundance_estimates_writer(option_results["output-prefix"].as<string>(), num_threads, ploidy, total_transcript_count);
-            HaplotypeEstimatesWriter haplotype_estimates_writer(option_results["output-prefix"].as<string>() + "_haps", num_threads, ploidy, prob_precision);
+            JointHaplotypeAbundanceEstimatesWriter joint_haplotype_abundance_estimates_writer(option_results["output-prefix"].as<string>() + "_joint", num_threads, ploidy, prob_precision, total_transcript_count);
 
             for (auto & path_cluster_estimates: threaded_path_cluster_estimates) {
 
                 haplotype_abundance_estimates_writer.addEstimates(path_cluster_estimates);
-                haplotype_estimates_writer.addEstimates(path_cluster_estimates);
+                joint_haplotype_abundance_estimates_writer.addEstimates(path_cluster_estimates);
             }
 
             haplotype_abundance_estimates_writer.close();
-            haplotype_estimates_writer.close();
+            joint_haplotype_abundance_estimates_writer.close();
         
         } else {
 
