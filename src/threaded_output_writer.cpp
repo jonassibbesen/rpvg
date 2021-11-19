@@ -195,7 +195,7 @@ JointHaplotypeEstimatesWriter::JointHaplotypeEstimatesWriter(const string filena
         *out_sstream << "Name_" << i + 1 << "\t";
     }
 
-    *out_sstream << "ClusterID\tJointHaplotypeProbability" << endl;
+    *out_sstream << "ClusterID\tHaplotypingProbability" << endl;
     output_queue->push(out_sstream);
 }
 
@@ -354,7 +354,7 @@ JointHaplotypeAbundanceEstimatesWriter::JointHaplotypeAbundanceEstimatesWriter(c
         *out_sstream << "Name_" << i + 1 << "\t";
     }
 
-    *out_sstream << "ClusterID\tJointHaplotypeProbability";
+    *out_sstream << "ClusterID\tHaplotypingProbability";
 
     for (uint32_t i = 0; i < ploidy; ++i) {
 
