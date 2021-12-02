@@ -319,11 +319,16 @@ int main(int argc, char* argv[]) {
       ("u,single-path", "alignment input is single-path gam format (default: multipath gamp)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
+      ("score-not-qual", "alignment score is not quality adjusted", cxxopts::value<bool>())
       ;
 
-    options.add_options("Probability")
+    options.add_options("Fragment")
       ("m,frag-mean", "mean for fragment length distribution", cxxopts::value<double>())
       ("d,frag-sd", "standard deviation for fragment length distribution", cxxopts::value<double>())
+      ("max-num-sd-frag", "maximum number of standard deviations from the mean allowed for the fragment length", cxxopts::value<uint32_t>()->default_value("10"))
+      ;
+
+    options.add_options("Probability")      
       ("b,write-probs", "write read path probabilities to file (<prefix>_probs.txt.gz)", cxxopts::value<bool>())
       ("max-par-offset", "maximum start and end offset allowed for partial path alignments", cxxopts::value<uint32_t>()->default_value("4"))
       // ("est-missing-prob", "estimate the probability that the correct alignment path is missing (experimental)", cxxopts::value<bool>())
@@ -352,7 +357,7 @@ int main(int argc, char* argv[]) {
 
     if (argc == 1) {
 
-        cerr << options.help({"Required", "General", "Alignment", "Probability", "Haplotyping", "Quantification"}) << endl;
+        cerr << options.help({"Required", "General", "Alignment", "Fragment", "Probability", "Haplotyping", "Quantification"}) << endl;
         return 1;
     }
  
@@ -360,7 +365,7 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("help")) {
 
-        cerr << options.help({"Required", "General", "Alignment", "Probability", "Haplotyping", "Quantification"}) << endl;
+        cerr << options.help({"Required", "General", "Alignment", "Fragment", "Probability", "Haplotyping", "Quantification"}) << endl;
         return 1;
     }
 
@@ -434,6 +439,9 @@ int main(int argc, char* argv[]) {
     const bool is_long_reads = option_results.count("long-reads");
     const bool is_single_path = option_results.count("single-path");
 
+    const uint32_t max_num_sd_frag = option_results["max-num-sd-frag"].as<uint32_t>();
+    assert(max_num_sd_frag > 0);
+
     if (option_results.count("frag-mean") != option_results.count("frag-sd")) {
 
         cerr << "ERROR: Both --frag-mean and --frag-sd needs to be given as input. Alternative, no values can be given for paired-end, non-long read alignments and the parameter estimated during mapping will be used instead (contained in the alignment file)." << endl;
@@ -445,7 +453,7 @@ int main(int argc, char* argv[]) {
     if (is_long_reads) {
 
         assert(is_single_end);
-        pre_frag_length_dist = FragmentLengthDist(1, 1);
+        pre_frag_length_dist = FragmentLengthDist(1, 1, max_num_sd_frag);
 
     } else if (!option_results.count("frag-mean") && !option_results.count("frag-sd")) {
 
@@ -458,7 +466,7 @@ int main(int argc, char* argv[]) {
         ifstream frag_alignments_istream(option_results["alignments"].as<string>());
         assert(frag_alignments_istream.is_open());
 
-        pre_frag_length_dist = FragmentLengthDist(&frag_alignments_istream, !is_single_path);
+        pre_frag_length_dist = FragmentLengthDist(&frag_alignments_istream, !is_single_path, max_num_sd_frag);
 
         frag_alignments_istream.close();
 
@@ -474,10 +482,12 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        pre_frag_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>());
+        pre_frag_length_dist = FragmentLengthDist(option_results["frag-mean"].as<double>(), option_results["frag-sd"].as<double>(), max_num_sd_frag);
 
         cerr << "Fragment length distribution parameters given as input (mean: " << pre_frag_length_dist.loc() << ", standard deviation: " << pre_frag_length_dist.scale() << ")" << endl;
     }
+
+    const bool score_not_qual = option_results.count("score-not-qual");
 
     const uint32_t max_partial_offset = option_results["max-par-offset"].as<uint32_t>();
     
@@ -579,7 +589,7 @@ int main(int argc, char* argv[]) {
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, score_not_qual, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -592,7 +602,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, score_not_qual, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 

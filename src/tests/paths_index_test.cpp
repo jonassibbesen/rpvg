@@ -66,12 +66,12 @@ TEST_CASE("Path index can calculate path lengths") {
 
 	SECTION("Effective paths length are calculated using fragment length distribution") {
 
-		FragmentLengthDist fragment_length_dist(5, 2);
+		FragmentLengthDist fragment_length_dist(5, 2, 10);
 
     	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(0, fragment_length_dist), 32.889504274642021));
     	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 2.4592743581826583));
 
-    	fragment_length_dist = FragmentLengthDist(20, 1);
+    	fragment_length_dist = FragmentLengthDist(20, 1, 10);
 
     	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(0, fragment_length_dist), 18));
     	REQUIRE(Utils::doubleCompare(paths_index.effectivePathLength(1, fragment_length_dist), 1));
