@@ -17,7 +17,7 @@ class AlignmentPathFinder {
 
     public: 
     
-       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const bool use_allelic_mapq_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const int32_t max_score_diff_in, const double min_best_score_filter_in);
+       	AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const bool score_not_qual_in, const bool use_allelic_mapq_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const int32_t max_score_diff_in, const double min_best_score_filter_in);
 
 		vector<AlignmentPath> findAlignmentPaths(const AlignmentType & alignment) const;
 		vector<AlignmentPath> findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const;
@@ -27,6 +27,7 @@ class AlignmentPathFinder {
        	const PathsIndex & paths_index;
        	const string library_type;
 
+       	const bool score_not_qual;
        	const bool use_allelic_mapq;
 
        	const uint32_t max_pair_frag_length;

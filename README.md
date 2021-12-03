@@ -66,6 +66,8 @@ The method currently contains four different inference models. Each model have b
 * Use `-s` for single-end reads. Note that the fragment length distribution will still be used for calculating the effective path length.
 * Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but does not use effective path length normalization.
 
+Note that rpvg assumes that the default scoring parameters were used for the alignment using either vg map or vg mpmap.
+
 #### Fragment length distribution:
 
 The fragment length distribution parameters are learned by rpvg. However, in order to learn this the maximum expected fragment length is needed. This is calculated from the expected fragment length distribution mean and standard deviation, which can be given using `-m` and `-d`, respectively. If these are not given the method will look for the parameters in the alignment file and pick the first values that it finds. The input parameters (`-m` and `-d`) are overwritten by the values estimated by rpvg when calculating the read-path probabilities. When the input is single-end reads (`-s`) the expected mean (`-m`) and standard deviation (`-d`) is required as it can not be estimated by rpvg and is needed for the effective path length calculation.

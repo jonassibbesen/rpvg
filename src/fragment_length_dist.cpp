@@ -10,28 +10,24 @@
 
 //#define debug_skew_normal_fit
 
-static const uint32_t max_length_sd_multiplicity = 10;
-
 
 FragmentLengthDist::FragmentLengthDist() : loc_(0), scale_(1), shape_(0) {
 
     assert(isValid());
-    setMaxLength();
+    setMaxLength(1);
 }
 
-FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in) : FragmentLengthDist(mean_in, sd_in, 0.0) {
-    
-}
+FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in, const uint32_t sd_max_multi) : FragmentLengthDist(mean_in, sd_in, 0.0, sd_max_multi) {}
 
-FragmentLengthDist::FragmentLengthDist(const double loc_in, const double scale_in, const double shape_in) : loc_(loc_in), scale_(scale_in), shape_(shape_in) {
+FragmentLengthDist::FragmentLengthDist(const double loc_in, const double scale_in, const double shape_in, const uint32_t sd_max_multi) : loc_(loc_in), scale_(scale_in), shape_(shape_in) {
 
     assert(isValid());
 
-    setMaxLength();
+    setMaxLength(sd_max_multi);
     setLogProbBuffer(max_length_);
 }
 
-FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool is_multipath) {
+FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool is_multipath, const uint32_t sd_max_multi) {
 
     assert(alignments_istream->good());
 
@@ -58,11 +54,11 @@ FragmentLengthDist::FragmentLengthDist(istream * alignments_istream, const bool 
 
     assert(isValid());
 
-    setMaxLength();
+    setMaxLength(sd_max_multi);
     setLogProbBuffer(max_length_);
 }
 
-FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts, bool skew_normal) {
+FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_counts, const bool skew_normal) {
 
     assert(!frag_length_counts.empty());
     assert(frag_length_counts.front() == 0);
@@ -256,7 +252,7 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
 
         assert(isValid());
 
-        setMaxLength();
+        max_length_ = frag_length_counts.size();
         setLogProbBuffer(frag_length_counts.size());
     }
 }
@@ -277,6 +273,27 @@ bool FragmentLengthDist::parseAlignment(const vg::Alignment & alignment) {
         getline(frag_length_ss, element, ':');;
         scale_ = stod(element);
         
+        shape_ = 0.0;
+        
+        return true;     
+    
+    } else if (alignment.has_annotation() && alignment.annotation().fields().count("fragment_length_distribution")) {
+
+        stringstream frag_length_ss = stringstream(alignment.annotation().fields().at("fragment_length_distribution").string_value());
+        string element;
+
+        getline(frag_length_ss, element, ' ');
+        assert(element == "-I");
+
+        getline(frag_length_ss, element, ' ');
+        loc_ = stod(element);
+
+        getline(frag_length_ss, element, ' ');
+        assert(element == "-D");
+
+        getline(frag_length_ss, element);
+        scale_ = stod(element);
+
         shape_ = 0.0;
         
         return true;     
@@ -349,14 +366,14 @@ double FragmentLengthDist::logProb(const uint32_t value) const {
     }
 }
 
-void FragmentLengthDist::setMaxLength() {
+void FragmentLengthDist::setMaxLength(const uint32_t sd_max_multi) {
 
     assert(isValid());
 
     double delta = shape_ / sqrt(1.0 + shape_ * shape_);
     double sd = scale_ * (1.0 - 2.0 * delta * delta / Utils::pi);
     
-    max_length_ = ceil(loc_ + sd * max_length_sd_multiplicity);
+    max_length_ = ceil(loc_ + sd * sd_max_multi);
     assert(max_length_ > 0);
 }
 

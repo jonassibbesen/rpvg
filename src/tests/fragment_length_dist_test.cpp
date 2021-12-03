@@ -7,7 +7,7 @@
 
 TEST_CASE("FragmentLengthDist is valid normal distribution") {
     
-	FragmentLengthDist fragment_length_dist(10, 2);
+	FragmentLengthDist fragment_length_dist(10, 2, 10);
 
     REQUIRE(fragment_length_dist.isValid());	
     REQUIRE(fragment_length_dist.maxLength() == 30);
@@ -17,6 +17,13 @@ TEST_CASE("FragmentLengthDist is valid normal distribution") {
     REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(9), fragment_length_dist.logProb(11)));
     REQUIRE(Utils::doubleCompare(fragment_length_dist.logProb(10000), -12475014.11208571307361));
 
+    SECTION("Maximum fragment length can be changed") {
+
+        fragment_length_dist = FragmentLengthDist(10, 2, 5);
+
+        REQUIRE(fragment_length_dist.isValid());    
+        REQUIRE(fragment_length_dist.maxLength() == 20);
+    }
 }
 
 TEST_CASE("FragmentLengthDist is valid skew normal distribution") {
@@ -53,21 +60,21 @@ TEST_CASE("FragmentLengthDist is valid skew normal distribution") {
         for (int mu = 0; mu <= 3; ++mu) {
             for (int sigma = 1; sigma <= 3; ++sigma) {
                 for (int alpha = -3; alpha <= -3; ++alpha) {
-                    FragmentLengthDist distr(mu, sigma, alpha);
+                    FragmentLengthDist distr(mu, sigma, alpha, 10);
                     for (int x = 0; x <= 3; ++x) {
                         if (alpha == 0) {
-                            FragmentLengthDist norm(mu, sigma);
+                            FragmentLengthDist norm(mu, sigma, 10);
                             REQUIRE(Utils::doubleCompare(distr.logProb(x), norm.logProb(x)));
                         }
                         {
-                            FragmentLengthDist other(x, sigma, -alpha);
+                            FragmentLengthDist other(x, sigma, -alpha, 10);
                             REQUIRE(Utils::doubleCompare(distr.logProb(x), other.logProb(mu)));
                         }
                         {
                             // reflect the test point around mu and reverse the skew
                             int reflected = 2 * mu - x;
                             if (reflected >= 0) {
-                                FragmentLengthDist other(mu, sigma, -alpha);
+                                FragmentLengthDist other(mu, sigma, -alpha, 10);
                                 REQUIRE(Utils::doubleCompare(distr.logProb(x), other.logProb(reflected)));
                             }
                         }

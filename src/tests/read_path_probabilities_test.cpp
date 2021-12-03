@@ -9,7 +9,7 @@
 TEST_CASE("Read path probabilities can be calculated from alignment paths") {
     
 	spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index({{100, 0}, {200, 1}});
-	FragmentLengthDist fragment_length_dist(10, 2);
+	FragmentLengthDist fragment_length_dist(10, 2, 10);
 
 	vector<AlignmentPath> alignment_paths;
 	alignment_paths.emplace_back(make_pair(gbwt::SearchState(), 0), true, 10, 3, 5, 10);
