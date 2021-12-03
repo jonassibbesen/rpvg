@@ -624,13 +624,6 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPaths(vector<Align
 template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPaths(const AlignmentType & alignment_1, const AlignmentType & alignment_2) const {
 
-    #pragma omp critical
-    { 
-        cerr << endl;   
-        cerr << Utils::pb2json(alignment_1) << endl;
-        cerr << Utils::pb2json(alignment_2) << endl;
-    }
-
 #ifdef debug
 
     cerr << endl;

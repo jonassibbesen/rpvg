@@ -276,6 +276,27 @@ bool FragmentLengthDist::parseAlignment(const vg::Alignment & alignment) {
         shape_ = 0.0;
         
         return true;     
+    
+    } else if (alignment.has_annotation() && alignment.annotation().fields().count("fragment_length_distribution")) {
+
+        stringstream frag_length_ss = stringstream(alignment.annotation().fields().at("fragment_length_distribution").string_value());
+        string element;
+
+        getline(frag_length_ss, element, ' ');
+        assert(element == "-I");
+
+        getline(frag_length_ss, element, ' ');
+        loc_ = stod(element);
+
+        getline(frag_length_ss, element, ' ');
+        assert(element == "-D");
+
+        getline(frag_length_ss, element);
+        scale_ = stod(element);
+
+        shape_ = 0.0;
+        
+        return true;     
     }
 
     return false;

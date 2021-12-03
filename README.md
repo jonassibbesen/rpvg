@@ -66,7 +66,7 @@ The method currently contains four different inference models. Each model have b
 * Use `-s` for single-end reads. Note that the fragment length distribution will still be used for calculating the effective path length.
 * Use `-l` for single-molecule long-reads. This is identical to the single-end mode (`-s`), but does not use effective path length normalization.
 
-**Note that rpvg assumes that the default scoring parameters were used for the alignment using either vg map or vg mpmap**.
+Note that rpvg assumes that the default scoring parameters were used for the alignment using either vg map or vg mpmap.
 
 #### Fragment length distribution:
 
