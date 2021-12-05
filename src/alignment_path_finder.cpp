@@ -403,11 +403,14 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(AlignmentSear
 
         if (align_search_path->path.back() == cur_node && mapping.position().offset() != align_search_path->end_offset) {
 
-            assert(mapping.position().offset() == 0);
             is_cycle_visit = true;      
         }
 
-        if (align_search_path->path.back() != cur_node || is_cycle_visit) {
+        if (is_cycle_visit && mapping.position().offset() != 0) {
+
+            align_search_path->clear();
+
+        } else if (align_search_path->path.back() != cur_node || is_cycle_visit) {
 
             align_search_path->path.emplace_back(cur_node);
 
