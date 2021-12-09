@@ -623,7 +623,11 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
 
     for (auto & path_subset: path_subset_samples) {
 
-        assert(path_subset.second >= min_hap_prob);
+        if (path_subset.second < min_hap_prob) {
+
+            continue;
+        }
+        
         sum_hap_prob += path_subset.second;
 
         assert(!path_subset.first.empty());
