@@ -131,7 +131,7 @@ void ReadCountGibbsSamplesWriter::addSamples(const pair<uint32_t, PathClusterEst
 
             for (auto & noise_sample: count_samples.noise_samples) {
 
-                assert(noise_sample <= path_cluster_estimate.second.total_count);
+                assert(noise_sample < path_cluster_estimate.second.total_count || Utils::doubleCompare(noise_sample, path_cluster_estimate.second.total_count));
 
                 noise_counts.at(noise_count_idx) += noise_sample;
                 ++noise_count_idx;  
