@@ -101,7 +101,8 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
 
         if (abundances(0, i) < min_em_abundance) {
 
-            path_cluster_estimates->noise_count += abundances(0, i) * path_cluster_estimates->total_count;            
+            path_cluster_estimates->noise_count += abundances(0, i) * path_cluster_estimates->total_count;
+            path_cluster_estimates->abundances.at(i) = 0;            
 
         } else {
 
