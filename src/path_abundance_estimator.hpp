@@ -32,8 +32,8 @@ class PathAbundanceEstimator : public PathEstimator {
         const uint32_t num_gibbs_samples;
         const uint32_t gibbs_thin_its;
 
-        void EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts, const double total_read_count) const;
-        void gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts, const double total_read_count, const double gamma, mt19937 * mt_rng, const uint32_t num_samples) const;
+        void EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts) const;
+        void gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts, const double gamma, mt19937 * mt_rng, const uint32_t num_samples) const;
 };
 
 class MinimumPathAbundanceEstimator : public PathAbundanceEstimator {

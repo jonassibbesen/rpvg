@@ -11,6 +11,7 @@ const uint32_t min_em_conv_its = 10;
 const double min_em_abundance = 1e-8;
 
 const double abundance_gibbs_gamma = 1;
+const double min_gibbs_abundance = 1e-8;
 
 PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, const double max_rel_em_conv_in, const uint32_t num_gibbs_samples_in, const uint32_t gibbs_thin_its_in, const double prob_precision) : max_em_its(max_em_its_in), max_rel_em_conv(max_rel_em_conv_in), num_gibbs_samples(num_gibbs_samples_in), gibbs_thin_its(gibbs_thin_its_in), PathEstimator(prob_precision) {}
 
@@ -25,20 +26,10 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
         Utils::RowVectorXd read_counts;
 
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, path_cluster_estimates->paths.size());
-        detractNoiseAndNormalizeProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts);
+        addNoiseAndNormalizeProbabilityMatrix(&read_path_probs, noise_probs);
 
-        if (read_path_probs.rows() == 0) {
-
-            assert(noise_probs.rows() == 0);
-            assert(read_counts.cols() == 0);
-
-            return;
-        }
-
-        const double total_read_count = read_counts.sum();
-        assert(total_read_count > 0);
-
-        EMAbundanceEstimator(path_cluster_estimates, read_path_probs, read_counts, total_read_count);
+        path_cluster_estimates->total_count = read_counts.sum();
+        EMAbundanceEstimator(path_cluster_estimates, read_path_probs, read_counts);
 
         if (num_gibbs_samples > 0) {
 
@@ -48,16 +39,19 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
             gibbs_read_count_samples->back().path_ids = vector<uint32_t>(path_cluster_estimates->path_group_sets.size());
             iota(gibbs_read_count_samples->back().path_ids.begin(), gibbs_read_count_samples->back().path_ids.end(), 0);
 
-            gibbsReadCountSampler(path_cluster_estimates, read_path_probs, read_counts, total_read_count, abundance_gibbs_gamma, mt_rng, num_gibbs_samples);
+            gibbsReadCountSampler(path_cluster_estimates, read_path_probs, read_counts, abundance_gibbs_gamma, mt_rng, num_gibbs_samples);
         }
     } 
 }
 
-void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts, const double total_read_count) const {
+void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts) const {
 
     assert(!path_cluster_estimates->abundances.empty());
 
-    Utils::RowVectorXd abundances = Eigen::RowVectorXd::Constant(1, path_cluster_estimates->abundances.size(), 1 / static_cast<float>(path_cluster_estimates->abundances.size()));
+    assert(path_cluster_estimates->noise_count == 0);        
+    assert(path_cluster_estimates->total_count > 0);
+
+    Utils::RowVectorXd abundances = Eigen::RowVectorXd::Constant(1, path_cluster_estimates->abundances.size() + 1, 1 / static_cast<float>(path_cluster_estimates->abundances.size() + 1));
     Utils::RowVectorXd prev_abundances = abundances;
 
     uint32_t em_conv_its = 0;
@@ -68,7 +62,7 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
         read_posteriors = read_posteriors.array().colwise() / read_posteriors.rowwise().sum().array();
 
         abundances = read_counts * read_posteriors;
-        abundances /= total_read_count;
+        abundances /= path_cluster_estimates->total_count;
 
         bool has_converged = true;
 
@@ -103,45 +97,44 @@ void PathAbundanceEstimator::EMAbundanceEstimator(PathClusterEstimates * path_cl
         prev_abundances = abundances;
     }
 
-    double abundances_sum = 0;
-
-    for (size_t i = 0; i < abundances.cols(); ++i) {
+    for (size_t i = 0; i < abundances.cols() - 1; ++i) {
 
         if (abundances(0, i) < min_em_abundance) {
 
-            abundances(0, i) = 0;                    
-        } 
+            path_cluster_estimates->noise_count += abundances(0, i) * path_cluster_estimates->total_count;            
 
-        abundances_sum += abundances(0, i);
-    }
+        } else {
 
-    if (abundances_sum > 0) {
-
-        for (size_t i = 0; i < abundances.cols(); ++i) {
-
-            path_cluster_estimates->abundances.at(i) = abundances(0, i) / abundances_sum * total_read_count;  
+            path_cluster_estimates->abundances.at(i) = abundances(0, i) * path_cluster_estimates->total_count;            
         }
     }
+
+    path_cluster_estimates->noise_count += abundances(0, abundances.cols() - 1) * path_cluster_estimates->total_count;    
 }
 
-void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts, const double total_read_count, const double gamma, mt19937 * mt_rng, const uint32_t num_samples) const {
+void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::RowVectorXd & read_counts, const double gamma, mt19937 * mt_rng, const uint32_t num_samples) const {
+
+    assert(path_cluster_estimates->total_count > 0);
 
     assert(!path_cluster_estimates->gibbs_read_count_samples.empty());
     assert(path_cluster_estimates->gibbs_read_count_samples.back().path_ids.size() == path_cluster_estimates->abundances.size());
 
-    assert(path_cluster_estimates->gibbs_read_count_samples.back().samples.empty());
-    path_cluster_estimates->gibbs_read_count_samples.back().samples.reserve(path_cluster_estimates->abundances.size() * num_samples);
+    assert(path_cluster_estimates->gibbs_read_count_samples.back().noise_samples.empty());
+    path_cluster_estimates->gibbs_read_count_samples.back().noise_samples.reserve(num_samples);
 
-    Utils::RowVectorXd gibbs_abundances = Eigen::RowVectorXd(1, path_cluster_estimates->abundances.size());
-    double gibbs_abundances_sum = 0;
+    assert(path_cluster_estimates->gibbs_read_count_samples.back().abundance_samples.empty());
+    path_cluster_estimates->gibbs_read_count_samples.back().abundance_samples.reserve(path_cluster_estimates->abundances.size() * num_samples);
 
-    for (size_t i = 0; i < gibbs_abundances.cols(); ++i) {
+    Utils::RowVectorXd gibbs_abundances = Eigen::RowVectorXd(1, path_cluster_estimates->abundances.size() + 1);
 
-        gibbs_abundances(0, i) = path_cluster_estimates->abundances.at(i) / total_read_count;
-        gibbs_abundances_sum += gibbs_abundances(0, i);
+    for (size_t i = 0; i < gibbs_abundances.cols() - 1; ++i) {
+
+        gibbs_abundances(0, i) = path_cluster_estimates->abundances.at(i) / path_cluster_estimates->total_count;
     }
 
-    assert(Utils::doubleCompare(gibbs_abundances_sum, 1));
+    gibbs_abundances(0, gibbs_abundances.cols() - 1) = path_cluster_estimates->noise_count / path_cluster_estimates->total_count;    
+
+    assert(Utils::doubleCompare(gibbs_abundances.sum(), 1));
 
     const uint32_t num_gibbs_its = num_samples * gibbs_thin_its;
 
@@ -183,7 +176,7 @@ void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_c
             assert(row_reads_counts == 0);
         }
 
-        gibbs_abundances_sum = 0;
+        double gibbs_abundances_sum = 0;
 
         for (size_t i = 0; i < gibbs_abundances.cols(); ++i) {
 
@@ -197,10 +190,22 @@ void PathAbundanceEstimator::gibbsReadCountSampler(PathClusterEstimates * path_c
 
         if (gibbs_it % gibbs_thin_its == 0) {
 
-            for (size_t i = 0; i < gibbs_abundances.cols(); ++i) {
+            path_cluster_estimates->gibbs_read_count_samples.back().noise_samples.emplace_back(0);
 
-                path_cluster_estimates->gibbs_read_count_samples.back().samples.emplace_back(gibbs_abundances(0, i) * total_read_count);
+            for (size_t i = 0; i < gibbs_abundances.cols() - 1; ++i) {
+
+                if (gibbs_abundances(0, i) < min_gibbs_abundance) {
+
+                    path_cluster_estimates->gibbs_read_count_samples.back().noise_samples.back() += gibbs_abundances(0, i) * path_cluster_estimates->total_count;
+                    path_cluster_estimates->gibbs_read_count_samples.back().abundance_samples.emplace_back(0);
+
+                } else {
+
+                    path_cluster_estimates->gibbs_read_count_samples.back().abundance_samples.emplace_back(gibbs_abundances(0, i) * path_cluster_estimates->total_count);
+                }
             }
+
+            path_cluster_estimates->gibbs_read_count_samples.back().noise_samples.back() += gibbs_abundances(0, gibbs_abundances.cols() - 1) * path_cluster_estimates->total_count;   
         }
     }
 }
@@ -251,27 +256,16 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
             Utils::ColVectorXd min_path_noise_probs;
             Utils::RowVectorXd min_path_read_counts;
 
-            constructPartialProbabilityMatrix(&min_path_read_path_probs, &min_path_noise_probs, &min_path_read_counts, cluster_probs, min_path_cover, path_cluster_estimates->paths.size(), true);
-            detractNoiseAndNormalizeProbabilityMatrix(&min_path_read_path_probs, &min_path_noise_probs, &min_path_read_counts);
-
-            if (min_path_read_path_probs.rows() == 0) {
-
-                assert(min_path_noise_probs.rows() == 0);
-                assert(min_path_read_counts.cols() == 0);
-
-                return;
-            }
-
-            assert(min_path_read_path_probs.cols() >= 1);
-            readCollapseProbabilityMatrix(&min_path_read_path_probs, &min_path_read_counts);
-
-            const double total_min_path_read_counts = min_path_read_counts.sum();
-            assert(total_min_path_read_counts > 0);
-
+            constructPartialProbabilityMatrix(&min_path_read_path_probs, &min_path_noise_probs, &min_path_read_counts, cluster_probs, min_path_cover, path_cluster_estimates->paths.size());
+            
             PathClusterEstimates min_path_cluster_estimates;
             min_path_cluster_estimates.resetEstimates(min_path_read_path_probs.cols(), 1);
 
-            EMAbundanceEstimator(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, total_min_path_read_counts);
+            addNoiseAndNormalizeProbabilityMatrix(&min_path_read_path_probs, min_path_noise_probs);
+            readCollapseProbabilityMatrix(&min_path_read_path_probs, &min_path_read_counts);
+
+            min_path_cluster_estimates.total_count = min_path_read_counts.sum();
+            EMAbundanceEstimator(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts);
 
             if (num_gibbs_samples > 0) {
 
@@ -280,7 +274,7 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
 
                 gibbs_read_count_samples->back().path_ids = min_path_cover;                
 
-                gibbsReadCountSampler(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, total_min_path_read_counts, abundance_gibbs_gamma, mt_rng, num_gibbs_samples);
+                gibbsReadCountSampler(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, abundance_gibbs_gamma, mt_rng, num_gibbs_samples);
 
                 assert(min_path_cluster_estimates.gibbs_read_count_samples.size() == 1);
                 path_cluster_estimates->gibbs_read_count_samples.emplace_back(move(min_path_cluster_estimates.gibbs_read_count_samples.front()));
@@ -292,6 +286,9 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
 
                 path_cluster_estimates->abundances.at(min_path_cover.at(i)) += min_path_cluster_estimates.abundances.at(i);
             }
+
+            path_cluster_estimates->noise_count = min_path_cluster_estimates.noise_count;
+            path_cluster_estimates->total_count = min_path_cluster_estimates.total_count;
         } 
     } 
 }
@@ -376,7 +373,7 @@ void NestedPathAbundanceEstimator::inferAbundancesIndependentGroups(PathClusterE
             Utils::ColVectorXd group_noise_probs;
             Utils::RowVectorXd group_read_counts;        
 
-            constructPartialProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group, path_cluster_estimates->paths.size(), false);
+            constructPartialProbabilityMatrix(&group_read_path_probs, &group_noise_probs, &group_read_counts, cluster_probs, group, path_cluster_estimates->paths.size());
 
             addNoiseAndNormalizeProbabilityMatrix(&group_read_path_probs, group_noise_probs);
             readCollapseProbabilityMatrix(&group_read_path_probs, &group_read_counts);
@@ -570,6 +567,7 @@ void NestedPathAbundanceEstimator::sampleGroupPathIndices(vector<vector<uint32_t
 
 void NestedPathAbundanceEstimator::selectPathSubsetIndices(spp::sparse_hash_map<vector<uint32_t>, double> * path_subset_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<vector<uint32_t> > & path_groups, mt19937 * mt_rng) const {
 
+    double sum_posterior = 0;
     assert(group_path_cluster_estimates.posteriors.size() == group_path_cluster_estimates.path_group_sets.size());
         
     for (size_t i = 0; i < group_path_cluster_estimates.posteriors.size(); ++i) {
@@ -592,16 +590,33 @@ void NestedPathAbundanceEstimator::selectPathSubsetIndices(spp::sparse_hash_map<
             }
 
             sort(path_subset.begin(), path_subset.end());
-            
+
             auto path_subset_samples_it = path_subset_samples->emplace(path_subset, 0);
             path_subset_samples_it.first->second += group_path_cluster_estimates.posteriors.at(i);
+
+            sum_posterior += group_path_cluster_estimates.posteriors.at(i);
         }
+    }
+
+    for (auto & subset_sample: *path_subset_samples) {
+
+        subset_sample.second /= sum_posterior;
     }
 }
 
 void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng, const spp::sparse_hash_map<vector<uint32_t>, double> & path_subset_samples) const {
 
+    assert(path_cluster_estimates->noise_count == 0);
+    assert(path_cluster_estimates->total_count == 0);
+
+    for (auto & cluster_prob: cluster_probs) {
+
+        path_cluster_estimates->total_count += cluster_prob.readCount();
+    }
+
     spp::sparse_hash_map<vector<uint32_t>, pair<double, vector<double> > > path_group_estimates;
+
+    double sum_hap_prob = 0;
 
     uint32_t subset_gibbs_samples = num_gibbs_samples;  
     double subset_gibbs_prob = 1;
@@ -609,6 +624,7 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
     for (auto & path_subset: path_subset_samples) {
 
         assert(path_subset.second >= min_hap_prob);
+        sum_hap_prob += path_subset.second;
 
         assert(!path_subset.first.empty());
         assert(path_subset.second > 0);
@@ -638,57 +654,48 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
         Utils::ColVectorXd subset_noise_probs;
         Utils::RowVectorXd subset_read_counts;
 
-        constructPartialProbabilityMatrix(&subset_read_path_probs, &subset_noise_probs, &subset_read_counts, cluster_probs, collapsed_path_subset, path_cluster_estimates->paths.size(), true);
-        detractNoiseAndNormalizeProbabilityMatrix(&subset_read_path_probs, &subset_noise_probs, &subset_read_counts);
+        constructPartialProbabilityMatrix(&subset_read_path_probs, &subset_noise_probs, &subset_read_counts, cluster_probs, collapsed_path_subset, path_cluster_estimates->paths.size());
+        
+        PathClusterEstimates subset_path_cluster_estimates;
+        subset_path_cluster_estimates.resetEstimates(subset_read_path_probs.cols(), 1);
+        
+        addNoiseAndNormalizeProbabilityMatrix(&subset_read_path_probs, subset_noise_probs);
+        readCollapseProbabilityMatrix(&subset_read_path_probs, &subset_read_counts);
 
-        uint32_t cur_subset_gibbs_samples = 0;
+        subset_path_cluster_estimates.total_count = subset_read_counts.sum();
+        EMAbundanceEstimator(&subset_path_cluster_estimates, subset_read_path_probs, subset_read_counts);
+        
+        assert(subset_path_cluster_estimates.abundances.size() == collapsed_path_subset.size());            
 
         if (subset_gibbs_samples > 0) {
 
             assert(subset_gibbs_prob > 0);
 
             binomial_distribution<uint32_t> path_read_count_sampler(subset_gibbs_samples, min(1.0, path_subset.second / subset_gibbs_prob));
-            cur_subset_gibbs_samples = path_read_count_sampler(*mt_rng);
+            uint32_t cur_subset_gibbs_samples = path_read_count_sampler(*mt_rng);
             
             subset_gibbs_samples -= cur_subset_gibbs_samples;
             subset_gibbs_prob -= path_subset.second;
-        }
 
-        if (subset_read_path_probs.rows() == 0) {
+            if (cur_subset_gibbs_samples > 0) {
 
-            assert(subset_noise_probs.rows() == 0);
-            assert(subset_read_counts.cols() == 0);
+                vector<CountSamples> * gibbs_read_count_samples = &(subset_path_cluster_estimates.gibbs_read_count_samples);
+                gibbs_read_count_samples->emplace_back(CountSamples());
 
-            continue;
-        }
+                gibbs_read_count_samples->back().path_ids = collapsed_path_subset;            
 
-        assert(subset_read_path_probs.cols() >= 1);
-        readCollapseProbabilityMatrix(&subset_read_path_probs, &subset_read_counts);
+                gibbsReadCountSampler(&subset_path_cluster_estimates, subset_read_path_probs, subset_read_counts, abundance_gibbs_gamma, mt_rng, cur_subset_gibbs_samples);
 
-        const double total_subset_read_counts = subset_read_counts.sum();
-        assert(total_subset_read_counts > 0);
-
-        PathClusterEstimates subset_path_cluster_estimates;
-        subset_path_cluster_estimates.resetEstimates(subset_read_path_probs.cols(), 1);
-
-        EMAbundanceEstimator(&subset_path_cluster_estimates, subset_read_path_probs, subset_read_counts, total_subset_read_counts);
-        assert(subset_path_cluster_estimates.abundances.size() == collapsed_path_subset.size());            
-
-        if (cur_subset_gibbs_samples > 0) {
-
-            vector<CountSamples> * gibbs_read_count_samples = &(subset_path_cluster_estimates.gibbs_read_count_samples);
-            gibbs_read_count_samples->emplace_back(CountSamples());
-
-            gibbs_read_count_samples->back().path_ids = collapsed_path_subset;            
-
-            gibbsReadCountSampler(&subset_path_cluster_estimates, subset_read_path_probs, subset_read_counts, total_subset_read_counts, abundance_gibbs_gamma, mt_rng, cur_subset_gibbs_samples);
-
-            assert(subset_path_cluster_estimates.gibbs_read_count_samples.size() == 1);
-            path_cluster_estimates->gibbs_read_count_samples.emplace_back(move(subset_path_cluster_estimates.gibbs_read_count_samples.front()));
+                assert(subset_path_cluster_estimates.gibbs_read_count_samples.size() == 1);
+                path_cluster_estimates->gibbs_read_count_samples.emplace_back(move(subset_path_cluster_estimates.gibbs_read_count_samples.front()));
+            }
         }
 
         assert(subset_path_cluster_estimates.posteriors.size() == collapsed_path_subset.size());
         assert(subset_path_cluster_estimates.abundances.size() == collapsed_path_subset.size());
+
+        path_cluster_estimates->noise_count += subset_path_cluster_estimates.noise_count * path_subset.second;
+        assert(path_cluster_estimates->total_count == subset_path_cluster_estimates.total_count);
 
         spp::sparse_hash_map<uint32_t, vector<uint32_t> > subset_path_group_index;
         
@@ -732,5 +739,8 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
         path_cluster_estimates->posteriors.emplace_back(estimates.second.first);
         path_cluster_estimates->abundances.insert(path_cluster_estimates->abundances.end(), estimates.second.second.begin(), estimates.second.second.end());
     }
+
+    assert(sum_hap_prob < 1 || Utils::doubleCompare(sum_hap_prob, 1));
+    path_cluster_estimates->noise_count += (1 - sum_hap_prob) * path_cluster_estimates->total_count;
 }
 
