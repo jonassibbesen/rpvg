@@ -76,7 +76,7 @@ void PathEstimator::constructProbabilityMatrix(Utils::ColMatrixXd * read_path_pr
     }
 }
 
-void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXd * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths, const bool remove_zero_row) const {
+void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXd * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const {
 
     assert(!cluster_probs.empty());
     assert(!path_ids.empty());
@@ -92,13 +92,9 @@ void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_
     *noise_probs = Utils::ColVectorXd(cluster_probs.size());
     *read_counts = Utils::RowVectorXd(cluster_probs.size());
 
-    uint32_t row_idx = 0;
+    for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
-    for (auto & cluster_prob: cluster_probs) {
-
-        double row_prob_sum = 0;
-
-        for (auto & path_probs: cluster_prob.pathProbs()) {
+        for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
             for (auto & path: path_probs.second) {
     
@@ -106,28 +102,13 @@ void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_
 
                 if (path_id_idx.at(path) >= 0) {
 
-                    (*read_path_probs)(row_idx, path_id_idx.at(path)) = path_probs.first;
-                    row_prob_sum += path_probs.first;
+                    (*read_path_probs)(i, path_id_idx.at(path)) = path_probs.first;
                 }
             }
         }
 
-        (*noise_probs)(row_idx, 0) = cluster_prob.noiseProb();
-        (*read_counts)(0, row_idx) = cluster_prob.readCount();
-
-        if (!remove_zero_row || !Utils::doubleCompare(row_prob_sum, 0)) {
-
-            row_idx++;
-        }
-    }
-
-    assert(row_idx <= cluster_probs.size());
-
-    if (row_idx < cluster_probs.size()) {
-
-        read_path_probs->conservativeResize(row_idx, read_path_probs->cols());
-        noise_probs->conservativeResize(row_idx, noise_probs->cols());
-        read_counts->conservativeResize(read_counts->rows(), row_idx);
+        (*noise_probs)(i, 0) = cluster_probs.at(i).noiseProb();
+        (*read_counts)(0, i) = cluster_probs.at(i).readCount();
     }
 }
 

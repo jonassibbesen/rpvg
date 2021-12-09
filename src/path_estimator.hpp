@@ -27,7 +27,7 @@ class PathEstimator {
         const double prob_precision;
 
         void constructProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXd * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const uint32_t num_paths) const; 
-        void constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXd * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths, const bool remove_zero_row) const;
+        void constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXd * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const;
         void constructGroupedProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::ColVectorXd * noise_probs, Utils::RowVectorXd * read_counts, const vector<ReadPathProbabilities> & cluster_probs, const vector<vector<uint32_t> > & path_groups, const uint32_t num_paths) const;
 
         void addNoiseAndNormalizeProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, const Utils::ColVectorXd & noise_probs) const;

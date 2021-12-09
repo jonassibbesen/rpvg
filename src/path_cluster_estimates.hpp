@@ -35,7 +35,9 @@ struct PathInfo {
 struct CountSamples {
 
     vector<uint32_t> path_ids;
-    vector<double> samples;
+
+    vector<double> noise_samples;
+    vector<double> abundance_samples;
 
     CountSamples() {}
 };
@@ -49,7 +51,16 @@ struct PathClusterEstimates {
     vector<double> posteriors;
     vector<double> abundances;
 
+    double noise_count;
+    double total_count;
+
     vector<CountSamples> gibbs_read_count_samples;
+
+    PathClusterEstimates() {
+
+        noise_count = 0;
+        total_count = 0;
+    }
 
     void generateGroupsRecursive(const uint32_t num_components, const uint32_t group_size, vector<uint32_t> cur_group) {
 
@@ -83,6 +94,9 @@ struct PathClusterEstimates {
 
         posteriors.clear();
         abundances.clear();
+
+        noise_count = 0;
+        total_count = 0; 
         
         gibbs_read_count_samples.clear();
 

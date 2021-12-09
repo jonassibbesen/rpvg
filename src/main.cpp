@@ -39,7 +39,7 @@
 #include "threaded_output_writer.hpp"
 
 const uint32_t align_paths_buffer_size = 10000;
-const uint32_t frag_length_min_mapq = 40;
+const uint32_t frag_length_min_mapq = 30;
 
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
 typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths_t;
@@ -47,7 +47,7 @@ typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connecte
 typedef ProducerConsumerQueue<vector<vector<AlignmentPath> > *> align_paths_buffer_queue_t;
 
 
-void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer) {
+bool addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector<vector<AlignmentPath> > * align_paths_buffer) {
 
     if (!align_paths.empty()) {
 
@@ -87,10 +87,12 @@ void addAlignmentPathsToBuffer(const vector<AlignmentPath> & align_paths, vector
             assert(align_paths_buffer->back().size() > 1);
         }
     }
+
+    return !align_paths.empty();
 }
 
 template<class AlignmentType> 
-void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
+uint32_t findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -100,10 +102,16 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
         align_paths_buffer->reserve(align_paths_buffer_size);
     }
   
+    vector<uint32_t> threaded_unaligned_read_count(num_threads, 0);
+
     vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer);
+        
+        if (!addAlignmentPathsToBuffer(align_path_finder.findAlignmentPaths(alignment), align_paths_buffer)) {
+
+            threaded_unaligned_read_count.at(omp_get_thread_num()) += 1;
+        }
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -118,10 +126,19 @@ void findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_
 
         align_paths_buffer_queue->push(align_paths_buffer);
     }
+
+    uint32_t unaligned_read_count = 0;
+
+    for (auto & read_count: threaded_unaligned_read_count) {
+
+        unaligned_read_count += read_count;
+    }
+
+    return unaligned_read_count;
 }
 
 template<class AlignmentType> 
-void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
+uint32_t findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_queue_t * align_paths_buffer_queue, const AlignmentPathFinder<AlignmentType> & align_path_finder, const uint32_t num_threads) {
 
     auto threaded_align_paths_buffer = vector<vector<vector<AlignmentPath > > *>(num_threads);
 
@@ -131,10 +148,16 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
         align_paths_buffer->reserve(align_paths_buffer_size);
     }
   
+    vector<uint32_t> threaded_unaligned_read_count(num_threads, 0);
+
     vg::io::for_each_interleaved_pair_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment_1, AlignmentType & alignment_2) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
-        addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer);
+
+        if (!addAlignmentPathsToBuffer(align_path_finder.findPairedAlignmentPaths(alignment_1, alignment_2), align_paths_buffer)) {
+
+            threaded_unaligned_read_count.at(omp_get_thread_num()) += 1;
+        }
 
         if (align_paths_buffer->size() == align_paths_buffer_size) {
 
@@ -149,9 +172,18 @@ void findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_
 
         align_paths_buffer_queue->push(align_paths_buffer);
     }
+
+    uint32_t unaligned_read_count = 0;
+
+    for (auto & read_count: threaded_unaligned_read_count) {
+
+        unaligned_read_count += read_count;
+    }
+
+    return unaligned_read_count;
 }
 
-void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * frag_length_dist, const FragmentLengthDist & pre_frag_length_dist) {
+void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * frag_length_dist, const FragmentLengthDist & pre_frag_length_dist, const bool is_single_end) {
 
     vector<vector<AlignmentPath> > * align_paths_buffer = nullptr;
     vector<uint32_t> frag_length_counts(pre_frag_length_dist.maxLength() + 1, 0);
@@ -165,7 +197,7 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
             assert(align_paths.front().frag_length > 0);
             assert(align_paths.back().frag_length == 0);
 
-            if (align_paths.front().is_simple && align_paths.front().min_mapq >= frag_length_min_mapq) {
+            if (!is_single_end && align_paths.front().is_simple && align_paths.front().min_mapq >= frag_length_min_mapq) {
 
                 frag_length_counts.at(align_paths.front().frag_length)++;
             }
@@ -185,7 +217,10 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
         delete align_paths_buffer;
     }
 
-    *frag_length_dist = FragmentLengthDist(frag_length_counts, true);
+    if (!is_single_end) {
+
+        *frag_length_dist = FragmentLengthDist(frag_length_counts, true);
+    }
 }
 
 spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids) {
@@ -583,9 +618,10 @@ int main(int argc, char* argv[]) {
     align_paths_index_t align_paths_index;
     auto align_paths_buffer_queue = new align_paths_buffer_queue_t(num_threads * 3);
 
-    FragmentLengthDist frag_length_dist;
+    uint32_t unaligned_read_count = 0;
 
-    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &frag_length_dist, pre_frag_length_dist);
+    FragmentLengthDist frag_length_dist;
+    thread indexing_thread(addAlignmentPathsBufferToIndexes, align_paths_buffer_queue, &align_paths_index, &frag_length_dist, pre_frag_length_dist, is_single_end);
 
     if (is_single_path) {
         
@@ -593,11 +629,11 @@ int main(int argc, char* argv[]) {
 
         if (is_single_end) {
 
-            findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
+            unaligned_read_count = findAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
+            unaligned_read_count = findPairedAlignmentPaths<vg::Alignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
         }
 
     } else {
@@ -606,11 +642,11 @@ int main(int argc, char* argv[]) {
 
         if (is_single_end) {
 
-            findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
+            unaligned_read_count = findAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
 
         } else {
 
-            findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
+            unaligned_read_count = findPairedAlignmentPaths<vg::MultipathAlignment>(alignments_istream, align_paths_buffer_queue, align_path_finder, num_threads);
         }        
     }
 
@@ -877,6 +913,7 @@ int main(int argc, char* argv[]) {
 
     if (read_count_samples_writer) {
 
+        read_count_samples_writer->addNoiseTranscript(unaligned_read_count);
         read_count_samples_writer->close();
     }
 
@@ -937,7 +974,10 @@ int main(int argc, char* argv[]) {
                 joint_haplotype_abundance_estimates_writer.addEstimates(path_cluster_estimates);
             }
 
+            haplotype_abundance_estimates_writer.addNoiseTranscript(unaligned_read_count);
             haplotype_abundance_estimates_writer.close();
+
+            joint_haplotype_abundance_estimates_writer.addNoiseTranscript(unaligned_read_count);
             joint_haplotype_abundance_estimates_writer.close();
         
         } else {
@@ -949,6 +989,7 @@ int main(int argc, char* argv[]) {
                 abundance_estimates_writer.addEstimates(path_cluster_estimates);
             }
 
+            abundance_estimates_writer.addNoiseTranscript(unaligned_read_count);
             abundance_estimates_writer.close();
         }
     }    

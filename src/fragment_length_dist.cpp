@@ -11,10 +11,9 @@
 //#define debug_skew_normal_fit
 
 
-FragmentLengthDist::FragmentLengthDist() : loc_(0), scale_(1), shape_(0) {
+FragmentLengthDist::FragmentLengthDist() : loc_(0), scale_(0), shape_(0), max_length_(0) {
 
-    assert(isValid());
-    setMaxLength(1);
+    assert(!isValid());
 }
 
 FragmentLengthDist::FragmentLengthDist(const double mean_in, const double sd_in, const uint32_t sd_max_multi) : FragmentLengthDist(mean_in, sd_in, 0.0, sd_max_multi) {}

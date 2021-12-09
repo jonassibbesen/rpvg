@@ -60,10 +60,13 @@ class ReadCountGibbsSamplesWriter : public ThreadedOutputWriter {
         ~ReadCountGibbsSamplesWriter() {};
 
         void addSamples(const pair<uint32_t, PathClusterEstimates> & path_cluster_estimate);
+        void addNoiseTranscript(const uint32_t unaligned_read_count);
 
     private:
 
         const uint32_t num_gibbs_samples;
+
+        vector<double> noise_counts;
 };
 
 class JointHaplotypeEstimatesWriter : public ThreadedOutputWriter {
@@ -89,10 +92,13 @@ class AbundanceEstimatesWriter : public ThreadedOutputWriter {
         ~AbundanceEstimatesWriter() {};
 
         void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
+        void addNoiseTranscript(const uint32_t unaligned_read_count);
 
     private:
 
         const double total_transcript_count;
+
+        double noise_count;
 };
 
 class HaplotypeAbundanceEstimatesWriter : public ThreadedOutputWriter {
@@ -103,11 +109,14 @@ class HaplotypeAbundanceEstimatesWriter : public ThreadedOutputWriter {
     	~HaplotypeAbundanceEstimatesWriter() {};
 
         void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
+        void addNoiseTranscript(const uint32_t unaligned_read_count);
 
     private:
 
         const uint32_t ploidy;
         const double total_transcript_count;
+
+        double noise_count;        
 };
 
 class JointHaplotypeAbundanceEstimatesWriter : public ThreadedOutputWriter {
@@ -118,12 +127,15 @@ class JointHaplotypeAbundanceEstimatesWriter : public ThreadedOutputWriter {
         ~JointHaplotypeAbundanceEstimatesWriter() {};
 
         void addEstimates(const vector<pair<uint32_t, PathClusterEstimates> > & path_cluster_estimates);
+        void addNoiseTranscript(const uint32_t unaligned_read_count);
 
     private:
 
         const uint32_t ploidy;
         const double min_posterior;
         const double total_transcript_count;
+
+        vector<double> noise_counts;
 };
 
 #endif
