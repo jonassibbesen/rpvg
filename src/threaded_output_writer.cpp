@@ -285,8 +285,6 @@ AbundanceEstimatesWriter::AbundanceEstimatesWriter(const string filename_prefix,
     noise_count = 0;
 
     auto out_sstream = new stringstream;
-    *out_sstream << setprecision(out_precision_digits);
-
     *out_sstream << "Name\tClusterID\tLength\tEffectiveLength\tReadCount\tTPM" << endl;
     output_queue->push(out_sstream);
 }
