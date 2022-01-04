@@ -238,6 +238,7 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
     spp::sparse_hash_map<string, uint32_t> haplotype_id_index;
 
     bool is_first_line = true;
+    bool is_old_format = false;
 
     stringstream info_sstream;
     string element;
@@ -279,6 +280,11 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
                 is_first_line = false;
                 getline(info_sstream, element);
 
+                if (element.find("Reference") != std::string::npos ) {
+
+                    is_old_format = true;
+                }
+
                 continue;
             }
 
@@ -291,7 +297,11 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
             auto transcript_id_index_it = transcript_id_index.emplace(element, transcript_id_index.size());
             haplotype_transcript_info_it.first->second.group_id = transcript_id_index_it.first->second;
 
-            getline(info_sstream, element, '\t');
+            if (is_old_format) {
+            
+                getline(info_sstream, element, '\t');
+            }
+            
             getline(info_sstream, element);
 
             if (parse_haplotype_ids) {
