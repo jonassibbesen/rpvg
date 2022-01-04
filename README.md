@@ -16,7 +16,7 @@ Compiling *rpvg* should take 5-10 minutes using 4 threads (`-j`). *rpvg* has bee
 
 ### Docker container
 
-A docker container of the latest commit to master is available on [Docker Hub](https://hub.docker.com/repository/docker/jsibbesen/rpvg) and [Quay](https://quay.io/repository/jsibbesen/rpvg). 
+A docker container of the latest commit to master is available [here](https://quay.io/repository/jsibbesen/rpvg). 
 
 ### Running rpvg
 
