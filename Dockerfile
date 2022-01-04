@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM mirror.gcr.io/library/ubuntu:20.04
 
 MAINTAINER jsibbese@ucsc.edu
 
@@ -25,4 +25,5 @@ RUN GIT_SSL_NO_VERIFY=true git clone --recursive https://github.com/jonassibbese
 	cmake .. && \
 	make && \
 	cd ../../ && \
-	mv rpvg/bin/rpvg /usr/bin/
+	mv rpvg/bin/rpvg /usr/bin/ && \
+	unlink rpvg/deps/libvgio/vg
