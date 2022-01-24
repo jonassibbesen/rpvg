@@ -699,7 +699,7 @@ int main(int argc, char* argv[]) {
 
     if (option_results.count("path-node-cluster")) {
 
-        path_clusters.addNodeClusters(paths_index);
+        path_clusters.addNodeClustering(paths_index, library_type == "unstranded");
     }
 
     vector<vector<vector<align_paths_index_t::iterator> > > align_paths_clusters(path_clusters.cluster_to_paths_index.size(), vector<vector<align_paths_index_t::iterator> >(num_threads));

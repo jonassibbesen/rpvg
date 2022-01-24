@@ -53,7 +53,7 @@ int32_t AlignmentPathFinder<AlignmentType>::alignmentScore(const string & qualit
 
     if (score_not_qual || quality.empty()) {
 
-        return length;
+        return length * Utils::default_match;
     }
 
     assert(start_offset + length <= quality.size());
