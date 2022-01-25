@@ -361,11 +361,11 @@ int main(int argc, char* argv[]) {
 
     options.add_options("Alignment")
       ("e,strand-specific", "strand-specific library type (fr: read1 forward, rf: read1 reverse)", cxxopts::value<string>()->default_value("unstranded"))
-      ("u,single-path", "alignment input is single-path gam format (default: multipath gamp)", cxxopts::value<bool>())
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
+      ("u,use-multimap", "use multimapped alignments (disconnected multipaths)", cxxopts::value<bool>())
+      ("single-path", "alignment input is single-path gam format (default: multipath gamp)", cxxopts::value<bool>())
       ("score-not-qual", "alignment score is not quality adjusted", cxxopts::value<bool>())
-      ("use-multimap", "use multimapped alignments (disconnected multipaths)", cxxopts::value<bool>())
       ;
 
     options.add_options("Fragment")
@@ -483,7 +483,15 @@ int main(int argc, char* argv[]) {
 
     const bool is_single_end = (option_results.count("single-end") || option_results.count("long-reads"));
     const bool is_long_reads = option_results.count("long-reads");
+
+    const bool use_multimap = option_results.count("use-multimap");
     const bool is_single_path = option_results.count("single-path");
+
+    if (use_multimap && is_single_path) {
+
+        cerr << "ERROR: Multimapping support (--use-multimap) does not work with single-path alignments (--single-path)." << endl;
+        return 1;
+    }
 
     const uint32_t max_num_sd_frag = option_results["max-num-sd-frag"].as<uint32_t>();
     assert(max_num_sd_frag > 0);
@@ -534,13 +542,6 @@ int main(int argc, char* argv[]) {
     }
 
     const bool score_not_qual = option_results.count("score-not-qual");
-    const bool use_multimap = option_results.count("use-multimap");
-
-    if (is_single_path && use_multimap) {
-
-        cerr << "ERROR: Multimapping support (--use-multimap) does not work with single-path alignments (--single-path)." << endl;
-        return 1;
-    }
 
     const uint32_t max_partial_offset = option_results["max-par-offset"].as<uint32_t>();
     
