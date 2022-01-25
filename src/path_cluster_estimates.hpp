@@ -15,7 +15,9 @@ using namespace std;
 struct PathInfo {
         
     string name;
+
     uint32_t group_id;
+    uint32_t cluster_id;
 
     uint32_t source_count;
     spp::sparse_hash_set<uint32_t> source_ids;
@@ -26,6 +28,7 @@ struct PathInfo {
     PathInfo(const string & name_in) : name(name_in) {
 
         group_id = 0;
+        cluster_id = 0;
         source_count = 1;
         length = 0;
         effective_length = 0;

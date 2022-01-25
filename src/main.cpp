@@ -702,6 +702,8 @@ int main(int argc, char* argv[]) {
         path_clusters.addNodeClustering(paths_index, library_type == "unstranded");
     }
 
+    path_clusters.createNoteClusterIndex(paths_index, library_type == "unstranded");
+
     vector<vector<vector<align_paths_index_t::iterator> > > align_paths_clusters(path_clusters.cluster_to_paths_index.size(), vector<vector<align_paths_index_t::iterator> >(num_threads));
 
     #pragma omp parallel num_threads(num_threads)
@@ -835,6 +837,7 @@ int main(int argc, char* argv[]) {
                 path_cluster_estimates->back().second.paths.emplace_back(PathInfo(paths_index.pathName(path_id)));
             }
 
+            path_cluster_estimates->back().second.paths.back().cluster_id = path_clusters.path_to_note_cluster_index.at(path_id); 
             path_cluster_estimates->back().second.paths.back().length = paths_index.pathLength(path_id); 
 
             if (is_long_reads) {

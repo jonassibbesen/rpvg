@@ -69,10 +69,12 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         void inferAbundancesCollapsedGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);        
 
         vector<vector<uint32_t> > findPathGroups(const vector<PathInfo> & paths) const;
-        pair<vector<vector<uint32_t> >, vector<uint32_t> > findPathSourceGroups(const vector<PathInfo> & paths) const;
+        vector<vector<uint32_t> > findPathClusters(const vector<PathInfo> & paths) const;
+        pair<vector<vector<uint32_t> >, vector<uint32_t> > findPathSourceGroups(const vector<PathInfo> & paths, const vector<uint32_t> & path_ids) const;
 
-        void sampleGroupPathIndices(vector<vector<uint32_t> > * path_subset_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<uint32_t> & group, mt19937 * mt_rng) const;
-        void selectPathSubsetIndices(spp::sparse_hash_map<vector<uint32_t>, double> * path_subset_samples, const PathClusterEstimates & group_path_cluster_estimates, const vector<vector<uint32_t> > & path_groups, mt19937 * mt_rng) const;
+        spp::sparse_hash_map<vector<uint32_t>, double> samplePathSubsetIndices(const vector<PathClusterEstimates> & group_path_cluster_estimates, const vector<vector<uint32_t> > & path_groups, mt19937 * mt_rng) const;
+        spp::sparse_hash_map<vector<uint32_t>, double> samplePathSubsetIndices(const vector<PathClusterEstimates> & group_path_cluster_estimates, const vector<pair<vector<vector<uint32_t> >, vector<uint32_t> > > & path_source_groups, mt19937 * mt_rng) const;
+        spp::sparse_hash_map<vector<uint32_t>, double> selectPathSubsetIndices(const PathClusterEstimates & group_path_cluster_estimates, const pair<vector<vector<uint32_t> >, vector<uint32_t> > & path_source_groups, mt19937 * mt_rng) const;
 
         void inferPathSubsetAbundance(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng, const spp::sparse_hash_map<vector<uint32_t>, double> & path_subset_samples) const;
 };
