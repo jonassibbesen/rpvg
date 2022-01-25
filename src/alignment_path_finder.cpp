@@ -12,7 +12,7 @@ static const int32_t max_noise_score_diff = (Utils::default_match + Utils::defau
 
 
 template<class AlignmentType>
-AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const bool score_not_qual_in, const bool use_allelic_mapq_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const int32_t max_score_diff_in, const double min_best_score_filter_in) : paths_index(paths_index_in), library_type(library_type_in), score_not_qual(score_not_qual_in), use_allelic_mapq(use_allelic_mapq_in), max_pair_frag_length(max_pair_frag_length_in), max_partial_offset(max_partial_offset_in), est_missing_noise_prob(est_missing_noise_prob_in), max_score_diff(max_score_diff_in), min_best_score_filter(min_best_score_filter_in) {}
+AlignmentPathFinder<AlignmentType>::AlignmentPathFinder(const PathsIndex & paths_index_in, const string library_type_in, const bool score_not_qual_in, const bool use_multimap_in, const bool use_allelic_mapq_in, const uint32_t max_pair_frag_length_in, const uint32_t max_partial_offset_in, const bool est_missing_noise_prob_in, const int32_t max_score_diff_in, const double min_best_score_filter_in) : paths_index(paths_index_in), library_type(library_type_in), score_not_qual(score_not_qual_in), use_multimap(use_multimap_in), use_allelic_mapq(use_allelic_mapq_in), max_pair_frag_length(max_pair_frag_length_in), max_partial_offset(max_partial_offset_in), est_missing_noise_prob(est_missing_noise_prob_in), max_score_diff(max_score_diff_in), min_best_score_filter(min_best_score_filter_in) {}
         
 template<class AlignmentType>
 bool AlignmentPathFinder<AlignmentType>::alignmentHasPath(const vg::Alignment & alignment) const {
@@ -133,6 +133,13 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         return vector<AlignmentPath>();
     }
 
+    auto is_disconnected = isAlignmentDisconnected(alignment);
+
+    // if (is_disconnected && !use_multimap) {
+
+    //     return vector<AlignmentPath>();        
+    // }
+
     vector<AlignmentSearchPath> align_search_paths;
 
     function<size_t(const uint32_t)> node_length_func = [&](const uint32_t node_id) { return paths_index.nodeLength(node_id); };
@@ -158,7 +165,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         }  
     }
 
-    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, isAlignmentDisconnected(alignment), mappingQuality(alignment));
+    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, is_disconnected, mappingQuality(alignment));
 
 #ifdef debug
 
@@ -645,6 +652,13 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         return vector<AlignmentPath>();
     }
 
+    auto is_disconnected = isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2);
+
+    // if (is_disconnected && !use_multimap) {
+
+    //     return vector<AlignmentPath>();        
+    // }
+
     vector<AlignmentSearchPath> paired_align_search_paths;
 
     function<size_t(const uint32_t)> node_length_func = [&](const uint32_t node_id) { return paths_index.nodeLength(node_id); };
@@ -673,7 +687,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         }
     }
 
-    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, isAlignmentDisconnected(alignment_1) || isAlignmentDisconnected(alignment_2), min(mappingQuality(alignment_1), mappingQuality(alignment_2)));
+    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, is_disconnected, min(mappingQuality(alignment_1), mappingQuality(alignment_2)));
 
 #ifdef debug
 
@@ -1216,7 +1230,7 @@ bool AlignmentPathFinder<AlignmentType>::isAlignmentDisconnected(const vg::Align
 template<class AlignmentType>
 bool AlignmentPathFinder<AlignmentType>::isAlignmentDisconnected(const vg::MultipathAlignment & alignment) const {
 
-    bool is_connected = false;
+    bool is_disconnected = false;
 
     if (alignment.has_annotation()) {
 
@@ -1225,11 +1239,11 @@ bool AlignmentPathFinder<AlignmentType>::isAlignmentDisconnected(const vg::Multi
         if (annotation_it != alignment.annotation().fields().end()) {
 
             assert(annotation_it->second.bool_value());
-            is_connected = true;
+            is_disconnected = true;
         }
     }
 
-    return is_connected;
+    return is_disconnected;
 }
 
 template<class AlignmentType>

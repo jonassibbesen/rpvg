@@ -365,6 +365,7 @@ int main(int argc, char* argv[]) {
       ("s,single-end", "alignment input is single-end reads", cxxopts::value<bool>())
       ("l,long-reads", "alignment input is single-molecule long reads (single-end only)", cxxopts::value<bool>())
       ("score-not-qual", "alignment score is not quality adjusted", cxxopts::value<bool>())
+      ("use-multimap", "use multimapped alignments (disconnected multipaths)", cxxopts::value<bool>())
       ;
 
     options.add_options("Fragment")
@@ -533,6 +534,13 @@ int main(int argc, char* argv[]) {
     }
 
     const bool score_not_qual = option_results.count("score-not-qual");
+    const bool use_multimap = option_results.count("use-multimap");
+
+    if (is_single_path && use_multimap) {
+
+        cerr << "ERROR: Multimapping support (--use-multimap) does not work with single-path alignments (--single-path)." << endl;
+        return 1;
+    }
 
     const uint32_t max_partial_offset = option_results["max-par-offset"].as<uint32_t>();
     
@@ -635,7 +643,7 @@ int main(int argc, char* argv[]) {
 
     if (is_single_path) {
         
-        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, score_not_qual, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::Alignment> align_path_finder(paths_index, library_type, score_not_qual, use_multimap, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -648,7 +656,7 @@ int main(int argc, char* argv[]) {
 
     } else {
 
-        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, score_not_qual, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
+        AlignmentPathFinder<vg::MultipathAlignment> align_path_finder(paths_index, library_type, score_not_qual, use_multimap, use_allelic_mapq, pre_frag_length_dist.maxLength(), max_partial_offset, est_missing_noise_prob, max_score_diff, min_best_score_filter);
 
         if (is_single_end) {
 
@@ -702,7 +710,10 @@ int main(int argc, char* argv[]) {
         path_clusters.addNodeClustering(paths_index, library_type == "unstranded");
     }
 
-    path_clusters.createNoteClusterIndex(paths_index, library_type == "unstranded");
+    if (use_multimap) {
+
+        path_clusters.createNoteClusterIndex(paths_index, library_type == "unstranded");
+    }
 
     vector<vector<vector<align_paths_index_t::iterator> > > align_paths_clusters(path_clusters.cluster_to_paths_index.size(), vector<vector<align_paths_index_t::iterator> >(num_threads));
 
@@ -837,7 +848,11 @@ int main(int argc, char* argv[]) {
                 path_cluster_estimates->back().second.paths.emplace_back(PathInfo(paths_index.pathName(path_id)));
             }
 
-            path_cluster_estimates->back().second.paths.back().cluster_id = path_clusters.path_to_note_cluster_index.at(path_id); 
+            if (use_multimap) {
+
+                path_cluster_estimates->back().second.paths.back().cluster_id = path_clusters.path_to_note_cluster_index.at(path_id); 
+            }
+
             path_cluster_estimates->back().second.paths.back().length = paths_index.pathLength(path_id); 
 
             if (is_long_reads) {
