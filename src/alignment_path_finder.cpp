@@ -128,6 +128,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         return vector<AlignmentPath>();
     }
 
+    if (mappingQuality(alignment) == 0) {
+
+        return vector<AlignmentPath>();        
+    }
+
     if (!alignmentStartInGraph(alignment)) {
 
         return vector<AlignmentPath>();
@@ -647,6 +652,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         return vector<AlignmentPath>();
     }
 
+    if (min(mappingQuality(alignment_1), mappingQuality(alignment_2)) == 0) {
+
+        return vector<AlignmentPath>();        
+    }
+    
     if (!alignmentStartInGraph(alignment_1) || !alignmentStartInGraph(alignment_2)) {
 
         return vector<AlignmentPath>();
