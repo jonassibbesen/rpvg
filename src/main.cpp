@@ -815,16 +815,26 @@ int main(int argc, char* argv[]) {
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
         auto thread_id = omp_get_thread_num();
 
-        // double debug_time = gbwt::readTimer();
+        double debug_time = gbwt::readTimer();
 
-        // if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
+        unordered_set<uint32_t> clusters;
+    
+        if (use_multimap) {
 
-        //     #pragma omp critical
-        //     {
+            for (auto & path_id: path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx)) {
+
+                clusters.emplace(path_clusters.path_to_note_cluster_index.at(path_id)); 
+            }
+        }
+
+        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 100 || clusters.size() > 1) {
+
+            #pragma omp critical
+            {
                 
-        //         cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
-        //     }
-        // }
+                cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+            }
+        }
 
         spp::sparse_hash_map<uint32_t, uint32_t> clustered_path_index;
 
@@ -923,14 +933,21 @@ int main(int argc, char* argv[]) {
             path_cluster_estimates->back().second.gibbs_read_count_samples.clear();
         }
 
-        // if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 1000 || align_paths_clusters.at(align_paths_cluster_idx).size() > 1000) {
+        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 100 || clusters.size() > 1) {
 
-        //     #pragma omp critical
-        //     {
+            uint32_t read_count = 0;
+
+            for (auto & probs: read_path_cluster_probs) {
+
+                read_count += probs.readCount();
+            }
+
+            #pragma omp critical
+            {
                 
-        //         cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << gbwt::readTimer() - debug_time << endl;
-        //     }
-        // }
+                cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << read_count << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << gbwt::readTimer() - debug_time << endl;
+            }
+        }
     }
 
     delete path_estimator;
