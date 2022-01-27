@@ -66,7 +66,7 @@ class NestedPathAbundanceEstimator : public PathAbundanceEstimator {
         const bool use_group_post_gibbs;
 
         void inferAbundancesIndependentGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const;        
-        void inferAbundancesCollapsedGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng);        
+        void inferAbundancesCollapsedGroups(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) const;        
 
         vector<vector<uint32_t> > findPathGroups(const vector<PathInfo> & paths) const;
         vector<vector<uint32_t> > findPathClusters(const vector<PathInfo> & paths) const;

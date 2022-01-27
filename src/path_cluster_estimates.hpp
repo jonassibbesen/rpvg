@@ -59,10 +59,14 @@ struct PathClusterEstimates {
 
     vector<CountSamples> gibbs_read_count_samples;
 
+    bool out_debug;
+
     PathClusterEstimates() {
 
         noise_count = 0;
         total_count = 0;
+
+        out_debug = false;
     }
 
     void generateGroupsRecursive(const uint32_t num_components, const uint32_t group_size, vector<uint32_t> cur_group) {

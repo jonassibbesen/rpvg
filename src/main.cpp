@@ -815,7 +815,7 @@ int main(int argc, char* argv[]) {
         auto align_paths_cluster_idx = align_paths_clusters_indices.at(i).second;
         auto thread_id = omp_get_thread_num();
 
-        double debug_time = gbwt::readTimer();
+        double debug_time1 = gbwt::readTimer();
 
         unordered_set<uint32_t> clusters;
     
@@ -827,12 +827,14 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 100 || clusters.size() > 1) {
+        bool out_debug = (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() >= 50 && clusters.size() >= 3);
+
+        if (out_debug) {
 
             #pragma omp critical
             {
                 
-                cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
+                cerr << "DEBUG: Start " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << endl;
             }
         }
 
@@ -918,9 +920,33 @@ int main(int argc, char* argv[]) {
             read_path_cluster_probs.resize(prev_unique_probs_idx + 1);
         }
 
+        path_cluster_estimates->back().second.out_debug = out_debug;
+
+        double debug_time2 = gbwt::readTimer();
+
+        if (out_debug) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: EST1 " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << debug_time2 - debug_time1 << endl;
+            }
+        }
+
         // Need better solution for this
         mt19937 mt_rng = mt19937(rng_seed + i);
         path_estimator->estimate(&(path_cluster_estimates->back().second), read_path_cluster_probs, &mt_rng);
+
+        double debug_time3 = gbwt::readTimer();
+
+        if (out_debug) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: EST2 " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << path_cluster_estimates->back().second.path_group_sets.size() << " " << path_cluster_estimates->back().second.posteriors.size() << " " << path_cluster_estimates->back().second.abundances.size() << " " << path_cluster_estimates->back().second.gibbs_read_count_samples.size() << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << debug_time3 - debug_time2 << endl;
+            }
+        }
 
         if (prob_cluster_writer) {
 
@@ -933,7 +959,7 @@ int main(int argc, char* argv[]) {
             path_cluster_estimates->back().second.gibbs_read_count_samples.clear();
         }
 
-        if (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() > 100 || clusters.size() > 1) {
+        if (out_debug) {
 
             uint32_t read_count = 0;
 
@@ -945,7 +971,7 @@ int main(int argc, char* argv[]) {
             #pragma omp critical
             {
                 
-                cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << read_count << " " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << gbwt::readTimer() - debug_time << endl;
+                cerr << "DEBUG: End " << omp_get_thread_num() << ": " << i << " " << path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() << " " << clusters.size() << " " << align_paths_clusters.at(align_paths_cluster_idx).size() << " " << read_count << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << gbwt::readTimer() - debug_time3 << endl;
             }
         }
     }
