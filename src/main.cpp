@@ -827,7 +827,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        bool out_debug = (path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size() >= 100 && clusters.size() >= 40);
+        bool out_debug = (clusters.size() >= 3);
 
         if (out_debug) {
 

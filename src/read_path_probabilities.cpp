@@ -21,6 +21,8 @@ ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const
     noise_prob = 1;
 }
 
+ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double noise_prob_in, const vector<pair<double, vector<uint32_t> > > & path_probs_in, const double prob_precision_in) : read_count(read_count_in), noise_prob(noise_prob_in), path_probs(path_probs_in), prob_precision(prob_precision_in) {}
+
 uint32_t ReadPathProbabilities::readCount() const {
 
     return read_count;

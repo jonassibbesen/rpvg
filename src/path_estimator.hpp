@@ -36,6 +36,8 @@ class PathEstimator {
         void readCollapseProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, Utils::RowVectorXd * read_counts) const;
         void pathCollapseProbabilityMatrix(Utils::ColMatrixXd * read_path_probs) const;
 
+        void constructPartialClusterProbabilities(vector<ReadPathProbabilities> * partial_cluster_probs, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const;
+
         void calculatePathGroupPosteriorsFull(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXd & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size) const;
         void calculatePathGroupPosteriorsBounded(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXd & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size, const double min_rel_likelihood) const;
         void estimatePathGroupPosteriorsGibbs(PathClusterEstimates * path_cluster_estimates, const Utils::ColMatrixXd & read_path_probs, const Utils::ColVectorXd & noise_probs, const Utils::RowVectorXd & read_counts, const vector<uint32_t> & path_counts, const uint32_t group_size, mt19937 * mt_rng) const;

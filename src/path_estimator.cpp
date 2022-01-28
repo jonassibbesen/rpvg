@@ -312,6 +312,91 @@ void PathEstimator::pathCollapseProbabilityMatrix(Utils::ColMatrixXd * read_path
     read_path_probs->conservativeResize(read_path_probs->rows(), prev_unique_probs_col + 1);
 }
 
+void PathEstimator::constructPartialClusterProbabilities(vector<ReadPathProbabilities> * partial_cluster_probs, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const {
+
+    assert(!cluster_probs.empty());
+
+    *partial_cluster_probs = vector<ReadPathProbabilities>();
+    partial_cluster_probs->reserve(cluster_probs.size());
+
+    vector<int32_t> path_id_idx(num_paths, -1);
+
+    for (size_t i = 0; i < path_ids.size(); ++i) {
+
+        path_id_idx.at(path_ids.at(i)) = i;
+    }
+
+    for (auto & cluster_prob: cluster_probs) {
+
+        vector<pair<double, vector<uint32_t> > > partial_path_probs;
+
+        if (!Utils::doubleCompare(cluster_prob.noiseProb(), 1)) {
+
+            assert(!cluster_prob.pathProbs().empty());
+            partial_path_probs.reserve(cluster_prob.pathProbs().size());
+
+            double sum_prob = 0;
+
+            for (auto & path_probs: cluster_prob.pathProbs()) {
+
+                partial_path_probs.emplace_back(path_probs.first, vector<uint32_t>());
+                partial_path_probs.back().second.reserve(min(path_probs.second.size(), path_ids.size()));
+
+                for (auto & path: path_probs.second) {
+        
+                    assert(path < num_paths);
+
+                    if (path_id_idx.at(path) >= 0) {
+                    
+                        partial_path_probs.back().second.emplace_back(path_id_idx.at(path));
+                    }
+                }
+
+                if (partial_path_probs.back().second.empty()) {
+
+                    partial_path_probs.pop_back();
+                
+                } else {
+
+                    sum_prob += (partial_path_probs.back().first * partial_path_probs.back().second.size());
+                }
+            }
+
+            assert(partial_path_probs.empty() == Utils::doubleCompare(sum_prob, 0));
+
+            for (auto & path_probs: partial_path_probs) {
+        
+                path_probs.first /= sum_prob;
+                path_probs.first *= (1 - cluster_prob.noiseProb());
+            }
+        }
+
+        partial_cluster_probs->emplace_back(cluster_prob.readCount(), cluster_prob.noiseProb(), partial_path_probs, prob_precision);
+    }
+
+    sort(partial_cluster_probs->begin(), partial_cluster_probs->end());
+
+    if (!partial_cluster_probs->empty()) {        
+
+        uint32_t prev_unique_probs_idx = 0;
+
+        for (size_t i = 1; i < partial_cluster_probs->size(); ++i) {
+
+            if (!partial_cluster_probs->at(prev_unique_probs_idx).quickMergeIdentical(partial_cluster_probs->at(i))) {
+
+                if (prev_unique_probs_idx + 1 < i) {
+
+                    partial_cluster_probs->at(prev_unique_probs_idx + 1) = partial_cluster_probs->at(i);
+                }
+
+                prev_unique_probs_idx++;
+            }
+        }
+
+        partial_cluster_probs->resize(prev_unique_probs_idx + 1);
+    }
+}
+
 vector<double> PathEstimator::calcPathLogFrequences(const vector<uint32_t> & path_counts) const {
 
     vector<double> path_log_freqs;
