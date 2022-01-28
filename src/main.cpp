@@ -827,7 +827,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        bool out_debug = (clusters.size() >= 3);
+        bool out_debug = (clusters.size() >= 50);
 
         if (out_debug) {
 
