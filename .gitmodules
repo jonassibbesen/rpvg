@@ -10,6 +10,9 @@
 [submodule "deps/eigen"]
 	path = deps/eigen
 	url = https://gitlab.com/libeigen/eigen.git
+[submodule "deps/sdsl-lite"]
+	path = deps/sdsl-lite
+	url = https://github.com/vgteam/sdsl-lite.git
 [submodule "deps/gbwt"]
 	path = deps/gbwt
 	url = https://github.com/jltsiren/gbwt.git
