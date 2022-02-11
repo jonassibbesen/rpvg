@@ -65,10 +65,11 @@ void ProbabilityClusterWriter::addCluster(const vector<ReadPathProbabilities> & 
             for (auto & read_path_probs: read_path_cluster_probs) {
 
                 *out_sstream << read_path_probs.readCount() << " " << read_path_probs.noiseProb();
+                assert(!read_path_probs.isNoiseNorm());
 
                 for (auto & path_probs: read_path_probs.pathProbs()) {
 
-                    *out_sstream << " " << path_probs.first << ":";
+                    *out_sstream << " " << path_probs.first * (1 - read_path_probs.noiseProb()) << ":";
 
                     bool is_first = true;
 

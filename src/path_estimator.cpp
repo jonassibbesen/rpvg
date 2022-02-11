@@ -62,6 +62,8 @@ void PathEstimator::constructProbabilityMatrix(Utils::ColMatrixXd * read_path_pr
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
+        assert(!cluster_probs.at(i).isNoiseNorm());
+
         for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
             for (auto & path: path_probs.second) {
@@ -93,6 +95,8 @@ void PathEstimator::constructPartialProbabilityMatrix(Utils::ColMatrixXd * read_
     *read_counts = Utils::RowVectorXd(cluster_probs.size());
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
+
+        assert(!cluster_probs.at(i).isNoiseNorm());
 
         for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
@@ -135,6 +139,8 @@ void PathEstimator::constructGroupedProbabilityMatrix(Utils::ColMatrixXd * read_
 
     for (size_t i = 0; i < cluster_probs.size(); ++i) {
 
+        assert(!cluster_probs.at(i).isNoiseNorm());
+
         for (auto & path_probs: cluster_probs.at(i).pathProbs()) {
 
             for (auto & path: path_probs.second) {
@@ -153,13 +159,18 @@ void PathEstimator::constructGroupedProbabilityMatrix(Utils::ColMatrixXd * read_
     }
 }
 
-void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, const Utils::ColVectorXd & noise_probs) const {
+void PathEstimator::normalizeProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, const Utils::ColVectorXd & noise_probs) const {
 
     assert(read_path_probs->rows() == noise_probs.rows());
 
     *read_path_probs = read_path_probs->array().colwise() / read_path_probs->rowwise().sum().array();
     *read_path_probs = read_path_probs->array().colwise() * (1 - noise_probs.array());
     *read_path_probs = read_path_probs->array().isNaN().select(0, *read_path_probs);
+}
+
+void PathEstimator::addNoiseAndNormalizeProbabilityMatrix(Utils::ColMatrixXd * read_path_probs, const Utils::ColVectorXd & noise_probs) const {
+
+    normalizeProbabilityMatrix(read_path_probs, noise_probs);
 
     read_path_probs->conservativeResize(read_path_probs->rows(), read_path_probs->cols() + 1);
     read_path_probs->col(read_path_probs->cols() - 1) = noise_probs;
@@ -312,7 +323,7 @@ void PathEstimator::pathCollapseProbabilityMatrix(Utils::ColMatrixXd * read_path
     read_path_probs->conservativeResize(read_path_probs->rows(), prev_unique_probs_col + 1);
 }
 
-void PathEstimator::constructPartialClusterProbabilities(vector<ReadPathProbabilities> * partial_cluster_probs, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths) const {
+void PathEstimator::constructPartialClusterProbabilities(vector<ReadPathProbabilities> * partial_cluster_probs, const vector<ReadPathProbabilities> & cluster_probs, const vector<uint32_t> & path_ids, const uint32_t num_paths, const bool noise_norm) const {
 
     assert(!cluster_probs.empty());
 
@@ -330,7 +341,10 @@ void PathEstimator::constructPartialClusterProbabilities(vector<ReadPathProbabil
 
         vector<pair<double, vector<uint32_t> > > partial_path_probs;
 
-        if (!Utils::doubleCompare(cluster_prob.noiseProb(), 1)) {
+        assert(!cluster_prob.isNoiseNorm());
+        auto noise_prob = cluster_prob.noiseProb();
+
+        if (!Utils::doubleCompare(noise_prob, 1)) {
 
             assert(!cluster_prob.pathProbs().empty());
             partial_path_probs.reserve(cluster_prob.pathProbs().size());
@@ -364,14 +378,24 @@ void PathEstimator::constructPartialClusterProbabilities(vector<ReadPathProbabil
 
             assert(partial_path_probs.empty() == Utils::doubleCompare(sum_prob, 0));
 
-            for (auto & path_probs: partial_path_probs) {
-        
-                path_probs.first /= sum_prob;
-                path_probs.first *= (1 - cluster_prob.noiseProb());
+            if (noise_norm) {
+
+                for (auto & path_probs: partial_path_probs) {
+            
+                    path_probs.first /= sum_prob;
+                    path_probs.first *= (1 - noise_prob);
+                }  
+
+            } else {
+
+                for (auto & path_probs: partial_path_probs) {
+            
+                    path_probs.first /= sum_prob;
+                }                
             }
         }
 
-        partial_cluster_probs->emplace_back(cluster_prob.readCount(), cluster_prob.noiseProb(), partial_path_probs, prob_precision);
+        partial_cluster_probs->emplace_back(cluster_prob.readCount(), noise_prob, partial_path_probs, noise_norm, prob_precision);
     }
 
     sort(partial_cluster_probs->begin(), partial_cluster_probs->end());

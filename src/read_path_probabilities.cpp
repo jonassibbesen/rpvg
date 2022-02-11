@@ -13,15 +13,17 @@ ReadPathProbabilities::ReadPathProbabilities() {
     read_count = 0;
     noise_prob = 1;
 
+    is_noise_norm = false;
     prob_precision = pow(10, -8);
 }
 
 ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in) : read_count(read_count_in), prob_precision(prob_precision_in) {
-    
+
+    is_noise_norm = false;    
     noise_prob = 1;
 }
 
-ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double noise_prob_in, const vector<pair<double, vector<uint32_t> > > & path_probs_in, const double prob_precision_in) : read_count(read_count_in), noise_prob(noise_prob_in), path_probs(path_probs_in), prob_precision(prob_precision_in) {}
+ReadPathProbabilities::ReadPathProbabilities(const uint32_t read_count_in, const double noise_prob_in, const vector<pair<double, vector<uint32_t> > > & path_probs_in, const bool is_noise_norm_in, const double prob_precision_in) : read_count(read_count_in), noise_prob(noise_prob_in), path_probs(path_probs_in), is_noise_norm(is_noise_norm_in), prob_precision(prob_precision_in) {}
 
 uint32_t ReadPathProbabilities::readCount() const {
 
@@ -33,17 +35,52 @@ double ReadPathProbabilities::noiseProb() const {
     return noise_prob;
 }
 
-const vector<pair<double, vector<uint32_t> > >& ReadPathProbabilities::pathProbs() const {
+const vector<pair<double, vector<uint32_t> > > & ReadPathProbabilities::pathProbs() const {
 
     return path_probs;
 }
 
-void ReadPathProbabilities::addReadCount(const uint32_t multiplicity_in) {
+bool ReadPathProbabilities::isNoiseNorm() const {
 
-    read_count += multiplicity_in;
+    return is_noise_norm;
 }
 
-void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob) {
+vector<double> ReadPathProbabilities::calcAlignPathLogProbs(const vector<AlignmentPath> & align_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end) {
+
+    assert(align_paths.size() > 1);
+
+    assert(align_paths.back().gbwt_search.first.empty());
+    assert(align_paths.back().frag_length == 0);
+    assert(align_paths.back().align_length == 0);
+    assert(align_paths.back().score_sum <= 0);
+
+    vector<double> align_paths_log_probs;
+    align_paths_log_probs.reserve(align_paths.size());
+
+    for (size_t i = 0; i < align_paths.size() - 1; ++i) {
+
+        const AlignmentPath & align_path = align_paths.at(i);
+
+        assert(align_paths.front().min_mapq == align_path.min_mapq);
+        align_paths_log_probs.emplace_back(align_path.score_sum * Utils::score_log_base);
+
+        if (!is_single_end) {
+
+            align_paths_log_probs.back() += fragment_length_dist.logProb(align_path.frag_length);
+        }
+    }
+    
+    align_paths_log_probs.emplace_back(align_paths.back().score_sum * Utils::noise_score_log_base);
+
+    return align_paths_log_probs;
+}
+
+void ReadPathProbabilities::addReadCount(const uint32_t read_count_in) {
+
+    read_count += read_count_in;
+}
+
+void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob) {
 
     assert(align_paths.size() > 1);
     assert(align_paths.size() == align_paths_ids.size());
@@ -56,38 +93,18 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
         noise_prob = max(prob_precision, max(min_noise_prob, Utils::phred_to_prob(align_paths.front().min_mapq)));
         assert(noise_prob < 1 && noise_prob > 0);
 
-        assert(align_paths.back().gbwt_search.first.empty());
-        assert(align_paths.back().frag_length == 0);
-        assert(align_paths.back().align_length == 0);
+        auto align_paths_log_probs = calcAlignPathLogProbs(align_paths, fragment_length_dist, is_single_end);
 
+        assert(align_paths_log_probs.size() == align_paths_ids.size());
         assert(align_paths_ids.back().empty());
-        assert(align_paths.back().score_sum <= 0);
 
-        noise_prob += (1 - noise_prob) * exp(align_paths.back().score_sum * Utils::noise_score_log_base);
+        noise_prob += (1 - noise_prob) * exp(align_paths_log_probs.back());
 
         if (align_paths.back().score_sum == 0) {
 
             assert(Utils::doubleCompare(noise_prob, 1));
             return;
         }
-
-        vector<double> align_paths_log_probs;
-        align_paths_log_probs.reserve(align_paths.size() - 1);
-
-        for (size_t i = 0; i < align_paths.size() - 1; ++i) {
-
-            const AlignmentPath & align_path = align_paths.at(i);
-
-            assert(align_paths.front().min_mapq == align_path.min_mapq);
-            align_paths_log_probs.emplace_back(align_path.score_sum * Utils::score_log_base);
-
-            if (!is_single_end) {
-
-                align_paths_log_probs.back() += fragment_length_dist.logProb(align_path.frag_length);
-            }
-        }
-        
-        assert(align_paths_ids.size() == align_paths_log_probs.size() + 1);
 
         vector<double> read_path_log_probs(clustered_path_index.size(), numeric_limits<double>::lowest());
         vector<double> read_path_max_align_lengths(clustered_path_index.size(), 0);
@@ -106,14 +123,13 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
                 if (Utils::doubleCompare(cluster_paths.at(path_idx).effective_length, 0)) {
 
                     assert(Utils::doubleCompare(read_path_log_probs.at(path_idx), numeric_limits<double>::lowest()));
-                    read_path_log_probs.at(path_idx) = numeric_limits<double>::lowest();
 
                 } else {
 
                     double log_prob = align_paths_log_probs.at(i) - log(cluster_paths.at(path_idx).effective_length);
                     assert(align_paths.at(i).align_length > 0);
 
-                    // Account for rare cases when a mpmap alignment can have multiple alignments on the same path or 
+                    // Account for cases when a mpmap alignment can have multiple alignments on the same path or 
                     // when partial matching results in multiple matches to the same path.
                     if (align_paths.at(i).align_length > read_path_max_align_lengths.at(path_idx)) {
 
@@ -140,7 +156,6 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
         for (size_t i = 0; i < read_path_log_probs.size(); ++i) {
 
             read_path_log_probs.at(i) = exp(read_path_log_probs.at(i) - read_path_log_probs_sum);
-            read_path_log_probs.at(i) *= (1 - noise_prob);
 
             if (read_path_log_probs.at(i) >= prob_precision) {
 
@@ -163,26 +178,30 @@ void ReadPathProbabilities::calcAlignPathProbs(const vector<AlignmentPath> & ali
 
                     path_probs.emplace_back(read_path_log_probs.at(i), vector<uint32_t>({static_cast<uint32_t>(i)}));
                 }
+            
+            } else {
+
+                noise_prob += read_path_log_probs.at(i);
             }
         }
 
         sort(path_probs.begin(), path_probs.end());
-
-        if (path_probs.empty()) {
-
-            noise_prob = 1;
-        }
     }
+}
+
+void ReadPathProbabilities::setIsNoiseNorm(const bool is_noise_norm_in) {
+
+    is_noise_norm = is_noise_norm_in;
 }
 
 bool ReadPathProbabilities::quickMergeIdentical(const ReadPathProbabilities & probs_2) {
 
-    if (pathProbs().size() != probs_2.pathProbs().size()) {
+    if (abs(noise_prob - probs_2.noiseProb()) >= prob_precision) {
 
         return false;
     }
 
-    if (abs(noise_prob - probs_2.noiseProb()) < prob_precision) {
+    if (pathProbs().size() == probs_2.pathProbs().size()) {
 
         for (size_t i = 0; i < pathProbs().size(); ++i) {
 

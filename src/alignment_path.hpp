@@ -30,8 +30,6 @@ class AlignmentPath {
 
         uint16_t align_length;
         uint16_t frag_length;
-
-        static vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_simple, const uint8_t min_mapq);
 };
 
 bool operator==(const AlignmentPath & lhs, const AlignmentPath & rhs);
@@ -67,6 +65,8 @@ namespace std {
         }
     };
 }
+
+vector<AlignmentPath> alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_simple, const uint8_t min_mapq);
 
 
 class InternalAlignment {

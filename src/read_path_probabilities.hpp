@@ -22,14 +22,18 @@ class ReadPathProbabilities {
 
         ReadPathProbabilities();
     	ReadPathProbabilities(const uint32_t read_count_in, const double prob_precision_in);
-        ReadPathProbabilities(const uint32_t read_count_in, const double noise_prob_in, const vector<pair<double, vector<uint32_t> > > & path_probs_in, const double prob_precision_in);
+        ReadPathProbabilities(const uint32_t read_count_in, const double noise_prob_in, const vector<pair<double, vector<uint32_t> > > & path_probs_in, const bool is_noise_norm_in, const double prob_precision_in);
 
         uint32_t readCount() const;
         double noiseProb() const;
         const vector<pair<double, vector<uint32_t> > > & pathProbs() const;
+        bool isNoiseNorm() const;
+
+        static vector<double> calcAlignPathLogProbs(const vector<AlignmentPath> & align_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end);
 
         void addReadCount(const uint32_t read_count_in);
-        void calcAlignPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob);
+        void addPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob);
+        void setIsNoiseNorm(const bool is_noise_norm_in);
 
         bool quickMergeIdentical(const ReadPathProbabilities & probs_2);
 
@@ -38,7 +42,8 @@ class ReadPathProbabilities {
         uint32_t read_count;
         double noise_prob;
         vector<pair<double, vector<uint32_t> > > path_probs;
-        
+
+        bool is_noise_norm;        
         double prob_precision;
 };
 

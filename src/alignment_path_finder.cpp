@@ -170,7 +170,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         }  
     }
 
-    auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, is_disconnected, mappingQuality(alignment));
+    auto align_paths = alignmentSearchPathsToAlignmentPaths(align_search_paths, is_disconnected, mappingQuality(alignment));
 
 #ifdef debug
 
@@ -697,7 +697,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findPairedAlignmentPat
         }
     }
 
-    auto paired_align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, is_disconnected, min(mappingQuality(alignment_1), mappingQuality(alignment_2)));
+    auto paired_align_paths = alignmentSearchPathsToAlignmentPaths(paired_align_search_paths, is_disconnected, min(mappingQuality(alignment_1), mappingQuality(alignment_2)));
 
 #ifdef debug
 

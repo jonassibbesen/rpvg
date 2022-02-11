@@ -827,7 +827,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        bool out_debug = (clusters.size() >= 50);
+        bool out_debug = (clusters.size() >= 3);
 
         if (out_debug) {
 
@@ -894,7 +894,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-                read_path_cluster_probs.back().calcAlignPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, frag_length_dist, is_single_end, min_noise_prob);
+                read_path_cluster_probs.back().addPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, frag_length_dist, is_single_end, min_noise_prob);
             }
         }
 
