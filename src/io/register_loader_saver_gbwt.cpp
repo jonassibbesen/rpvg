@@ -1,3 +1,7 @@
+/*
+All the following code have been copied and modified from https://github.com/vgteam/vg
+*/
+
 /**
  * \file register_loader_saver_gbwt.cpp
  * Defines IO for a GBWT index from stream files.

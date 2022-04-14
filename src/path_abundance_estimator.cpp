@@ -17,6 +17,8 @@ PathAbundanceEstimator::PathAbundanceEstimator(const uint32_t max_em_its_in, con
 
 void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estimates, const vector<ReadPathProbabilities> & cluster_probs, mt19937 * mt_rng) {
 
+    double debug_time1_0 = gbwt::readTimer();
+
     path_cluster_estimates->resetEstimates(path_cluster_estimates->paths.size(), 1);
 
     if (!cluster_probs.empty()) {
@@ -25,11 +27,56 @@ void PathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster_estima
         Utils::ColVectorXd noise_probs;
         Utils::RowVectorXd read_counts;
 
+        double debug_time1_1 = gbwt::readTimer();
+
+        if (path_cluster_estimates->out_debug) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: INF1 " << omp_get_thread_num() << ": " << path_cluster_estimates->paths.size() << " " << cluster_probs.size() << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << debug_time1_1 - debug_time1_0 << endl;
+            }
+        }
+
         constructProbabilityMatrix(&read_path_probs, &noise_probs, &read_counts, cluster_probs, path_cluster_estimates->paths.size());
+
+        double debug_time1_2 = gbwt::readTimer();
+
+        if (path_cluster_estimates->out_debug) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: INF2 " << omp_get_thread_num() << ": " << path_cluster_estimates->paths.size() << " " << cluster_probs.size() << " " << read_path_probs.cols() << " " << read_path_probs.rows() << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << debug_time1_2 - debug_time1_1 << endl;
+            }
+        }
+
         addNoiseAndNormalizeProbabilityMatrix(&read_path_probs, noise_probs);
+
+        double debug_time1_3 = gbwt::readTimer();
+
+        if (path_cluster_estimates->out_debug) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: INF3 " << omp_get_thread_num() << ": " << path_cluster_estimates->paths.size() << " " << cluster_probs.size() << " " << read_path_probs.cols() << " " << read_path_probs.rows() << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << debug_time1_3 - debug_time1_2 << endl;
+            }
+        }
 
         path_cluster_estimates->total_count = read_counts.sum();
         EMAbundanceEstimator(path_cluster_estimates, read_path_probs, read_counts);
+
+        double debug_time1_4 = gbwt::readTimer();
+
+        if (path_cluster_estimates->out_debug) {
+
+            #pragma omp critical
+            {
+                
+                cerr << "DEBUG: INF4 " << omp_get_thread_num() << ": " << path_cluster_estimates->paths.size() << " " << cluster_probs.size() << " " << read_path_probs.cols() << " " << read_path_probs.rows() << " " << path_cluster_estimates->path_group_sets.size() << " " << path_cluster_estimates->posteriors.size() << " " << path_cluster_estimates->abundances.size() << " - " << gbwt::inGigabytes(gbwt::memoryUsage()) << " " << debug_time1_4 - debug_time1_3 << endl;
+            }
+        }
 
         if (num_gibbs_samples > 0) {
 

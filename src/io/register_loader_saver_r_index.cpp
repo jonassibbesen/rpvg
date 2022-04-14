@@ -1,3 +1,7 @@
+/*
+All the following code have been copied and modified from https://github.com/vgteam/vg
+*/
+
 /**
  * \file register_loader_saver_r_index.cpp
  * Defines IO for an r-index from stream files.

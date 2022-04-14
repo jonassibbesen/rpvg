@@ -1,3 +1,7 @@
+/*
+All the following code have been copied and modified from https://github.com/vgteam/vg
+*/
+
 #ifndef VG_IO_REGISTER_LOADER_SAVER_R_INDEX_HPP_INCLUDED
 #define VG_IO_REGISTER_LOADER_SAVER_R_INDEX_HPP_INCLUDED
 

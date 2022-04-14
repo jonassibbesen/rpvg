@@ -80,7 +80,7 @@ void ReadPathProbabilities::addReadCount(const uint32_t read_count_in) {
     read_count += read_count_in;
 }
 
-void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob) {
+void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob, const bool collapse_groups, const spp::sparse_hash_map<string, uint32_t> & group_name_index) {
 
     assert(align_paths.size() > 1);
     assert(align_paths.size() == align_paths_ids.size());
@@ -142,6 +142,26 @@ void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_pat
                     }
                 }
             }
+        }
+
+        if (collapse_groups) {
+
+            assert(read_path_log_probs.size() == cluster_paths.size());
+            assert(!group_name_index.empty());
+
+            vector<double> read_path_log_probs_groups(group_name_index.size(), numeric_limits<double>::lowest());
+
+            for (size_t i = 0; i < read_path_log_probs.size(); ++i) {
+
+                assert(!cluster_paths.at(i).name.empty());
+
+                auto group_name_index_it = group_name_index.find(cluster_paths.at(i).name);
+                assert(group_name_index_it != group_name_index.end());
+
+                read_path_log_probs_groups.at(group_name_index_it->second) = Utils::add_log(read_path_log_probs_groups.at(group_name_index_it->second), read_path_log_probs.at(i) + log(cluster_paths.at(i).source_count));
+            }
+
+            read_path_log_probs = read_path_log_probs_groups;
         }
 
         double read_path_log_probs_sum = numeric_limits<double>::lowest();

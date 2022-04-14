@@ -223,7 +223,7 @@ void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_b
     }
 }
 
-spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids) {
+spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string & filename, const bool parse_haplotype_ids, const bool use_transcript_names) {
 
     spp::sparse_hash_map<string, PathInfo> haplotype_transcript_info;
 
@@ -291,8 +291,13 @@ spp::sparse_hash_map<string, PathInfo> parseHaplotypeTranscriptInfo(const string
             auto haplotype_transcript_info_it = haplotype_transcript_info.emplace(element, PathInfo(element));
             assert(haplotype_transcript_info_it.second);
 
-            getline(info_sstream, element, '\t');        
+            getline(info_sstream, element, '\t');     
             getline(info_sstream, element, '\t');
+
+            if (use_transcript_names) {
+
+                haplotype_transcript_info_it.first->second.name = element;
+            }
 
             auto transcript_id_index_it = transcript_id_index.emplace(element, transcript_id_index.size());
             haplotype_transcript_info_it.first->second.group_id = transcript_id_index_it.first->second;
@@ -388,7 +393,8 @@ int main(int argc, char* argv[]) {
 
     options.add_options("Haplotyping")
       ("y,ploidy", "max sample ploidy", cxxopts::value<uint32_t>()->default_value("2"))
-      ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference)", cxxopts::value<string>())
+      ("f,path-info", "path haplotype/transcript info filename (required for haplotype-transcript inference and when collapsing haplotypes)", cxxopts::value<string>())
+      ("collapse-haps", "", cxxopts::value<bool>())
       ("min-hap-prob", "minimum haplotyping probability in haplotype-transcript inference", cxxopts::value<double>()->default_value("0.001"))
       ("ind-hap-inference", "infer haplotypes independently for each transcript in haplotype-transcript inference", cxxopts::value<bool>())
       ("use-hap-gibbs", "use Gibbs sampling for haplotype inference", cxxopts::value<bool>())
@@ -564,6 +570,14 @@ int main(int argc, char* argv[]) {
 
     const uint32_t ploidy = option_results["ploidy"].as<uint32_t>();
 
+    const bool collapse_haps = option_results.count("collapse-haps");
+
+    if (inference_model != "transcripts" && collapse_haps) {
+
+        cerr << "ERROR: Haplotypes can only be collapsed when using the transcripts inference mode." << endl;
+        return 1;
+    }
+
     if (ploidy == 0) {
 
         cerr << "ERROR: Ploidy (--ploidy) can not be 0." << endl;
@@ -573,6 +587,12 @@ int main(int argc, char* argv[]) {
     if (inference_model == "haplotype-transcripts" && !option_results.count("path-info")) {
 
         cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when running in haplotype-transcripts inference mode (--write-info output from vg rna)." << endl;
+        return 1;
+    }
+
+    if (collapse_haps && !option_results.count("path-info")) {
+
+        cerr << "ERROR: Path haplotype/transcript information file (--path-info) needed when collapsing haplotypes (--write-info output from vg rna)." << endl;
         return 1;
     }
 
@@ -746,6 +766,11 @@ int main(int argc, char* argv[]) {
 
     spp::sparse_hash_map<string, PathInfo> haplotype_transcript_info;
 
+    if (option_results.count("path-info")) {
+
+        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), inference_model == "haplotype-transcripts", collapse_haps);
+    }
+
     PathEstimator * path_estimator;
 
     if (inference_model == "haplotypes") {
@@ -763,7 +788,7 @@ int main(int argc, char* argv[]) {
     } else if (inference_model == "haplotype-transcripts") {
 
         path_estimator = new NestedPathAbundanceEstimator(ploidy, min_hap_prob, !ind_hap_inference, use_hap_gibbs, max_em_its, max_rel_em_conv, num_gibbs_samples, gibbs_thin_its, prob_precision);
-        haplotype_transcript_info = parseHaplotypeTranscriptInfo(option_results["path-info"].as<string>(), !ind_hap_inference);
+        assert(!haplotype_transcript_info.empty());
 
     } else {
 
@@ -827,7 +852,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        bool out_debug = (clusters.size() >= 3);
+        bool out_debug = false;
+        // bool out_debug = (clusters.size() >= 3);
 
         if (out_debug) {
 
@@ -845,20 +871,22 @@ int main(int argc, char* argv[]) {
 
         path_cluster_estimates->back().second.paths.reserve(path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx).size());
         
+        spp::sparse_hash_map<string, uint32_t> group_name_index;
+
         for (auto & path_id: path_clusters.cluster_to_paths_index.at(align_paths_cluster_idx)) {
 
             assert(clustered_path_index.emplace(path_id, clustered_path_index.size()).second);
 
-            if (inference_model == "haplotype-transcripts") {
+            if (haplotype_transcript_info.empty()) {
+
+                path_cluster_estimates->back().second.paths.emplace_back(PathInfo(paths_index.pathName(path_id)));
+            
+            } else {
 
                 auto haplotype_transcript_info_it = haplotype_transcript_info.find(paths_index.pathName(path_id));
                 assert(haplotype_transcript_info_it != haplotype_transcript_info.end());
 
                 path_cluster_estimates->back().second.paths.emplace_back(move(haplotype_transcript_info_it->second));
-            
-            } else {
-
-                path_cluster_estimates->back().second.paths.emplace_back(PathInfo(paths_index.pathName(path_id)));
             }
 
             if (use_multimap) {
@@ -875,6 +903,11 @@ int main(int argc, char* argv[]) {
             } else {
 
                 path_cluster_estimates->back().second.paths.back().effective_length = paths_index.effectivePathLength(path_id, frag_length_dist); 
+            }
+
+            if (collapse_haps) {
+
+                group_name_index.emplace(path_cluster_estimates->back().second.paths.back().name, group_name_index.size());
             }
         }
 
@@ -894,8 +927,55 @@ int main(int argc, char* argv[]) {
                 }
 
                 read_path_cluster_probs.emplace_back(ReadPathProbabilities(align_paths->second, prob_precision));
-                read_path_cluster_probs.back().addPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, frag_length_dist, is_single_end, min_noise_prob);
+                read_path_cluster_probs.back().addPathProbs(align_paths->first, align_paths_ids, clustered_path_index, path_cluster_estimates->back().second.paths, frag_length_dist, is_single_end, min_noise_prob, collapse_haps, group_name_index);
             }
+        }
+
+        if (collapse_haps) {
+
+            assert(!group_name_index.empty());
+            vector<PathInfo> collapsed_paths(group_name_index.size(), PathInfo(""));
+
+            for (auto & path: path_cluster_estimates->back().second.paths) {
+
+                assert(path.source_ids.empty());
+                assert(!path.name.empty());
+
+                auto group_name_index_it = group_name_index.find(path.name);
+                assert(group_name_index_it != group_name_index.end());
+
+                auto collapsed_path = &(collapsed_paths.at(group_name_index_it->second));
+
+                if (collapsed_path->name.empty()) {
+
+                    collapsed_path->name = path.name;
+                    collapsed_path->group_id = path.group_id;
+                    collapsed_path->cluster_id = path.cluster_id;
+
+                    collapsed_path->source_count = path.source_count;
+                    collapsed_path->length = path.length * path.source_count;
+                    collapsed_path->effective_length = path.effective_length * path.source_count;                    
+                
+                } else {
+
+                    assert(collapsed_path->name == path.name);
+                    assert(collapsed_path->group_id == path.group_id);
+                    assert(collapsed_path->cluster_id == path.cluster_id);
+
+                    collapsed_path->source_count += path.source_count;
+                    collapsed_path->length += path.length * path.source_count;
+                    collapsed_path->effective_length += path.effective_length * path.source_count;    
+                }
+            } 
+
+            for (auto & path: collapsed_paths) {
+
+                path.length = round(path.length / static_cast<double>(path.source_count));
+                path.effective_length /= static_cast<double>(path.source_count);
+            }
+
+            path_cluster_estimates->back().second.paths = collapsed_paths;
+
         }
 
         sort(read_path_cluster_probs.begin(), read_path_cluster_probs.end());
