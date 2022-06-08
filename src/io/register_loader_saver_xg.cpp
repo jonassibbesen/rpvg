@@ -1,3 +1,7 @@
+/*
+All the following code have been copied and modified from https://github.com/vgteam/vg
+*/
+
 /**
  * \file register_loader_saver_xg.cpp
  * Defines IO for an XG index from stream files.
