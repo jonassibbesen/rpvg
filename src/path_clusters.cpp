@@ -6,7 +6,7 @@
 #include "utils.hpp"
 
 
-static const uint32_t paths_per_mutex = 500;
+static const uint32_t paths_per_mutex = 100;
 static const uint32_t clusters_per_mutex = 100;
 
 PathClusters::PathClusters(const uint32_t num_threads_in, const PathsIndex & paths_index, const spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> & align_paths_index) : num_threads(num_threads_in), num_paths(paths_index.numberOfPaths()) {

@@ -1,3 +1,7 @@
+/*
+All the following code have been copied and modified from https://github.com/vgteam/vg
+*/
+
 /**
  * \file register_libvg_io.hpp
  * Includes calls to register all libvg types with libvgio.

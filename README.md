@@ -41,7 +41,7 @@ This should take less than a minute to run and will create two files:
 
 #### Paths:
 
-The paths to be used for inference should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses a GBWT with transcript paths can be created using the `vg rna` subcommand in [vg](https://github.com/vgteam/vg). See [Transcriptomic analyses](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) wiki on the vg github for more information on how to use `vg rna`. 
+The pantranscriptome paths should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses a GBWT with transcript paths can be created using the `vg rna` subcommand in [vg](https://github.com/vgteam/vg). See [Transcriptomic analyses](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) wiki on the vg github for more information on how to use `vg rna`. 
 
 To decrease the computation time of rpvg it is recommended that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index (see [VG GBWT Subcommand](https://github.com/vgteam/vg/wiki/VG-GBWT-Subcommand) wiki on the vg github). The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
@@ -51,11 +51,11 @@ The method currently contains four different inference models. Each model have b
 
 * `haplotypes`: Infers joint posterior probabilities of haplotype combinations (e.g. diplotypes). For diploid ploidy it uses a branch and bound like algorithm to infer the most probable combination of haplotypes. A faster, less accurate Gibbs sampling scheme can be enabled using `--use-hap-gibbs`, which scales much better for higher ploidies. The maximum ploidy can be given using `-y`.
 
-* `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm.
+* `transcripts`: Infers abundances using a Expectation Maximization (EM) algorithm. A file containing the transcript origin of each path in the pantranscriptome (`--write-info` output from `vg rna`) is needed to get transcript abundances if the pantranscriptome contains haplotype-specific transcripts. This can be given using `-f`. The haplotype probabilities are marginalized in the inference algorithm when this file is given.
 
 * `strains`: Infers abundances using a combination of weighted minimum path cover and EM. **Note that this algorithm has not yet been properly evaluated**.
 
-* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default, equivalent haplotypes are inferred for all clustered transcripts, however independent inference of haplotypes for each transcript can be enabled using the `--ind-hap-inference` option. The inference algorithm requires a file (`-f`) containing the haplotype and transcript origin of each path (`--write-info` output from `vg rna`). 
+* `haplotype-transcripts`: Infers abundances using a combination of haplotype sampling and EM. The most probable haplotype combinations are inferred using the same algorithm as used in the `haplotypes` inference model. By default, equivalent haplotypes are inferred for all clustered transcripts, however independent inference of haplotypes for each transcript can be enabled using the `--ind-hap-inference` option. The inference algorithm requires a file (`-f`) containing the haplotype and transcript origin of each path in the pantranscriptome (`--write-info` output from `vg rna`). 
 
 #### Alignment types:
 
