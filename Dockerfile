@@ -16,11 +16,18 @@ RUN apt-get update && \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
-### Compile rpvg 
+### Get rpvg 
 
 RUN GIT_SSL_NO_VERIFY=true git clone --recursive https://github.com/jonassibbesen/rpvg.git && \
-	cd rpvg && \
-	mkdir build && \
+	cd rpvg
+
+### Set target CPU architecture
+
+RUN sed -i 's/march=native/march=nehalem/g' CMakeLists.txt deps/sdsl-lite/CMakeLists.txt
+
+### Compile rpvg 
+
+RUN mkdir build && \
 	cd build && \
 	cmake .. && \
 	make && \
