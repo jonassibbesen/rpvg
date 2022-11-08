@@ -7,6 +7,8 @@ All the following code have been copied and modified from https://github.com/vgt
  * Defines IO for an XG index from stream files.
  */
 
+#include <arpa/inet.h>
+
 #include "vg/io/registry.hpp"
 #include "register_loader_saver_xg.hpp"
 
