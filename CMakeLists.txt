@@ -34,23 +34,13 @@ ExternalProject_Add(gbwt-proj
   DEPENDS sdsl-lite-proj
 )
 
-ExternalProject_Add(htslib-proj
-  SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/htslib"
-  BUILD_IN_SOURCE TRUE
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND $(MAKE)
-  INSTALL_COMMAND $(MAKE) prefix=${PROJECT_SOURCE_DIR}/deps/htslib/ install
-)
-
 ExternalProject_Add(libvgio-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/libvgio"
   BUILD_IN_SOURCE TRUE
   UPDATE_COMMAND ""
-  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=TRUE -DCMAKE_PREFIX_PATH=${PROJECT_SOURCE_DIR}/deps/htslib .
+  CONFIGURE_COMMAND cmake -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps/libvgio .
   BUILD_COMMAND $(MAKE)
   INSTALL_COMMAND ""
-  DEPENDS htslib-proj
 )
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -83,7 +73,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/sparsepp
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/include
   ${PROJECT_SOURCE_DIR}/deps/gbwt/include
-  ${PROJECT_SOURCE_DIR}/deps/htslib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/include
@@ -100,7 +89,6 @@ include_directories(
 link_directories(
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/deps/gbwt/lib
-  ${PROJECT_SOURCE_DIR}/deps/htslib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/lib
 )
@@ -128,7 +116,6 @@ add_dependencies(xg gbwt-proj)
 add_dependencies(xg libvgio-proj)
 
 add_dependencies(${PROJECT_NAME} gbwt-proj)
-add_dependencies(${PROJECT_NAME} htslib-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
 add_dependencies(${PROJECT_NAME} xg)
 
