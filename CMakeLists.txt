@@ -14,6 +14,10 @@ project(rpvg)
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(OpenMP REQUIRED)
+find_package(Protobuf REQUIRED)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(HTSlib REQUIRED htslib)
 
 ExternalProject_Add(sdsl-lite-proj
   SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/sdsl-lite"
@@ -68,6 +72,8 @@ add_library(${PROJECT_NAME}
 )
 
 include_directories(
+  ${HTSlib_INCLUDE_DIRS}
+  ${Protobuf_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/deps/Catch2/single_include/catch2 
   ${PROJECT_SOURCE_DIR}/deps/cxxopts/include 
   ${PROJECT_SOURCE_DIR}/deps/sparsepp
@@ -87,6 +93,7 @@ include_directories(
 )
 
 link_directories(
+  ${HTSlib_LIBRARY_DIRS}
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/deps/gbwt/lib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
@@ -101,10 +108,10 @@ target_link_libraries(xg
 )
 
 target_link_libraries(${PROJECT_NAME}
+  ${HTSlib_LIBRARIES}
+  ${PROTOBUF_LIBRARIES}
   sdsl
   gbwt
-  protobuf
-  hts
   handlegraph
   vgio
   divsufsort
