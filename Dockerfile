@@ -26,16 +26,17 @@ RUN wget --no-check-certificate https://github.com/samtools/htslib/releases/down
 
 ### Get rpvg 
 
-RUN GIT_SSL_NO_VERIFY=true git clone --recursive https://github.com/jonassibbesen/rpvg.git && \
-	cd rpvg
+RUN GIT_SSL_NO_VERIFY=true git clone --recursive https://github.com/jonassibbesen/rpvg.git
 
 ### Set target CPU architecture
 
-RUN sed -i 's/march=native/march=nehalem/g' CMakeLists.txt deps/sdsl-lite/CMakeLists.txt
+RUN cd rpvg && \
+	sed -i 's/march=native/march=nehalem/g' CMakeLists.txt deps/sdsl-lite/CMakeLists.txt
 
 ### Compile rpvg 
 
-RUN mkdir build && \
+RUN cd rpvg && \
+	mkdir build && \
 	cd build && \
 	cmake .. && \
 	make && \
