@@ -13,11 +13,11 @@ For each paired-end RNA-seq read mapped to a [vg](https://github.com/vgteam/vg) 
 3. `cmake ..`
 4. `make -j <threads>` 
 
-Compiling *rpvg* should take 5-10 minutes using 4 threads (`-j`). *rpvg* has been successfully built and tested on Linux (CentOS Linux 7 with GCC 8.1.0 and Ubuntu 18.04 with GCC 7.5.0) and Mac (macOS 10.14.6 with Clang 10.0.1). 
+Compiling *rpvg* should take 5-10 minutes using 4 threads (`-j`). *rpvg* has been successfully built and tested on Linux (CentOS Linux 7 with GCC 8.1.0 and Ubuntu 18.04 with GCC 7.5.0) and Mac (macOS 10.14.6 with Clang 10.0.1 and macOS 13.2.1 with Clang 15.0.7). 
 
 ### Docker container
 
-A docker container of the latest commit to master is available [here](https://quay.io/repository/jonassibbesen/rpvg). 
+A Docker container of the latest commit to master is available [here](https://quay.io/repository/jonassibbesen/rpvg). On modern CPUs using the Docker container might be slower than compiling *rpvg* since it is not taking advantage of newer instructions in order for the container to be more compatible. 
 
 ### Running rpvg
 
@@ -29,7 +29,7 @@ rpvg -g graph.xg -p paths.gbwt -a alignments.gamp -o rpvg_results -i <inference-
 
 The prefix used for all output files are given using `-o`. The number of threads can be given using `-t`. 
 
-A example dataset containing a small pantranscriptome and 100,000 read pairs is available under [example](https://github.com/jonassibbesen/rpvg/tree/master/example). To infer the expression of the 36,120 haplotype-specific transcripts in the pantranscriptome using 4 threads use the following command within the *example* folder:
+An example dataset containing a small pantranscriptome and 100,000 read pairs is available under [example](https://github.com/jonassibbesen/rpvg/tree/master/example). To infer the expression of the 36,120 haplotype-specific transcripts in the pantranscriptome using 4 threads use the following command within the *example* folder:
 
 ```
 ../bin/rpvg -t 4 -g graph.xg -p pantranscriptome.gbwt -f pantranscriptome.txt.gz -a mpmap_align.gamp -o rpvg --inference-model haplotype-transcripts
@@ -42,9 +42,9 @@ This should take less than a minute to run and will create two files:
 
 #### Paths:
 
-The pantranscriptome paths should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses a GBWT with transcript paths can be created using the `vg rna` subcommand in [vg](https://github.com/vgteam/vg). See [Transcriptomic analyses](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) wiki on the vg github for more information on how to use `vg rna`. 
+The pantranscriptome paths should be compressed and indexed using the [GBWT](https://github.com/jltsiren/gbwt). For transcriptome analyses a GBWT with transcript paths can be created using the `vg rna` subcommand in [vg](https://github.com/vgteam/vg). See the [Transcriptomic analyses](https://github.com/vgteam/vg/wiki/Transcriptomic-analyses) wiki on the vg github for more information on how to use `vg rna`. 
 
-To decrease the computation time of *rpvg* it is recommended that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index (see [VG GBWT Subcommand](https://github.com/vgteam/vg/wiki/VG-GBWT-Subcommand) wiki on the vg github). The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
+To decrease the computation time of *rpvg* it is recommended that a [r-index](https://github.com/jltsiren/gbwt/wiki/Fast-Locate) of the paths is supplied together with the GBWT index. The `vg gbwt` subcommand in vg can be used to construct the r-index from a GBWT index (see the [VG GBWT Subcommand](https://github.com/vgteam/vg/wiki/VG-GBWT-Subcommand) wiki on the vg github). The name of the r-index should be the same as the GBWT index with an added *.ri* extension (e.g. *paths.gbwt.ri*).
 
 #### Inference models:
 
@@ -77,4 +77,8 @@ The fragment length distribution parameters are learned by *rpvg*. However, in o
 
 ### Citing rpvg
 
-Sibbesen, J. A., Eizenga, J. M. *et al.* Haplotype-aware pantranscriptome analyses using spliced pangenome graphs, [bioRxiv](https://doi.org/10.1101/2021.03.26.437240) (2021).
+Sibbesen, J. A., Eizenga, J. M. *et al.* Haplotype-aware pantranscriptome analyses using spliced pangenome graphs. [Nature Methods](https://doi.org/10.1038/s41592-022-01731-9) **20**, 239–247 (2023).
+
+### Acknowledgement
+
+We thank the developers of the [tools and libraries](https://github.com/jonassibbesen/rpvg/tree/master/deps) used by rpvg.
