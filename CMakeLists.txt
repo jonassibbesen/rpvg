@@ -13,6 +13,16 @@ project(rpvg)
 
 set(CMAKE_CXX_STANDARD 14)
 
+set(BUILD_STATIC 0 CACHE BOOL "Build static version")
+
+if(${BUILD_STATIC} EQUAL 1) 
+
+  set(Protobuf_USE_STATIC_LIBS ON)
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+
+endif(${BUILD_STATIC} EQUAL 1)
+
 find_package(OpenMP REQUIRED)
 find_package(Protobuf REQUIRED)
 
@@ -50,27 +60,6 @@ ExternalProject_Add(libvgio-proj
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-add_library(xg 
-  deps/xg/src/xg.cpp
-)
-
-add_library(${PROJECT_NAME} 
-  src/fragment_length_dist.cpp 
-  src/paths_index.cpp
-  src/alignment_path.cpp 
-  src/alignment_path_finder.cpp 
-  src/path_clusters.cpp 
-  src/read_path_probabilities.cpp 
-  src/path_estimator.cpp 
-  src/path_posterior_estimator.cpp 
-  src/path_abundance_estimator.cpp
-  src/threaded_output_writer.cpp
-  src/io/register_libvg_io.cpp 
-  src/io/register_loader_saver_gbwt.cpp
-  src/io/register_loader_saver_r_index.cpp 
-  src/io/register_loader_saver_xg.cpp
-)
-
 include_directories(
   ${HTSlib_INCLUDE_DIRS}
   ${Protobuf_INCLUDE_DIRS}
@@ -93,11 +82,14 @@ include_directories(
 )
 
 link_directories(
-  ${HTSlib_LIBRARY_DIRS}
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/deps/gbwt/lib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/lib
+)
+
+add_library(xg 
+  deps/xg/src/xg.cpp
 )
 
 target_link_libraries(xg
@@ -107,8 +99,62 @@ target_link_libraries(xg
   divsufsort64
 )
 
+add_dependencies(xg gbwt-proj)
+add_dependencies(xg libvgio-proj)
+
+set(SOURCE_FILES 
+  src/fragment_length_dist.cpp 
+  src/paths_index.cpp
+  src/alignment_path.cpp 
+  src/alignment_path_finder.cpp 
+  src/path_clusters.cpp 
+  src/read_path_probabilities.cpp 
+  src/path_estimator.cpp 
+  src/path_posterior_estimator.cpp 
+  src/path_abundance_estimator.cpp
+  src/threaded_output_writer.cpp
+  src/io/register_libvg_io.cpp 
+  src/io/register_loader_saver_gbwt.cpp
+  src/io/register_loader_saver_r_index.cpp 
+  src/io/register_loader_saver_xg.cpp
+)
+
+if(${BUILD_STATIC} EQUAL 0) 
+
+  link_directories(
+    ${HTSlib_LIBRARY_DIRS}
+  )
+
+  add_library(${PROJECT_NAME} 
+    ${SOURCE_FILES}
+  )
+
+  target_link_libraries(${PROJECT_NAME}
+    ${HTSlib_LIBRARIES}
+  )
+
+else(${BUILD_STATIC} EQUAL 0)
+
+  message(STATUS "Building static version")
+
+  link_directories(
+    ${HTSlib_STATIC_LIBRARY_DIRS}
+  )
+
+  add_executable(${PROJECT_NAME} 
+    src/main.cpp
+    ${SOURCE_FILES}
+  )
+
+  target_link_libraries(${PROJECT_NAME}
+    ${HTSlib_STATIC_LIBRARIES}
+  )
+
+  set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++")
+
+endif(${BUILD_STATIC} EQUAL 0)
+
 target_link_libraries(${PROJECT_NAME}
-  ${HTSlib_LIBRARIES}
   ${PROTOBUF_LIBRARIES}
   sdsl
   gbwt
@@ -118,9 +164,6 @@ target_link_libraries(${PROJECT_NAME}
   divsufsort64
   xg
 )
-
-add_dependencies(xg gbwt-proj)
-add_dependencies(xg libvgio-proj)
 
 add_dependencies(${PROJECT_NAME} gbwt-proj)
 add_dependencies(${PROJECT_NAME} libvgio-proj)
@@ -140,34 +183,42 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 endif()
 
-add_executable(${PROJECT_NAME}-bin src/main.cpp) 
-target_link_libraries(${PROJECT_NAME}-bin ${PROJECT_NAME})
+if(${BUILD_STATIC} EQUAL 0) 
 
-set_target_properties(${PROJECT_NAME}-bin PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
- 
-add_executable(${PROJECT_NAME}-tests
-  src/tests/main_test.cpp 
-  src/tests/fragment_length_dist_test.cpp
-  src/tests/paths_index_test.cpp
-  src/tests/alignment_path_test.cpp
-  src/tests/alignment_path_finder_test.cpp
-  src/tests/read_path_probabilities_test.cpp
-  src/tests/path_clusters_test.cpp
-  src/tests/path_abundance_estimator_test.cpp
-)
+  add_executable(${PROJECT_NAME}-bin 
+    src/main.cpp
+  )
 
-include_directories(
-  ${PROJECT_SOURCE_DIR}/deps/catch2/single_include
-)
- 
-target_link_libraries(${PROJECT_NAME}-tests
-  ${PROJECT_NAME}
-)
+  target_link_libraries(${PROJECT_NAME}-bin 
+    ${PROJECT_NAME}
+  )
 
-enable_testing()
- 
-add_test(
-  NAME ${PROJECT_NAME}-tests
-  COMMAND ${PROJECT_NAME}-tests
-)
+  set_target_properties(${PROJECT_NAME}-bin PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+   
+  add_executable(${PROJECT_NAME}-tests
+    src/tests/main_test.cpp 
+    src/tests/fragment_length_dist_test.cpp
+    src/tests/paths_index_test.cpp
+    src/tests/alignment_path_test.cpp
+    src/tests/alignment_path_finder_test.cpp
+    src/tests/read_path_probabilities_test.cpp
+    src/tests/path_clusters_test.cpp
+    src/tests/path_abundance_estimator_test.cpp
+  )
 
+  include_directories(
+    ${PROJECT_SOURCE_DIR}/deps/catch2/single_include
+  )
+   
+  target_link_libraries(${PROJECT_NAME}-tests
+    ${PROJECT_NAME}
+  )
+
+  enable_testing()
+   
+  add_test(
+    NAME ${PROJECT_NAME}-tests
+    COMMAND ${PROJECT_NAME}-tests
+  )
+
+endif(${BUILD_STATIC} EQUAL 0)
