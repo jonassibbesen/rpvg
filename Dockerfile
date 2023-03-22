@@ -1,6 +1,6 @@
 FROM mirror.gcr.io/library/ubuntu:20.04
 
-MAINTAINER jsibbese@ucsc.edu
+MAINTAINER https://github.com/jonassibbesen
 
 WORKDIR /home
 
