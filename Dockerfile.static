@@ -26,7 +26,9 @@ RUN wget --no-check-certificate https://github.com/samtools/htslib/releases/down
 
 ### Get rpvg 
 
-RUN GIT_SSL_NO_VERIFY=true git clone --recursive https://github.com/jonassibbesen/rpvg.git
+RUN GIT_SSL_NO_VERIFY=true git clone --recursive https://github.com/jonassibbesen/rpvg.git && \
+	cd rpvg && \
+	git checkout static-build
 
 ### Set target CPU architecture
 
