@@ -13,13 +13,13 @@ RUN apt-get update && \
 ### Install htslib
 
 RUN apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev && \
+	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends perl zlib1g-dev libbz2-dev liblzma-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 RUN wget --no-check-certificate https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2 && \
 	tar -xvjf htslib-1.16.tar.bz2 && \
 	cd htslib-1.16 && \
-	./configure && \
+	./configure --disable-s3 --disable-gcs --disable-libcurl --disable-plugins && \
 	make install && \
  	cd .. && \
  	rm -r *
@@ -38,8 +38,8 @@ RUN cd rpvg && \
 RUN cd rpvg && \
 	mkdir build && \
 	cd build && \
-	cmake .. && \
+	cmake -DBUILD_STATIC=1 .. && \
 	make && \
 	cd ../../ && \
 	mv rpvg/bin/rpvg /usr/bin/ && \
-	unlink rpvg/deps/libvgio/vg
+	rm -r *
