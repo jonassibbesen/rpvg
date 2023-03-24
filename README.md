@@ -4,7 +4,13 @@ Method for inferring the expression of haplotype-specific transcript paths in a 
 
 For each paired-end RNA-seq read mapped to a [vg](https://github.com/vgteam/vg) pangenome graph the probability of it originating from each transcript path is calculated from the mapping quality, mapping score and estimated fragment length distribution. These read-path probabilities are used to calculate posterior probabilities of haplotype combinations and infer transcript abundances. 
 
-### Compilation
+### Installation
+
+#### Linux binary
+
+A static binary for Linux is available [here](https://github.com/jonassibbesen/rpvg/releases/latest) for the latest release. 
+
+#### Compilation
 
 *rpvg* requires that [CMake](https://cmake.org) (3.10 or higher), [protobuf](https://github.com/protocolbuffers/protobuf) (version 3), [HTSlib](https://github.com/samtools/htslib), [Jansson](https://github.com/akheron/jansson) and OpenMP are installed before compilation. Most of these can easily be installed using *agt-get* on Linux (see Dockerfile) or [Homebrew](https://brew.sh) on Mac. To compile *rpvg* run the following:
 
@@ -15,7 +21,7 @@ For each paired-end RNA-seq read mapped to a [vg](https://github.com/vgteam/vg) 
 
 Compiling *rpvg* should take 5-10 minutes using 4 threads (`-j`). *rpvg* has been successfully built and tested on Linux (CentOS Linux 7 with GCC 8.1.0 and Ubuntu 18.04 with GCC 7.5.0) and Mac (macOS 10.14.6 with Clang 10.0.1 and macOS 13.2.1 with Clang 15.0.7). 
 
-### Docker container
+#### Docker container
 
 A Docker container of the latest commit to master is available [here](https://quay.io/repository/jonassibbesen/rpvg). On modern CPUs using the Docker container might be slower than compiling *rpvg* since it is not taking advantage of newer instructions in order for the container to be more compatible. 
 
