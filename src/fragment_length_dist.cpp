@@ -172,6 +172,12 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
             cerr << "\talpha " << alpha << endl;
     #endif
             
+            // in practice, the MOM estimate of alpha often starts way too large, this is a
+            // heuristic to speed up convergence
+            if (abs(alpha) > 1000.0 * sigma) {
+                alpha = (alpha > 0.0 ? 1.0 : -1.0) * 1000.0 * sigma;
+            }
+            
             // alternatingly optimize alpha and mu until convergence (sigma can
             // be computed analytically)
             auto log_likelihood = [&](double mu, double sigma, double alpha) {
@@ -196,8 +202,10 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
             double prev_alpha = alpha + 2.0 * tol;
             int max_iters = 100;
             int iter_num = 0;
+            const double factor = 1.3; // less than 1 + phi so that we guarantee non infinity at the boundaries
             while (iter_num < max_iters &&
                    (abs(prev_mu - mu) >= tol || abs(prev_alpha - alpha) >= tol)) {
+                
                 
                 ++iter_num;
                 prev_mu = mu;
@@ -205,11 +213,21 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
                 double ll = alpha_log_likelihood(alpha);
                 // find an interval that contains a local maximum
                 double left_radius = 1.0, right_radius = 1.0;
-                while (alpha_log_likelihood(alpha - left_radius) >= ll) {
-                    left_radius *= 2.0;
+                double rad_ll = alpha_log_likelihood(alpha - left_radius);
+                while (rad_ll >= ll && !isinf(rad_ll)) {
+                    if (isinf(left_radius * factor)) {
+                        break;
+                    }
+                    left_radius *= factor;
+                    rad_ll = alpha_log_likelihood(alpha - left_radius);
                 }
-                while (alpha_log_likelihood(alpha + right_radius) >= ll) {
-                    right_radius *= 2.0;
+                rad_ll = alpha_log_likelihood(alpha + right_radius);
+                while (rad_ll >= ll && !isinf(rad_ll)) {
+                    if (isinf(right_radius * factor)) {
+                        break;
+                    }
+                    right_radius *= factor;
+                    rad_ll = alpha_log_likelihood(alpha + left_radius);
                 }
                 // maximize likelihood for alpha
                 alpha = Utils::golden_section_search<double>(alpha_log_likelihood,
@@ -219,11 +237,21 @@ FragmentLengthDist::FragmentLengthDist(const vector<uint32_t> & frag_length_coun
                 ll = mu_log_likelihood(mu);
                 left_radius = 1.0;
                 right_radius = 1.0;
-                while (mu_log_likelihood(alpha - left_radius) >= ll) {
-                    left_radius *= 2.0;
+                rad_ll = mu_log_likelihood(mu - left_radius);
+                while (rad_ll >= ll && !isinf(rad_ll)) {
+                    if (isinf(left_radius * factor)) {
+                        break;
+                    }
+                    left_radius *= factor;
+                    rad_ll = mu_log_likelihood(mu - left_radius);
                 }
-                while (mu_log_likelihood(alpha + right_radius) >= ll) {
-                    right_radius *= 2.0;
+                rad_ll = mu_log_likelihood(mu + right_radius);
+                while (rad_ll >= ll && !isinf(rad_ll)) {
+                    if (isinf(right_radius * factor)) {
+                        break;
+                    }
+                    right_radius *= factor;
+                    rad_ll = mu_log_likelihood(mu + right_radius);
                 }
                 mu = Utils::golden_section_search<double>(mu_log_likelihood,
                                                           mu - left_radius, mu + right_radius, tol / 4.0);
