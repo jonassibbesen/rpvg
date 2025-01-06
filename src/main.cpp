@@ -572,6 +572,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    if (option_results.count("path-info") && !doesFileExist(option_results["path-info"].as<string>())) {
+
+        cerr << "ERROR: Path haplotype/transcript information file (--path-info " << option_results["path-info"].as<string>() << ") does not exist." << endl;
+        return 1;
+    }
+
     const bool collapse_haps = (inference_model == "transcripts" && option_results.count("path-info"));
     
     assert(pre_frag_length_dist.isValid());
