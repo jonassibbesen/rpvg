@@ -70,7 +70,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/deps/gbwt/include
   ${PROJECT_SOURCE_DIR}/deps/libvgio
   ${PROJECT_SOURCE_DIR}/deps/libvgio/include
-  ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/include
+  ${PROJECT_SOURCE_DIR}/deps/libvgio/deps/libhandlegraph/src/include
   ${PROJECT_SOURCE_DIR}/deps/eigen
   ${PROJECT_SOURCE_DIR}/deps/xg/src
   ${PROJECT_SOURCE_DIR}/deps/xg/deps/mmmulti/src
@@ -85,7 +85,7 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/deps/sdsl-lite/lib
   ${PROJECT_SOURCE_DIR}/deps/gbwt/lib
   ${PROJECT_SOURCE_DIR}/deps/libvgio
-  ${PROJECT_SOURCE_DIR}/deps/libvgio/handlegraph-prefix/lib
+  ${PROJECT_SOURCE_DIR}/deps/libvgio/deps/libhandlegraph
 )
 
 add_library(xg 
