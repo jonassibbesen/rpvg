@@ -16,7 +16,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(BUILD_STATIC 0 CACHE BOOL "Build static version")
 
 if(${BUILD_STATIC} EQUAL 1)
-
+  if(APPLE)
+    message(FATAL_ERROR "Fully-static builds are not supported on MacOS")
+  endif(APPLE)
   set(Protobuf_USE_STATIC_LIBS ON)
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
@@ -30,7 +32,6 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang\$")
     endif("${OPENMP_ROOT}" STREQUAL "")
 endif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang\$")
 
-#find_package(Protobuf REQUIRED)
 find_package(OpenMP REQUIRED)
 
 find_package(PkgConfig REQUIRED)
@@ -43,43 +44,9 @@ target_link_libraries(HTSlib INTERFACE ${HTSlib_LIBRARIES})
 target_link_directories(HTSlib INTERFACE ${HTSlib_LIBRARY_DIRS})
 target_include_directories(HTSlib INTERFACE ${HTSlib_INCLUDE_DIRS})
 
-# On Mac, static htslib from Homebrew links libdeflate but doesn't include its
-# library directory in the pkg-config info like it should. So we look for
-# libdeflate and, if we find it, tack its static search directories onto
-# htslib's.
-pkg_check_modules(libdeflate libdeflate)
-# On Mac, we can't link static libraries with -l if dynamic versions exist.
-# FindPkgConfig claims we would get these in HTSlib_STATIC_LINK_LIBRARIES, but
-# this is on fact empty. So fill it in manually.
-# This is Mistral's basic approach of writing an ugly loop.
-set(HTSlib_STATIC_LINK_LIBRARIES)
-foreach(LIB_NAME ${HTSlib_STATIC_LIBRARIES})
-  # Find the static library file
-  find_library(STATIC_LIB
-    NAMES ${LIB_NAME}
-    PATHS ${HTSlib_STATIC_LIBRARY_DIRS} ${libdeflate_STATIC_LIBRARY_DIRS}
-    NO_DEFAULT_PATH
-    NO_CACHE
-  )
-  if(STATIC_LIB)
-    message(WARNING "Static library for ${LIB_NAME} is ${STATIC_LIB}")
-    list(APPEND HTSlib_STATIC_LINK_LIBRARIES ${STATIC_LIB})
-  else(STATIC_LIB)
-    message(WARNING "Static library for ${LIB_NAME} not found")
-  endif(STATIC_LIB)
-  # Clear the variable so we find the next library.
-  unset(STATIC_LIB)
-endforeach(LIB_NAME ${HTSlib_STATIC_LIBRARIES})
-
-message(WARNING "${HTSlib_STATIC_LINK_LIBRARIES}")
-
-
-
-
-
 add_library(HTSlib_static INTERFACE IMPORTED)
-target_link_libraries(HTSlib_static INTERFACE ${HTSlib_STATIC_LINK_LIBRARIES} ${HTSlib_STATIC_LIBRARIES} "curl")
-target_link_directories(HTSlib_static INTERFACE ${HTSlib_STATIC_LIBRARY_DIRS} ${libdeflate_STATIC_LIBRARY_DIRS})
+target_link_libraries(HTSlib_static INTERFACE ${HTSlib_STATIC_LIBRARIES})
+target_link_directories(HTSlib_static INTERFACE ${HTSlib_STATIC_LIBRARY_DIRS})
 target_include_directories(HTSlib_static INTERFACE ${HTSlib_STATIC_INCLUDE_DIRS})
 
 
@@ -190,10 +157,7 @@ else(${BUILD_STATIC} EQUAL 0)
     libhandlegraph::handlegraph_static
   )
 
-  if(NOT APPLE)
-    # Fully static linking won't work on MacOS because there's no static libc.
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
-  endif(NOT APPLE)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
 
 endif(${BUILD_STATIC} EQUAL 0)
 
@@ -215,10 +179,10 @@ add_dependencies(${PROJECT_NAME} xg)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -march=native -O3 -DGIT_COMMIT='\"${GIT_COMMIT}\"'")
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   target_link_libraries(${PROJECT_NAME} atomic)
   target_link_libraries(xg atomic)
-endif()
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 if(${BUILD_STATIC} EQUAL 0)
 
