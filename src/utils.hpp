@@ -484,7 +484,7 @@ namespace Utils {
         auto status = google::protobuf::util::MessageToJsonString(msg, &buffer);
         
         if (!status.ok()) {
-            throw runtime_error("Could not serialize " + msg.GetTypeName() + ": " + status.ToString());
+            throw runtime_error("Could not serialize " + std::string(msg.GetTypeName()) + ": " + status.ToString());
         }
         
         return buffer;
@@ -496,7 +496,7 @@ namespace Utils {
         if (!status.ok()) {
             // This generally will happen if someone feeds in the wrong type of JSON.
             // TODO: It would be nice to be able to find the neme of the offending non-existent field.
-            throw runtime_error("Could not deserialize " + msg.GetTypeName() + ": " + status.ToString());
+            throw runtime_error("Could not deserialize " + std::string(msg.GetTypeName()) + ": " + status.ToString());
         }
     }
 
