@@ -267,6 +267,8 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
     uint32_t last_internal_start_idx = 0;
 
+    std::cerr << "Extending search of " << align_search_paths->front().path.size() << " nodes and " << align_search_paths->front().gbwt_search.first.size() << " results with " << path.mapping_size() << " more mappings" << std::endl;
+
     auto mapping_it = path.mapping().cbegin();
     assert(mapping_it != path.mapping().cend());
 
@@ -274,6 +276,8 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
     --end_mapping_it;
 
     while (mapping_it != path.mapping().cend()) {
+
+        std::cerr << "Consider mapping to " << mapping_it->position().node_id() << (mapping_it->position().is_reverse() ? "-" : "+") << std::endl;
 
         auto cur_node = Utils::mapping_to_gbwt(*mapping_it);
         auto mapping_read_length = Utils::mapping_to_length(*mapping_it);
@@ -293,9 +297,12 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
             }
         }
 
+        std::cerr << "Selected main search of " << main_align_search_path.path.size() << " nodes and " << main_align_search_path.gbwt_search.first.size() << " results" << std::endl;
+
         for (auto & align_search_path: *align_search_paths) {
 
             if (align_search_path.read_align_stats.back().internal_end.is_internal) {
+                std::cerr << "Consider internal search path" << std::endl;
 
                 assert(max_partial_offset > 0);
 
@@ -311,15 +318,18 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
                 internal_end_read_align_stats->internal_end.offset += internal_end_new_offset;
 
                 if (internal_end_read_align_stats->internal_end.offset <= max_partial_offset) {
+                    std::cerr << "Keep internal search path" << std::endl;
                     
                     internal_end_read_align_stats->internal_end.penalty += alignmentScore(quality, internal_end_read_align_stats->length, internal_end_new_offset);
                 
                 } else {
+                    std::cerr << "Clear out internal search path" << std::endl;
 
                     align_search_path.clear();
                 }
             
             } else {
+                std::cerr << "Consider extending search path" << std::endl;
 
                 extendAlignmentSearchPath(&align_search_path, *mapping_it);
             }
@@ -345,6 +355,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
                     main_align_search_path.read_align_stats.back().internal_end_next_node = cur_node;
                     main_align_search_path.read_align_stats.back().internal_end.penalty = alignmentScore(quality, main_align_search_path.read_align_stats.back().length, main_align_search_path.read_align_stats.back().internal_end.offset);
 
+                    std::cerr << "Start new partial search path from nonempty main search result set" << std::endl;
                     align_search_paths->emplace_back(main_align_search_path);
                 }
             }
@@ -362,6 +373,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
                 if (internal_start_read_align_stats.internal_start.offset <= max_partial_offset) {
 
+                    std::cerr << "Consider starting new partial search path from scratch" << std::endl;
                     AlignmentSearchPath new_start_align_search_path;
                     extendAlignmentSearchPath(&new_start_align_search_path, *mapping_it);
 
@@ -370,6 +382,8 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
                         assert(new_start_align_search_path.gbwt_search.first.size() >= align_search_paths->at(last_internal_start_idx).gbwt_search.first.size());
 
                         if (new_start_align_search_path.gbwt_search.first.size() > align_search_paths->at(last_internal_start_idx).gbwt_search.first.size()) {
+
+                            std::cerr << "Found more results (" << new_start_align_search_path.gbwt_search.first.size() << "), so starting new partial search path" << std::endl;
 
                             align_search_paths->emplace_back(new_start_align_search_path);
                             last_internal_start_idx = align_search_paths->size() - 1;
@@ -394,14 +408,19 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(AlignmentSearchPath * align_search_path, const vg::Mapping & mapping) const {
 
+    std::cerr << "Extend alignment search path of " << align_search_path->path.size() << " nodes and " << align_search_path->gbwt_search.first.size() << " results with visit to " << mapping.position().node_id() << (mapping.position().is_reverse() ? "-" : "+") << std::endl;
+
     auto cur_node = Utils::mapping_to_gbwt(mapping);
 
     if (align_search_path->path.empty()) {
+        std::cerr << "Nothing searched yet, search this visit" << std::endl;
 
         assert(align_search_path->gbwt_search.first.node == gbwt::ENDMARKER);
 
         align_search_path->path.emplace_back(cur_node);
         paths_index.find(&(align_search_path->gbwt_search), cur_node);
+
+        std::cerr << "Searching visit found " << align_search_path->gbwt_search.first.size() << " results" << std::endl;
   
         align_search_path->start_offset = mapping.position().offset();
 
@@ -416,6 +435,8 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(AlignmentSear
 
         if (is_cycle_visit && mapping.position().offset() != 0) {
 
+            std::cerr << "Attempting to enter the same node again not at its start! Maybe mappings aren't simplified? Clearing search path!" << std::endl;
+
             align_search_path->clear();
 
         } else if (align_search_path->path.back() != cur_node || is_cycle_visit) {
@@ -424,7 +445,15 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(AlignmentSear
 
             if (!align_search_path->gbwt_search.first.empty()) {
 
+                std::cerr << "Have " << align_search_path->gbwt_search.first.size() << " results before extension" << std::endl;
+
                 paths_index.extend(&(align_search_path->gbwt_search), cur_node);
+
+                std::cerr << "Have " << align_search_path->gbwt_search.first.size() << " results after extension" << std::endl;
+
+            } else {
+                std::cerr << "Not extending already-empty search state" << std::endl;
+
             }
         } 
     }
