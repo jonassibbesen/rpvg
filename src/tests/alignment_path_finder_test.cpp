@@ -2728,6 +2728,161 @@ TEST_CASE("Partial alignment path(s) can be found on the end from an unpaired si
     gbwt::vector_type gbwt_thread_2(8);
     gbwt::vector_type gbwt_thread_3(8);
     
+    // This agrees with the alignment from the very start to 4 bp in on the end
+    gbwt_thread_1[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_1[1] = gbwt::Node::encode(3, false);
+    gbwt_thread_1[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_1[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_1[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_1[5] = gbwt::Node::encode(8, false);
+    gbwt_thread_1[6] = gbwt::Node::encode(9, false);
+    gbwt_thread_1[7] = gbwt::Node::encode(11, false);
+    
+    gbwt_builder.insert(gbwt_thread_1, false);
+
+    gbwt_builder.finish();
+
+    std::stringstream gbwt_stream;
+    gbwt_builder.index.serialize(gbwt_stream);
+
+    gbwt::GBWT gbwt_index;
+    gbwt_index.load(gbwt_stream);
+
+    const string alignment_1_str = R"(
+        {
+            "path": {
+                "mapping": [
+                    {
+                        "position": {"node_id": 1, "offset": 1},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 3},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 5},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 6},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 7},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 8},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 10},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 11},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    }
+                ]
+            },
+            "sequence": "AAAAAAAAAAAAAAAAAA",
+            "mapping_quality": 10
+        }
+    )";
+
+    vg::Alignment alignment_1;
+    Utils::json2pb(alignment_1, alignment_1_str);
+
+    gbwt::FastLocate r_index(gbwt_index);
+    PathsIndex paths_index(gbwt_index, r_index, graph);
+    
+    REQUIRE(!paths_index.bidirectional());
+    REQUIRE(paths_index.numberOfPaths() == 1);
+
+    SECTION("Unapired single-path read alignment with a 0 bp partial match limit finds no options") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 0, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        // If there are no real options, we don't create a noise option.
+        REQUIRE(alignment_paths.size() == 0);
+    }
+
+    SECTION("Unapired single-path read alignment with 3 bp partial match limit finds no more paths") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 3, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 0);
+    }
+
+    SECTION("Unapired single-path read alignment with 8 bp partial match limit finds the path that differs by 4 bp at the end, and a noise option") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 8, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 2);
+    }
+
+}
+
+TEST_CASE("Partial alignment path(s) can be found on the start and end from an unpaired single-path alignment when there is not a longer match") {
+
+    const string graph_str = R"(
+        {
+            "node": [
+                {"id": 1, "sequence": "AA"},
+                {"id": 2, "sequence": "A"},
+                {"id": 3, "sequence": "A"},
+                {"id": 4, "sequence": "A"},
+                {"id": 5, "sequence": "AAA"},
+                {"id": 6, "sequence": "AAA"},
+                {"id": 7, "sequence": "AAA"},
+                {"id": 8, "sequence": "AA"},
+                {"id": 9, "sequence": "AAA"},
+                {"id": 10, "sequence": "AAA"},
+                {"id": 11, "sequence": "A"}
+            ],
+            "edge": [
+                {"from": 1, "to": 2},
+                {"from": 1, "to": 3},
+                {"from": 1, "to": 4},
+                {"from": 2, "to": 5},
+                {"from": 3, "to": 5},
+                {"from": 4, "to": 5},
+                {"from": 5, "to": 6},
+                {"from": 6, "to": 7},
+                {"from": 7, "to": 8},
+                {"from": 7, "to": 9},
+                {"from": 8, "to": 9},
+                {"from": 8, "to": 10},
+                {"from": 9, "to": 11},
+                {"from": 10, "to": 11}
+            ]
+        }
+    )";
+
+    vg::Graph graph;
+    Utils::json2pb(graph, graph_str);
+
+    gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+    gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(10, true)));
+
+    gbwt::vector_type gbwt_thread_1(8);
+    gbwt::vector_type gbwt_thread_2(8);
+    gbwt::vector_type gbwt_thread_3(8);
+    
     // This agrees with the alignment from 1 bp in on the start and 4 bp in on the end
     gbwt_thread_1[0] = gbwt::Node::encode(1, false);
     gbwt_thread_1[1] = gbwt::Node::encode(2, false);
