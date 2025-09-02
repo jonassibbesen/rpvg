@@ -2426,3 +2426,413 @@ TEST_CASE("Partial alignment path(s) can be found from a paired-end multipath al
         REQUIRE(alignment_paths_int0.empty());        
     }
 }
+
+TEST_CASE("Partial alignment path(s) can be found on the end from an unpaired single-path alignment when the read extends beyond the only hit") {
+
+    const string graph_str = R"(
+        {
+            "node": [
+                {"id": 1, "sequence": "AA"},
+                {"id": 2, "sequence": "A"}
+            ],
+            "edge": [
+                {"from": 1, "to": 2},
+            ]
+        }
+    )";
+
+    vg::Graph graph;
+    Utils::json2pb(graph, graph_str);
+
+    gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+    gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(10, true)));
+
+    gbwt::vector_type gbwt_thread_1(1);
+    
+    gbwt_thread_1[0] = gbwt::Node::encode(1, false);
+    
+    gbwt_builder.insert(gbwt_thread_1, false);
+
+    gbwt_builder.finish();
+
+    std::stringstream gbwt_stream;
+    gbwt_builder.index.serialize(gbwt_stream);
+
+    gbwt::GBWT gbwt_index;
+    gbwt_index.load(gbwt_stream);
+
+    const string alignment_1_str = R"(
+        {
+            "path": {
+                "mapping": [
+                    {
+                        "position": {"node_id": 1},
+                        "edit": [
+                            {"from_length": 2, "to_length": 2}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 2},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    }
+                ]
+            },
+            "sequence": "AAA",
+            "mapping_quality": 10
+        }
+    )";
+
+    vg::Alignment alignment_1;
+    Utils::json2pb(alignment_1, alignment_1_str);
+
+    gbwt::FastLocate r_index(gbwt_index);
+    PathsIndex paths_index(gbwt_index, r_index, graph);
+    
+    REQUIRE(!paths_index.bidirectional());
+    REQUIRE(paths_index.numberOfPaths() == 1);
+
+    AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 1000, true, 20, 0);
+    auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+    // We should get a real hit and a noise option
+    REQUIRE(alignment_paths.size() == 2);
+
+}
+
+TEST_CASE("Partial alignment path(s) can be found on the start and end from an unpaired single-path alignment when there is also a full-length match") {
+
+    const string graph_str = R"(
+        {
+            "node": [
+                {"id": 1, "sequence": "AA"},
+                {"id": 2, "sequence": "A"},
+                {"id": 3, "sequence": "A"},
+                {"id": 4, "sequence": "A"},
+                {"id": 5, "sequence": "AAA"},
+                {"id": 6, "sequence": "AAA"},
+                {"id": 7, "sequence": "AAA"},
+                {"id": 8, "sequence": "AA"},
+                {"id": 9, "sequence": "AAA"},
+                {"id": 10, "sequence": "AAA"},
+                {"id": 11, "sequence": "A"}
+            ],
+            "edge": [
+                {"from": 1, "to": 2},
+                {"from": 1, "to": 3},
+                {"from": 1, "to": 4},
+                {"from": 2, "to": 5},
+                {"from": 3, "to": 5},
+                {"from": 4, "to": 5},
+                {"from": 5, "to": 6},
+                {"from": 6, "to": 7},
+                {"from": 7, "to": 8},
+                {"from": 7, "to": 9},
+                {"from": 8, "to": 9},
+                {"from": 8, "to": 10},
+                {"from": 9, "to": 11},
+                {"from": 10, "to": 11}
+            ]
+        }
+    )";
+
+    vg::Graph graph;
+    Utils::json2pb(graph, graph_str);
+
+    gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+    gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(10, true)));
+
+    gbwt::vector_type gbwt_thread_1(8);
+    gbwt::vector_type gbwt_thread_2(8);
+    gbwt::vector_type gbwt_thread_3(8);
+    
+    // This agrees with the alignment from 1 bp in on the start and 4 bp in on the end
+    gbwt_thread_1[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_1[1] = gbwt::Node::encode(2, false);
+    gbwt_thread_1[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_1[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_1[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_1[5] = gbwt::Node::encode(8, false);
+    gbwt_thread_1[6] = gbwt::Node::encode(9, false);
+    gbwt_thread_1[7] = gbwt::Node::encode(11, false);
+    
+    // This agrees with the alignment from 1 bp in on the start, and all the way to the end
+    gbwt_thread_2[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_2[1] = gbwt::Node::encode(2, false);
+    gbwt_thread_2[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_2[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_2[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_2[5] = gbwt::Node::encode(8, false);
+    gbwt_thread_2[6] = gbwt::Node::encode(10, false);
+    gbwt_thread_2[7] = gbwt::Node::encode(11, false);
+
+    // This agrees with the alignment all the way through
+    gbwt_thread_3[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_3[1] = gbwt::Node::encode(3, false);
+    gbwt_thread_3[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_3[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_3[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_3[5] = gbwt::Node::encode(8, false);
+    gbwt_thread_3[6] = gbwt::Node::encode(10, false);
+    gbwt_thread_3[7] = gbwt::Node::encode(11, false);
+
+    gbwt_builder.insert(gbwt_thread_1, false);
+    gbwt_builder.insert(gbwt_thread_2, false);
+    gbwt_builder.insert(gbwt_thread_3, false);
+
+    gbwt_builder.finish();
+
+    std::stringstream gbwt_stream;
+    gbwt_builder.index.serialize(gbwt_stream);
+
+    gbwt::GBWT gbwt_index;
+    gbwt_index.load(gbwt_stream);
+
+    const string alignment_1_str = R"(
+        {
+            "path": {
+                "mapping": [
+                    {
+                        "position": {"node_id": 1, "offset": 1},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 3},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 5},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 6},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 7},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 8},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 10},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 11},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    }
+                ]
+            },
+            "sequence": "AAAAAAAAAAAAAAAAAA",
+            "mapping_quality": 10
+        }
+    )";
+
+    vg::Alignment alignment_1;
+    Utils::json2pb(alignment_1, alignment_1_str);
+
+    gbwt::FastLocate r_index(gbwt_index);
+    PathsIndex paths_index(gbwt_index, r_index, graph);
+    
+    REQUIRE(!paths_index.bidirectional());
+    REQUIRE(paths_index.numberOfPaths() == 3);
+
+    SECTION("Unapired single-path read alignment with a 0 bp partial match limit finds only the exact match path and the noise option") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 0, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 2);
+    }
+
+    SECTION("Unapired single-path read alignment with a 1 bp partial match limit also finds path that differs by 1 bp at the start") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 1, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 3);
+    }
+
+    SECTION("Unapired single-path read alignment with 3 bp partial match limit finds no more paths") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 3, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 3);
+    }
+
+    SECTION("Unapired single-path read alignment with 4 bp partial match limit also finds the path that differs by 4 bp at the end") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 4, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 4);
+    }
+
+}
+
+TEST_CASE("Partial alignment path(s) can be found on the end from an unpaired single-path alignment when there is not a longer match") {
+
+    const string graph_str = R"(
+        {
+            "node": [
+                {"id": 1, "sequence": "AA"},
+                {"id": 2, "sequence": "A"},
+                {"id": 3, "sequence": "A"},
+                {"id": 4, "sequence": "A"},
+                {"id": 5, "sequence": "AAA"},
+                {"id": 6, "sequence": "AAA"},
+                {"id": 7, "sequence": "AAA"},
+                {"id": 8, "sequence": "AA"},
+                {"id": 9, "sequence": "AAA"},
+                {"id": 10, "sequence": "AAA"},
+                {"id": 11, "sequence": "A"}
+            ],
+            "edge": [
+                {"from": 1, "to": 2},
+                {"from": 1, "to": 3},
+                {"from": 1, "to": 4},
+                {"from": 2, "to": 5},
+                {"from": 3, "to": 5},
+                {"from": 4, "to": 5},
+                {"from": 5, "to": 6},
+                {"from": 6, "to": 7},
+                {"from": 7, "to": 8},
+                {"from": 7, "to": 9},
+                {"from": 8, "to": 9},
+                {"from": 8, "to": 10},
+                {"from": 9, "to": 11},
+                {"from": 10, "to": 11}
+            ]
+        }
+    )";
+
+    vg::Graph graph;
+    Utils::json2pb(graph, graph_str);
+
+    gbwt::Verbosity::set(gbwt::Verbosity::SILENT);
+    gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(10, true)));
+
+    gbwt::vector_type gbwt_thread_1(8);
+    gbwt::vector_type gbwt_thread_2(8);
+    gbwt::vector_type gbwt_thread_3(8);
+    
+    // This agrees with the alignment from 1 bp in on the start and 4 bp in on the end
+    gbwt_thread_1[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_1[1] = gbwt::Node::encode(2, false);
+    gbwt_thread_1[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_1[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_1[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_1[5] = gbwt::Node::encode(8, false);
+    gbwt_thread_1[6] = gbwt::Node::encode(9, false);
+    gbwt_thread_1[7] = gbwt::Node::encode(11, false);
+    
+    gbwt_builder.insert(gbwt_thread_1, false);
+
+    gbwt_builder.finish();
+
+    std::stringstream gbwt_stream;
+    gbwt_builder.index.serialize(gbwt_stream);
+
+    gbwt::GBWT gbwt_index;
+    gbwt_index.load(gbwt_stream);
+
+    const string alignment_1_str = R"(
+        {
+            "path": {
+                "mapping": [
+                    {
+                        "position": {"node_id": 1, "offset": 1},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 3},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 5},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 6},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 7},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 8},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 10},
+                        "edit": [
+                            {"from_length": 3, "to_length": 3}
+                        ]
+                    },
+                    {
+                        "position": {"node_id": 11},
+                        "edit": [
+                            {"from_length": 1, "to_length": 1}
+                        ]
+                    }
+                ]
+            },
+            "sequence": "AAAAAAAAAAAAAAAAAA",
+            "mapping_quality": 10
+        }
+    )";
+
+    vg::Alignment alignment_1;
+    Utils::json2pb(alignment_1, alignment_1_str);
+
+    gbwt::FastLocate r_index(gbwt_index);
+    PathsIndex paths_index(gbwt_index, r_index, graph);
+    
+    REQUIRE(!paths_index.bidirectional());
+    REQUIRE(paths_index.numberOfPaths() == 1);
+
+    SECTION("Unapired single-path read alignment with a 0 bp partial match limit finds no options") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 0, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        // If there are no real options, we don't create a noise option.
+        REQUIRE(alignment_paths.size() == 0);
+    }
+
+    SECTION("Unapired single-path read alignment with 3 bp partial match limit finds no more paths") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 3, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 0);
+    }
+
+    SECTION("Unapired single-path read alignment with 8 bp partial match limit finds the path that differs by 4 bp at the end, and a noise option") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 8, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 2);
+    }
+
+}

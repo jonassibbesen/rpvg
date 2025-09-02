@@ -58,7 +58,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
     for (auto & align_search_path: align_search_paths) {
 
         if (align_search_path.gbwt_search.first.empty()) {
-            std::cerr << "Found an alignment search path with an empty search state; we couldn't find the path for this fragment. Treating as a noise read." << std::endl;
+            std::cerr << "Found an alignment search path with an empty search state; we couldn't find the path for this fragment. Treating as a noise match." << std::endl;
 
             assert(align_search_path.insert_length == 0);
             assert(!align_search_path.read_align_stats.empty());
