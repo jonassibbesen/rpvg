@@ -113,6 +113,7 @@ uint32_t AlignmentPathFinder<AlignmentType>::mappingQuality(const AlignmentType 
     }
 }
 
+#define debug
 template<class AlignmentType>
 vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(const AlignmentType & alignment) const {
 
@@ -125,11 +126,13 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
 
     if (!alignmentHasPath(alignment)) {
 
+        std::cerr << "Alignment is unaligned because it does not have a path" << std::endl;
         return vector<AlignmentPath>();
     }
 
     if (!alignmentStartInGraph(alignment)) {
 
+        std::cerr << "Alignment is unaligned because its start location is not in the graph" << std::endl;
         return vector<AlignmentPath>();
     }
 
@@ -158,7 +161,11 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
         }  
     }
 
+    std::cerr << "Alignment has " << align_search_paths.size() << " search paths in " << library_type << " library" << std::endl;
+
     auto align_paths = AlignmentPath::alignmentSearchPathsToAlignmentPaths(align_search_paths, isAlignmentDisconnected(alignment), mappingQuality(alignment));
+
+    std::cerr << "Alignment has " << align_paths.size() << " alignment paths" << std::endl;
 
 #ifdef debug
 
@@ -171,6 +178,7 @@ vector<AlignmentPath> AlignmentPathFinder<AlignmentType>::findAlignmentPaths(con
 
     return align_paths;
 }
+#undef debug
 
 template<class AlignmentType>
 vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(const AlignmentSearchPath & align_search_path, const vg::Alignment & alignment) const {
@@ -618,7 +626,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPaths(vector<Align
                 assert(!align_search_path.read_align_stats.back().complete);
 
                 align_search_path.read_align_stats.back().complete = true;
-                align_search_paths->emplace_back(move(align_search_path));
+                align_search_paths->emplace_back(std::move(align_search_path));
             }
         }
     }
@@ -741,7 +749,7 @@ void AlignmentPathFinder<AlignmentType>::findAlignmentSearchPaths(vector<Alignme
             joint_single_align_score = Utils::add_log(joint_single_align_score, score_sum * Utils::score_log_base);
         }
 
-        align_search_paths->emplace_back(move(single_search_path));
+        align_search_paths->emplace_back(std::move(single_search_path));
     }
 
     align_search_paths->emplace_back(AlignmentSearchPath());

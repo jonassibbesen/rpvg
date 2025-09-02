@@ -13,30 +13,34 @@ AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bo
 vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap, const uint8_t min_mapq) {
 
     if (align_search_paths.empty()) {
-
+        std::cerr << "There are no alignment paths because there are no alignment search paths." << std::endl;
         return vector<AlignmentPath>();
     }
 
     bool is_simple = !is_multimap;
 
     if (is_simple) {
+        std::cerr << "Simple case." << std::endl;
 
         uint32_t frag_length = 0;
 
         for (auto & align_search_path: align_search_paths) {
 
             if (align_search_path.isComplete()) {
+                std::cerr << "Found a complete alignment search path." << std::endl;
 
                 assert(!align_search_path.gbwt_search.first.empty());
 
                 if (align_search_path.isInternal() || (frag_length > 0 && align_search_path.fragmentLength() != frag_length)) {
-
+                    std::cerr << "Actually, this isn't the simple case." << std::endl;
                     is_simple = false;
                     break;
                 } 
 
                 frag_length = align_search_path.fragmentLength();
                 assert(frag_length > 0);
+            } else {
+                std::cerr << "Found an incomplete alignment search path." << std::endl;
             }
         }
     }
@@ -47,11 +51,14 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
     vector<AlignmentPath> align_paths;
     align_paths.reserve(align_search_paths.size());
 
-    double noise_prob = 1;   
+    double noise_prob = 1;
+
+    std::cerr << "Complex case." << std::endl;
 
     for (auto & align_search_path: align_search_paths) {
 
         if (align_search_path.gbwt_search.first.empty()) {
+            std::cerr << "Found an alignment search path with an empty search state; we couldn't find the path for this fragment. Treating as a noise read." << std::endl;
 
             assert(align_search_path.insert_length == 0);
             assert(!align_search_path.read_align_stats.empty());
@@ -70,15 +77,20 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
             noise_prob = min(noise_prob, 1 - non_noise_prob);
 
         } else if (align_search_path.isComplete()) {
+            std::cerr << "Found a complete alignment search path; creating an alignment path." << std::endl;
                 
             align_paths.emplace_back(align_search_path, is_simple, min_mapq);
             assert(align_paths.front().min_mapq == align_paths.back().min_mapq);
+        } else {
+            std::cerr << "Found an incomplete but nonempty alignment search path; ignoring." << std::endl;
         }
     }
 
     sort(align_paths.rbegin(), align_paths.rend());
 
     if (!align_paths.empty()) {
+
+        std::cerr << "Creating a noise option for fragment with " << align_paths.size() << " non-noise options." << std::endl;
 
         if (Utils::doubleCompare(noise_prob, 0)) {
 

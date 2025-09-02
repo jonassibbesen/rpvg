@@ -73,6 +73,8 @@ void ReadPathProbabilities::addReadCount(const uint32_t read_count_in) {
 
 void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_paths, const vector<vector<gbwt::size_type> > & align_paths_ids, const spp::sparse_hash_map<uint32_t, uint32_t> & clustered_path_index, const vector<PathInfo> & cluster_paths, const FragmentLengthDist & fragment_length_dist, const bool is_single_end, const double min_noise_prob, const bool collapse_groups, const spp::sparse_hash_map<string, uint32_t> & group_name_index) {
 
+    std::cerr << "Add path probabilities for " << align_paths.size() << " AlignemntPaths vs. " << cluster_paths.size() << " PathInfos" << std::endl;
+
     assert(align_paths.size() > 1);
     assert(align_paths.size() == align_paths_ids.size());
     assert(clustered_path_index.size() == cluster_paths.size());
@@ -80,6 +82,7 @@ void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_pat
     assert(path_probs.empty());
 
     if (align_paths.front().min_mapq > 0) {
+        std::cerr << "Best alignment has nonzero MAPQ" << std::endl;
 
         noise_prob = max(prob_precision, max(min_noise_prob, Utils::phred_to_prob(align_paths.front().min_mapq)));
         assert(noise_prob < 1 && noise_prob > 0);
@@ -132,6 +135,8 @@ void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_pat
                         read_path_log_probs.at(path_idx) = max(read_path_log_probs.at(path_idx), log_prob);
                     }
                 }
+
+                std::cerr << "read_path_log_probs[" << path_idx << "] = " << read_path_log_probs.at(path_idx) << std::endl;
             }
         }
 
@@ -206,6 +211,8 @@ void ReadPathProbabilities::addPathProbs(const vector<AlignmentPath> & align_pat
         noise_prob += low_prob_sum * (1 - noise_prob);
 
         sort(path_probs.begin(), path_probs.end());
+    } else {
+        std::cerr << "Nothing has nonzero MAPQ" << std::endl;
     }
 }
 
