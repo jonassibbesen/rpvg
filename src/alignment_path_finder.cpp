@@ -251,9 +251,18 @@ vector<AlignmentSearchPath> AlignmentPathFinder<AlignmentType>::extendAlignmentS
 
 template<class AlignmentType>
 void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<AlignmentSearchPath> * align_search_paths, const vg::Path & path, const bool is_first_path, const bool is_last_path, const string & quality, const uint32_t seq_length, const bool add_internal_start) const {
-
+    
+    // We start with just 1 search path.
     assert(align_search_paths->size() == 1);
     assert(!align_search_paths->front().read_align_stats.empty());
+
+    // We keep our search paths organized with the full-length search first,
+    // then any partial searches starting at progressively later points. If we
+    // are near enough to the end to have partial-at-the-end paths, we start
+    // appending shorter partial-at-the-end search paths.
+    //
+    // TODO: Should we keep the searches sorted by start position to improve
+    // the "main" path finding?
 
     if (is_first_path) {
 
@@ -264,8 +273,14 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
         align_search_paths->front().read_align_stats.back().updateRightSoftclipLength(path);
     }
-
+    
+    // This is the latest index at which we have a search path that we started
+    // internal to the read, on its left. 
     uint32_t last_internal_start_idx = 0;
+
+    // This is the first path that we could possibly use as out "main" path for making partial-at-the-end paths.
+    // As we exhaust all results for earlier search paths, we advance this so we no longer have to consider them.
+    uint32_t first_main_idx = 0;
 
     std::cerr << "Extending search of " << align_search_paths->front().path.size() << " nodes and " << align_search_paths->front().gbwt_search.first.size() << " results with " << path.mapping_size() << " more mappings" << std::endl;
 
@@ -283,21 +298,76 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
         auto mapping_read_length = Utils::mapping_to_length(*mapping_it);
 
         const bool is_last_mapping = (is_last_path && mapping_it == end_mapping_it);
-
+        
+        // We need to find a "main" search path, which we will use for partial matches at the end.
+        // If we don't find one, we leave this empty.
         AlignmentSearchPath main_align_search_path;
+        if (max_partial_offset > 0 && !align_search_paths->front().path.empty()) {
+            // We are doing partial matches, and we've already searched
+            // something on our full-length search.
+            // (We need to check that we've searched something on the
+            // full-length search so we don't run on the first iteration, see
+            // the full-length search as having no results, and decide it will
+            // never have any.)
+            for (; first_main_idx < align_search_paths->size(); first_main_idx++) {
+                // Look for a main path. Start at the main path we used last
+                // time.
+                auto& candidate = align_search_paths->at(first_main_idx);
 
-        if (max_partial_offset > 0 && !align_search_paths->front().gbwt_search.first.empty() && !align_search_paths->front().read_align_stats.back().internal_end.is_internal) {
+                if (candidate.gbwt_search.first.empty()) {
+                    std::cerr << "Main path candidate " << first_main_idx << " has run out of results so we can't use it" << std::endl;
+                    std::cerr << "Skipped candidate main search of " << candidate.path.size() << " nodes and " << candidate.gbwt_search.first.size() << " results" << std::endl;
+                    continue;
+                }
 
-            assert(align_search_paths->front().read_align_stats.back().internal_end.offset == 0);
-            assert(align_search_paths->front().read_align_stats.back().length <= seq_length);
+                // This search has results, so we can consider ending the
+                // search here and using those results. 
+                
+                if (candidate.read_align_stats.back().internal_end.is_internal) {
+                    std::cerr << "Main path candidate " << first_main_idx << " is already internal at the end" << std::endl;
+                    std::cerr << "Skipped candidate main search of " << candidate.path.size() << " nodes and " << candidate.gbwt_search.first.size() << " results" << std::endl;
+                    continue;
+                }
 
-            if (seq_length - align_search_paths->front().read_align_stats.back().length <= align_search_paths->front().read_align_stats.back().internal_end.max_offset) {
+                // This candidate isn't already internal/partial at the end
+                    
+                // If it's not internal at the end, it must have a 0 internal offset at the end
+                assert(candidate.read_align_stats.back().internal_end.offset == 0);
+                // And it must not cover more sequence than there is in the read.
+                assert(candidate.read_align_stats.back().length <= seq_length);
 
-                main_align_search_path = align_search_paths->front();
+                // Either this is our main search, or we have no main
+                // search but we want to check here again at the next
+                // extension step.
+
+                if (seq_length - candidate.read_align_stats.back().length <= candidate.read_align_stats.back().internal_end.max_offset) {
+                    // This candidate has searched enough that it is in range
+                    // of the end of the read, given how partial a match is
+                    // allowed to be.
+                    
+                    // Adopt this as the main search 
+                    main_align_search_path = candidate;
+                } else {
+                    // If we find what could be a main search but it has too
+                    // much sequence left, we know all the searches will have
+                    // too much sequence left. We also know the amount of
+                    // sequence left can decrease; this isn't permanent. So we
+                    // need to not adopt anything as the main search, but to
+                    // check back here next time to see if it is in range.
+                    std::cerr << "Main path candidate " << first_main_idx << " has too much sequence left (" << seq_length - candidate.read_align_stats.back().length <<  ") vs. max end offset " << candidate.read_align_stats.back().internal_end.max_offset << std::endl;
+                }
+
+                break;
             }
+        } else {
+            std::cerr << "Not looking for a main search" << std::endl;
         }
-
-        std::cerr << "Selected main search of " << main_align_search_path.path.size() << " nodes and " << main_align_search_path.gbwt_search.first.size() << " results" << std::endl;
+        
+        if (!main_align_search_path.gbwt_search.first.empty()) {
+            std::cerr << "Selected main search " << first_main_idx << "/" << align_search_paths->size() << " of " << main_align_search_path.path.size() << " nodes and " << main_align_search_path.gbwt_search.first.size() << " results" << std::endl;
+        } else {
+            std::cerr << "Selected no main search." << std::endl;
+        }
 
         for (auto & align_search_path: *align_search_paths) {
 
@@ -336,10 +406,27 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
         }
 
         if (max_partial_offset > 0 && !main_align_search_path.gbwt_search.first.empty()) {
-
+            // We're doing partial matches and we've selected a main search
+            // path to consider a partial match at the end.
+            
+            // Find the path we copied to get the main search path, which may
+            // now have been extended longer and with less results, or even
+            // cleared.
+            auto& candidate = align_search_paths->at(first_main_idx);
+            
+            // The main alignment search path has to have as many matches or
+            // more than the full-path search path that we keep in the first
+            // slot.
             assert(main_align_search_path.gbwt_search.first.size() >= align_search_paths->front().gbwt_search.first.size());
 
-            if (main_align_search_path.gbwt_search.first.size() > align_search_paths->front().gbwt_search.first.size()) {
+            // The main alignment search path has to have as many matches or
+            // more than the candidate it came from.
+            assert(main_align_search_path.gbwt_search.first.size() >= candidate.gbwt_search.first.size());
+
+            if (main_align_search_path.gbwt_search.first.size() > candidate.gbwt_search.first.size()) {
+                // Extending the candidate reduced its matches (possibly to 0).
+                // So we need to consider a partial match ending before that
+                // happened.
 
                 main_align_search_path.read_align_stats.back().internal_end.is_internal = true;
                 main_align_search_path.read_align_stats.back().internal_end.offset = mapping_read_length;
@@ -351,6 +438,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
                 } 
 
                 if (main_align_search_path.read_align_stats.back().internal_end.offset <= max_partial_offset) {
+                    // We're close enough to the end of the read that we are allowed to consider a partial match
 
                     main_align_search_path.read_align_stats.back().internal_end_next_node = cur_node;
                     main_align_search_path.read_align_stats.back().internal_end.penalty = alignmentScore(quality, main_align_search_path.read_align_stats.back().length, main_align_search_path.read_align_stats.back().internal_end.offset);

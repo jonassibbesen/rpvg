@@ -2656,25 +2656,25 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 3);
 
-    SECTION("Unapired single-path read alignment with a 0 bp partial match limit finds only the exact match path and the noise option") {
+    SECTION("Unpaired single-path read alignment with a 0 bp partial match limit finds only the exact match path and the noise option") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 0, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 2);
     }
 
-    SECTION("Unapired single-path read alignment with a 1 bp partial match limit also finds path that differs by 1 bp at the start") {
+    SECTION("Unpaired single-path read alignment with a 1 bp partial match limit also finds path that differs by 1 bp at the start") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 1, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 3);
     }
 
-    SECTION("Unapired single-path read alignment with 3 bp partial match limit finds no more paths") {
+    SECTION("Unpaired single-path read alignment with 3 bp partial match limit finds no more paths") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 3, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 3);
     }
 
-    SECTION("Unapired single-path read alignment with 4 bp partial match limit also finds the path that differs by 4 bp at the end") {
+    SECTION("Unpaired single-path read alignment with 4 bp partial match limit also finds the path that differs by 4 bp at the end") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 4, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 4);
@@ -2816,20 +2816,20 @@ TEST_CASE("Partial alignment path(s) can be found on the end from an unpaired si
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 1);
 
-    SECTION("Unapired single-path read alignment with a 0 bp partial match limit finds no options") {
+    SECTION("Unpaired single-path read alignment with a 0 bp partial match limit finds no options") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 0, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         // If there are no real options, we don't create a noise option.
         REQUIRE(alignment_paths.size() == 0);
     }
 
-    SECTION("Unapired single-path read alignment with 3 bp partial match limit finds no more paths") {
+    SECTION("Unpaired single-path read alignment with 3 bp partial match limit finds no more paths") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 3, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 0);
     }
 
-    SECTION("Unapired single-path read alignment with 8 bp partial match limit finds the path that differs by 4 bp at the end, and a noise option") {
+    SECTION("Unpaired single-path read alignment with 8 bp partial match limit finds the path that differs by 4 bp at the end, and a noise option") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 8, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 2);
@@ -2880,8 +2880,6 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
     gbwt::GBWTBuilder gbwt_builder(gbwt::bit_length(gbwt::Node::encode(10, true)));
 
     gbwt::vector_type gbwt_thread_1(8);
-    gbwt::vector_type gbwt_thread_2(8);
-    gbwt::vector_type gbwt_thread_3(8);
     
     // This agrees with the alignment from 1 bp in on the start and 4 bp in on the end
     gbwt_thread_1[0] = gbwt::Node::encode(1, false);
@@ -2971,20 +2969,26 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
     REQUIRE(!paths_index.bidirectional());
     REQUIRE(paths_index.numberOfPaths() == 1);
 
-    SECTION("Unapired single-path read alignment with a 0 bp partial match limit finds no options") {
+    SECTION("Unpaired single-path read alignment with a 0 bp partial match limit finds no options") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 0, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         // If there are no real options, we don't create a noise option.
         REQUIRE(alignment_paths.size() == 0);
     }
 
-    SECTION("Unapired single-path read alignment with 3 bp partial match limit finds no more paths") {
+    SECTION("Unpaired single-path read alignment with 3 bp partial match limit finds no more paths") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 3, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 0);
     }
 
-    SECTION("Unapired single-path read alignment with 8 bp partial match limit finds the path that differs by 4 bp at the end, and a noise option") {
+    SECTION("Unpaired single-path read alignment with 4 bp partial match limit finds the path that differs by 4 bp at the end, and a noise option") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 4, true, 20, 0);
+        auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
+        REQUIRE(alignment_paths.size() == 2);
+    }
+
+    SECTION("Unpaired single-path read alignment with 8 bp partial match limit finds no extraneous paths") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 8, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 2);
