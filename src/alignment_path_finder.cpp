@@ -279,8 +279,10 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
     // internal to the read, on its left. 
     uint32_t last_internal_start_idx = 0;
 
-    // This is the first path that we could possibly use as out "main" path for making partial-at-the-end paths.
-    // As we exhaust all results for earlier search paths, we advance this so we no longer have to consider them.
+    // This is the first path that we could possibly use as out "main" path for
+    // making partial-at-the-end paths. As we exhaust all results for earlier
+    // search paths, we advance this so we no longer have to consider them. (We
+    // also always use the first "main" path we could use.)
     uint32_t first_main_idx = 0;
 
 #ifdef debug
