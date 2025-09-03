@@ -262,10 +262,8 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
     // We keep our search paths organized with the full-length search first,
     // then any partial searches starting at progressively later points. If we
     // are near enough to the end to have partial-at-the-end paths, we start
-    // appending shorter partial-at-the-end search paths.
-    //
-    // TODO: Should we keep the searches sorted by start position to improve
-    // the "main" path finding?
+    // appending shorter partial-at-the-end search paths interleaved with any
+    // partial-at-the-start paths that start that late.
 
     if (is_first_path) {
 
