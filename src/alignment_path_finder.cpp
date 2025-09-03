@@ -292,7 +292,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
     while (mapping_it != path.mapping().cend()) {
 
-        std::cerr << "Consider mapping to " << mapping_it->position().node_id() << (mapping_it->position().is_reverse() ? "-" : "+") << std::endl;
+        std::cerr << "Consider mapping to " << mapping_it->position().node_id() << (mapping_it->position().is_reverse() ? "-" : "+")  << " with " << align_search_paths->size() << " search paths in progress" << std::endl;
 
         auto cur_node = Utils::mapping_to_gbwt(*mapping_it);
         auto mapping_read_length = Utils::mapping_to_length(*mapping_it);
@@ -399,7 +399,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
                 }
             
             } else {
-                std::cerr << "Consider extending search path" << std::endl;
+                std::cerr << "Consider extending search path " << &align_search_path - &align_search_paths->at(0) << std::endl;
 
                 extendAlignmentSearchPath(&align_search_path, *mapping_it);
             }
@@ -461,7 +461,7 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
                 if (internal_start_read_align_stats.internal_start.offset <= max_partial_offset) {
 
-                    std::cerr << "Consider starting new partial search path from scratch" << std::endl;
+                    std::cerr << "Consider starting new partial search path from scratch, vs. path " << last_internal_start_idx << std::endl;
                     AlignmentSearchPath new_start_align_search_path;
                     extendAlignmentSearchPath(&new_start_align_search_path, *mapping_it);
 
@@ -471,17 +471,27 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
                         if (new_start_align_search_path.gbwt_search.first.size() > align_search_paths->at(last_internal_start_idx).gbwt_search.first.size()) {
 
-                            std::cerr << "Found more results (" << new_start_align_search_path.gbwt_search.first.size() << "), so starting new partial search path" << std::endl;
+                            std::cerr << "Found more results (" << new_start_align_search_path.gbwt_search.first.size() << " > " << align_search_paths->at(last_internal_start_idx).gbwt_search.first.size() << "), so starting new partial search path" << std::endl;
 
                             align_search_paths->emplace_back(new_start_align_search_path);
                             last_internal_start_idx = align_search_paths->size() - 1;
 
                             internal_start_read_align_stats.internal_start.penalty = alignmentScore(quality, internal_start_read_align_stats.left_softclip_length, internal_start_read_align_stats.internal_start.offset);
                             align_search_paths->back().read_align_stats = vector<AlignmentStats>(1, internal_start_read_align_stats);
+                        } else {
+                            std::cerr << "Found no more results (" << new_start_align_search_path.gbwt_search.first.size() << " <= " << align_search_paths->at(last_internal_start_idx).gbwt_search.first.size() << ")." << std::endl;
                         }
+                    } else {
+                        std::cerr << "Found no results." << std::endl;
                     }
+                } else {
+                    std::cerr << "Read align stats out of range to start new search (" << internal_start_read_align_stats.internal_start.offset << " > " << max_partial_offset << ")" << std::endl;
                 }
+            } else {
+                std::cerr << "Out of range to start new search (" << align_search_paths->at(last_internal_start_idx).read_align_stats.back().length << " > " << align_search_paths->at(last_internal_start_idx).read_align_stats.back().internal_start.max_offset << ")" << std::endl;
             }
+        } else {
+            std::cerr << "Not supposed to start new internal search; last is " << last_internal_start_idx << std::endl;
         }
 
         for (auto & align_search_path: *align_search_paths) {

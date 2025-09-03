@@ -2545,8 +2545,9 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
     gbwt::vector_type gbwt_thread_1(8);
     gbwt::vector_type gbwt_thread_2(8);
     gbwt::vector_type gbwt_thread_3(8);
+    gbwt::vector_type gbwt_thread_4(8);
     
-    // This agrees with the alignment from 1 bp in on the start and 4 bp in on the end
+    // This agrees with the alignment from 2 bp in on the start and 4 bp in on the end
     gbwt_thread_1[0] = gbwt::Node::encode(1, false);
     gbwt_thread_1[1] = gbwt::Node::encode(2, false);
     gbwt_thread_1[2] = gbwt::Node::encode(5, false);
@@ -2556,7 +2557,7 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
     gbwt_thread_1[6] = gbwt::Node::encode(9, false);
     gbwt_thread_1[7] = gbwt::Node::encode(11, false);
     
-    // This agrees with the alignment from 1 bp in on the start, and all the way to the end
+    // This agrees with the alignment from 2 bp in on the start, and all the way to the end
     gbwt_thread_2[0] = gbwt::Node::encode(1, false);
     gbwt_thread_2[1] = gbwt::Node::encode(2, false);
     gbwt_thread_2[2] = gbwt::Node::encode(5, false);
@@ -2566,19 +2567,30 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
     gbwt_thread_2[6] = gbwt::Node::encode(10, false);
     gbwt_thread_2[7] = gbwt::Node::encode(11, false);
 
-    // This agrees with the alignment all the way through
+    // This agrees with the alignment from the very start up to 4 bp in on the end
     gbwt_thread_3[0] = gbwt::Node::encode(1, false);
     gbwt_thread_3[1] = gbwt::Node::encode(3, false);
     gbwt_thread_3[2] = gbwt::Node::encode(5, false);
     gbwt_thread_3[3] = gbwt::Node::encode(6, false);
     gbwt_thread_3[4] = gbwt::Node::encode(7, false);
     gbwt_thread_3[5] = gbwt::Node::encode(8, false);
-    gbwt_thread_3[6] = gbwt::Node::encode(10, false);
+    gbwt_thread_3[6] = gbwt::Node::encode(9, false);
     gbwt_thread_3[7] = gbwt::Node::encode(11, false);
+
+    // This agrees with the alignment all the way through
+    gbwt_thread_4[0] = gbwt::Node::encode(1, false);
+    gbwt_thread_4[1] = gbwt::Node::encode(3, false);
+    gbwt_thread_4[2] = gbwt::Node::encode(5, false);
+    gbwt_thread_4[3] = gbwt::Node::encode(6, false);
+    gbwt_thread_4[4] = gbwt::Node::encode(7, false);
+    gbwt_thread_4[5] = gbwt::Node::encode(8, false);
+    gbwt_thread_4[6] = gbwt::Node::encode(10, false);
+    gbwt_thread_4[7] = gbwt::Node::encode(11, false);
 
     gbwt_builder.insert(gbwt_thread_1, false);
     gbwt_builder.insert(gbwt_thread_2, false);
     gbwt_builder.insert(gbwt_thread_3, false);
+    gbwt_builder.insert(gbwt_thread_4, false);
 
     gbwt_builder.finish();
 
@@ -2654,7 +2666,7 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
     PathsIndex paths_index(gbwt_index, r_index, graph);
     
     REQUIRE(!paths_index.bidirectional());
-    REQUIRE(paths_index.numberOfPaths() == 3);
+    REQUIRE(paths_index.numberOfPaths() == 4);
 
     SECTION("Unpaired single-path read alignment with a 0 bp partial match limit finds only the exact match path and the noise option") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 0, true, 20, 0);
@@ -2662,8 +2674,8 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
         REQUIRE(alignment_paths.size() == 2);
     }
 
-    SECTION("Unpaired single-path read alignment with a 1 bp partial match limit also finds path that differs by 1 bp at the start") {
-        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 1, true, 20, 0);
+    SECTION("Unpaired single-path read alignment with a 2 bp partial match limit also finds path that differs by 2 bp at the start") {
+        AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 2, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 3);
     }
@@ -2674,7 +2686,7 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
         REQUIRE(alignment_paths.size() == 3);
     }
 
-    SECTION("Unpaired single-path read alignment with 4 bp partial match limit also finds the path that differs by 4 bp at the end") {
+    SECTION("Unpaired single-path read alignment with 4 bp partial match limit also finds the path that differs by 4 bp at the end but not the one that differs at both the start and end") {
         AlignmentPathFinder<vg::Alignment> alignment_path_finder(paths_index, "unstranded", true, false, 1000, 4, true, 20, 0);
         auto alignment_paths = alignment_path_finder.findAlignmentPaths(alignment_1);
         REQUIRE(alignment_paths.size() == 4);
@@ -2881,7 +2893,7 @@ TEST_CASE("Partial alignment path(s) can be found on the start and end from an u
 
     gbwt::vector_type gbwt_thread_1(8);
     
-    // This agrees with the alignment from 1 bp in on the start and 4 bp in on the end
+    // This agrees with the alignment from 2 bp in on the start and 4 bp in on the end
     gbwt_thread_1[0] = gbwt::Node::encode(1, false);
     gbwt_thread_1[1] = gbwt::Node::encode(2, false);
     gbwt_thread_1[2] = gbwt::Node::encode(5, false);
