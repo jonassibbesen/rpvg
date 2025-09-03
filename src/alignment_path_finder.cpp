@@ -359,14 +359,10 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
                 break;
             }
-        } else {
-            std::cerr << "Not looking for a main search" << std::endl;
         }
         
         if (!main_align_search_path.gbwt_search.first.empty()) {
             std::cerr << "Selected main search " << first_main_idx << "/" << align_search_paths->size() << " of " << main_align_search_path.path.size() << " nodes and " << main_align_search_path.gbwt_search.first.size() << " results" << std::endl;
-        } else {
-            std::cerr << "Selected no main search." << std::endl;
         }
 
         for (auto & align_search_path: *align_search_paths) {
@@ -478,20 +474,10 @@ void AlignmentPathFinder<AlignmentType>::extendAlignmentSearchPath(vector<Alignm
 
                             internal_start_read_align_stats.internal_start.penalty = alignmentScore(quality, internal_start_read_align_stats.left_softclip_length, internal_start_read_align_stats.internal_start.offset);
                             align_search_paths->back().read_align_stats = vector<AlignmentStats>(1, internal_start_read_align_stats);
-                        } else {
-                            std::cerr << "Found no more results (" << new_start_align_search_path.gbwt_search.first.size() << " <= " << align_search_paths->at(last_internal_start_idx).gbwt_search.first.size() << ")." << std::endl;
                         }
-                    } else {
-                        std::cerr << "Found no results." << std::endl;
                     }
-                } else {
-                    std::cerr << "Read align stats out of range to start new search (" << internal_start_read_align_stats.internal_start.offset << " > " << max_partial_offset << ")" << std::endl;
                 }
-            } else {
-                std::cerr << "Out of range to start new search (" << align_search_paths->at(last_internal_start_idx).read_align_stats.back().length << " > " << align_search_paths->at(last_internal_start_idx).read_align_stats.back().internal_start.max_offset << ")" << std::endl;
             }
-        } else {
-            std::cerr << "Not supposed to start new internal search; last is " << last_internal_start_idx << std::endl;
         }
 
         for (auto & align_search_path: *align_search_paths) {
