@@ -15,6 +15,10 @@ using namespace std;
 
 class AlignmentSearchPath;
 
+/**
+ * Represents the result of a completed search for a read or read pair in the
+ * GBWT.
+ */
 class AlignmentPath {
 
     public: 
@@ -88,7 +92,11 @@ bool operator<(const InternalAlignment & lhs, const InternalAlignment & rhs);
 
 ostream & operator<<(ostream & os, const InternalAlignment & read_align_stats);
 
-
+/**
+ * Represents an individual Alignment or linearization of an individual
+ * MultipathAlignment within a fragment, while searching for a path in the GBWT
+ * that the fragment could have come from.
+ */
 class AlignmentStats {
 
     public: 
@@ -128,13 +136,19 @@ bool operator<(const AlignmentStats & lhs, const AlignmentStats & rhs);
 
 ostream & operator<<(ostream & os, const AlignmentStats & read_align_stats);
 
-
+/**
+ * Represents an intermediate state in searching for the path taken by a single
+ * read or read pair's Alignment(s), or one of the paths consistent with the
+ * MultipathAlignment(s), in the GBWT. (So this belongs to a fragment and not
+ * an individual alignment.)
+ */
 class AlignmentSearchPath {
 
     public: 
     
         AlignmentSearchPath();
-
+        
+        /// This holds the full path that the fragment came from.
         vector<gbwt::node_type> path;
         pair<gbwt::SearchState, gbwt::size_type> gbwt_search;
 
@@ -142,7 +156,8 @@ class AlignmentSearchPath {
         uint32_t end_offset;
 
         int32_t insert_length;
-
+        
+        /// This holds the per-read statistic values within the fragment.
         vector<AlignmentStats> read_align_stats;
 
         uint32_t alignmentLength() const;

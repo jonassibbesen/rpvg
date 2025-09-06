@@ -13,7 +13,6 @@ AlignmentPath::AlignmentPath(const AlignmentSearchPath & align_path_in, const bo
 vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const vector<AlignmentSearchPath> & align_search_paths, const bool is_multimap, const uint8_t min_mapq) {
 
     if (align_search_paths.empty()) {
-
         return vector<AlignmentPath>();
     }
 
@@ -30,7 +29,6 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
                 assert(!align_search_path.gbwt_search.first.empty());
 
                 if (align_search_path.isInternal() || (frag_length > 0 && align_search_path.fragmentLength() != frag_length)) {
-
                     is_simple = false;
                     break;
                 } 
@@ -47,7 +45,7 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
     vector<AlignmentPath> align_paths;
     align_paths.reserve(align_search_paths.size());
 
-    double noise_prob = 1;   
+    double noise_prob = 1;
 
     for (auto & align_search_path: align_search_paths) {
 
@@ -70,7 +68,6 @@ vector<AlignmentPath> AlignmentPath::alignmentSearchPathsToAlignmentPaths(const 
             noise_prob = min(noise_prob, 1 - non_noise_prob);
 
         } else if (align_search_path.isComplete()) {
-                
             align_paths.emplace_back(align_search_path, is_simple, min_mapq);
             assert(align_paths.front().min_mapq == align_paths.back().min_mapq);
         }

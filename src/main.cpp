@@ -41,6 +41,10 @@
 const uint32_t align_paths_buffer_size = 10000;
 const uint32_t frag_length_min_mapq = 30;
 
+// We store our input alignments in vector lists in a map eith this type. Note
+// that the alignment collections are the map KEYS!
+//
+// TODO: Why bother with an associative container then?
 typedef spp::sparse_hash_map<vector<AlignmentPath>, uint32_t> align_paths_index_t;
 typedef spp::sparse_hash_map<uint32_t, spp::sparse_hash_set<uint32_t> > connected_align_paths_t;
 
@@ -103,7 +107,7 @@ uint32_t findAlignmentPaths(ifstream & alignments_istream, align_paths_buffer_qu
     }
   
     vector<uint32_t> threaded_unaligned_read_count(num_threads, 0);
-
+    
     vg::io::for_each_parallel<AlignmentType>(alignments_istream, [&](AlignmentType & alignment) {
 
         vector<vector<AlignmentPath > > * align_paths_buffer = threaded_align_paths_buffer.at(omp_get_thread_num());
@@ -183,13 +187,22 @@ uint32_t findPairedAlignmentPaths(ifstream & alignments_istream, align_paths_buf
     return unaligned_read_count;
 }
 
+/**
+ * Consume and destroy batches of alignment path lists coming in via
+ * align_paths_buffer_queue, and put each alignment path list into
+ * align_paths_index as a *key*, with a 0 value.
+ *
+ * Uses pre_frag_length_dist to fill in frag_length of incoming alignments when
+ * path lists are size 2. Counts occurrences of all fragment length values and
+ * assigns a filled-in FragmentLengthDist into the slot pointed to by
+ * frag_length_dist.  
+ */
 void addAlignmentPathsBufferToIndexes(align_paths_buffer_queue_t * align_paths_buffer_queue, align_paths_index_t * align_paths_index, FragmentLengthDist * frag_length_dist, const FragmentLengthDist & pre_frag_length_dist, const bool is_single_end) {
 
     vector<vector<AlignmentPath> > * align_paths_buffer = nullptr;
     vector<uint32_t> frag_length_counts(pre_frag_length_dist.maxLength() + 1, 0);
 
     while (align_paths_buffer_queue->pop(&align_paths_buffer)) {
-
         for (auto & align_paths: *align_paths_buffer) {
 
             assert(align_paths.size() > 1);
@@ -607,7 +620,7 @@ int main(int argc, char* argv[]) {
 
     if (doesFileExist(option_results["paths"].as<string>() + ".ri")) {
 
-        r_index = move(vg::io::VPKG::load_one<gbwt::FastLocate>(option_results["paths"].as<string>() + ".ri"));
+        r_index = std::move(vg::io::VPKG::load_one<gbwt::FastLocate>(option_results["paths"].as<string>() + ".ri"));
         r_index->setGBWT(*gbwt_index);        
 
     } else {
@@ -706,7 +719,7 @@ int main(int argc, char* argv[]) {
     }
 
     double time_align = gbwt::readTimer();
-    cerr << "Found alignment paths (" << time_align - time_load << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
+    cerr << "Found " << align_paths_index.size() << " distinct lists of alignment paths and " << unaligned_read_count << " unaligned reads (" << time_align - time_load << " seconds, " << gbwt::inGigabytes(gbwt::memoryUsage()) << " GB)" << endl;
 
     PathClusters path_clusters(num_threads, paths_index, align_paths_index);
 
@@ -852,7 +865,7 @@ int main(int argc, char* argv[]) {
                 auto haplotype_transcript_info_it = haplotype_transcript_info.find(paths_index.pathName(path_id));
                 assert(haplotype_transcript_info_it != haplotype_transcript_info.end());
 
-                path_cluster_estimates->back().second.paths.emplace_back(move(haplotype_transcript_info_it->second));
+                path_cluster_estimates->back().second.paths.emplace_back(std::move(haplotype_transcript_info_it->second));
             
             } 
 

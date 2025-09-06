@@ -278,7 +278,7 @@ void MinimumPathAbundanceEstimator::estimate(PathClusterEstimates * path_cluster
                 gibbsReadCountSampler(&min_path_cluster_estimates, min_path_read_path_probs, min_path_read_counts, abundance_gibbs_gamma, mt_rng, num_gibbs_samples);
 
                 assert(min_path_cluster_estimates.gibbs_read_count_samples.size() == 1);
-                path_cluster_estimates->gibbs_read_count_samples.emplace_back(move(min_path_cluster_estimates.gibbs_read_count_samples.front()));
+                path_cluster_estimates->gibbs_read_count_samples.emplace_back(std::move(min_path_cluster_estimates.gibbs_read_count_samples.front()));
             }
 
             assert(min_path_cluster_estimates.abundances.size() == min_path_cover.size());
@@ -692,7 +692,7 @@ void NestedPathAbundanceEstimator::inferPathSubsetAbundance(PathClusterEstimates
                 gibbsReadCountSampler(&subset_path_cluster_estimates, subset_read_path_probs, subset_read_counts, abundance_gibbs_gamma, mt_rng, cur_subset_gibbs_samples);
 
                 assert(subset_path_cluster_estimates.gibbs_read_count_samples.size() == 1);
-                path_cluster_estimates->gibbs_read_count_samples.emplace_back(move(subset_path_cluster_estimates.gibbs_read_count_samples.front()));
+                path_cluster_estimates->gibbs_read_count_samples.emplace_back(std::move(subset_path_cluster_estimates.gibbs_read_count_samples.front()));
             }
         }
 
